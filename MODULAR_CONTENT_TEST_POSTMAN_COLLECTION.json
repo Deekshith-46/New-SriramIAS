@@ -1,0 +1,899 @@
+{
+	"info": {
+		"_postman_id": "modular-content-test-system",
+		"name": "Modular Content + Test System API",
+		"description": "Complete API collection for testing the Modular Content + Test System",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:5000/api",
+			"type": "string"
+		},
+		{
+			"key": "admin_token",
+			"value": "YOUR_ADMIN_TOKEN_HERE",
+			"type": "string"
+		},
+		{
+			"key": "student_token",
+			"value": "YOUR_STUDENT_TOKEN_HERE",
+			"type": "string"
+		},
+		{
+			"key": "content_category_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "exam_category_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "paper_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "content_id",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "1. Test Categories",
+			"item": [
+				{
+					"name": "Create CONTENT Category",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "name",
+									"value": "Current Affairs",
+									"type": "text"
+								},
+								{
+									"key": "type",
+									"value": "CONTENT",
+									"type": "text"
+								},
+								{
+									"key": "description",
+									"value": "Monthly current affairs PDFs",
+									"type": "text"
+								},
+								{
+									"key": "image",
+									"type": "file",
+									"src": "/path/to/image.jpg"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/test-categories",
+							"host": ["{{base_url}}"],
+							"path": ["test-categories"]
+						},
+						"description": "Create a CONTENT category for PDF uploads"
+					},
+					"response": []
+				},
+				{
+					"name": "Create EXAM Category",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "name",
+									"value": "Daily Practice Questions",
+									"type": "text"
+								},
+								{
+									"key": "type",
+									"value": "EXAM",
+									"type": "text"
+								},
+								{
+									"key": "description",
+									"value": "Daily practice test papers",
+									"type": "text"
+								},
+								{
+									"key": "image",
+									"type": "file",
+									"src": "/path/to/image.jpg"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/test-categories",
+							"host": ["{{base_url}}"],
+							"path": ["test-categories"]
+						},
+						"description": "Create an EXAM category for test papers"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Categories",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/test-categories",
+							"host": ["{{base_url}}"],
+							"path": ["test-categories"]
+						},
+						"description": "Get all categories (public)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Categories by Type",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/test-categories?type=CONTENT",
+							"host": ["{{base_url}}"],
+							"path": ["test-categories"],
+							"query": [
+								{
+									"key": "type",
+									"value": "CONTENT"
+								}
+							]
+						},
+						"description": "Filter categories by type (CONTENT or EXAM)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Single Category",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/test-categories/:id",
+							"host": ["{{base_url}}"],
+							"path": ["test-categories", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{content_category_id}}"
+								}
+							]
+						},
+						"description": "Get a single category by ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Category",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "name",
+									"value": "Current Affairs 2026",
+									"type": "text"
+								},
+								{
+									"key": "status",
+									"value": "ACTIVE",
+									"type": "text"
+								},
+								{
+									"key": "image",
+									"type": "file",
+									"src": "/path/to/new-image.jpg"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/test-categories/:id",
+							"host": ["{{base_url}}"],
+							"path": ["test-categories", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{content_category_id}}"
+								}
+							]
+						},
+						"description": "Update category details"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Category",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/test-categories/:id",
+							"host": ["{{base_url}}"],
+							"path": ["test-categories", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{content_category_id}}"
+								}
+							]
+						},
+						"description": "Delete a category (admin only)"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "2. Test Content (PDFs)",
+			"item": [
+				{
+					"name": "Upload PDF Content",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "categoryId",
+									"value": "{{content_category_id}}",
+									"type": "text"
+								},
+								{
+									"key": "title",
+									"value": "April Current Affairs 2026",
+									"type": "text"
+								},
+								{
+									"key": "year",
+									"value": "2026",
+									"type": "text"
+								},
+								{
+									"key": "month",
+									"value": "4",
+									"description": "Number: 1-12",
+									"type": "text"
+								},
+								{
+									"key": "description",
+									"value": "Current affairs for April 2026",
+									"type": "text"
+								},
+								{
+									"key": "file",
+									"type": "file",
+									"src": "/path/to/current-affairs.pdf"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/test-contents",
+							"host": ["{{base_url}}"],
+							"path": ["test-contents"]
+						},
+						"description": "Upload PDF content to a CONTENT category"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Contents",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/test-contents",
+							"host": ["{{base_url}}"],
+							"path": ["test-contents"]
+						},
+						"description": "Get all PDF contents (public)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Contents by Category",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/test-contents?categoryId={{content_category_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["test-contents"],
+							"query": [
+								{
+									"key": "categoryId",
+									"value": "{{content_category_id}}"
+								}
+							]
+						},
+						"description": "Filter contents by category"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Contents by Year & Month",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/test-contents?year=2026&month=4",
+							"host": ["{{base_url}}"],
+							"path": ["test-contents"],
+							"query": [
+								{
+									"key": "year",
+									"value": "2026"
+								},
+								{
+									"key": "month",
+									"value": "4"
+								}
+							]
+						},
+						"description": "Filter contents by year and month"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Single Content",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/test-contents/:id",
+							"host": ["{{base_url}}"],
+							"path": ["test-contents", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{content_id}}"
+								}
+							]
+						},
+						"description": "Get single content details with PDF URL"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Content",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "title",
+									"value": "Updated Title",
+									"type": "text"
+								},
+								{
+									"key": "file",
+									"type": "file",
+									"src": "/path/to/new-file.pdf"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/test-contents/:id",
+							"host": ["{{base_url}}"],
+							"path": ["test-contents", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{content_id}}"
+								}
+							]
+						},
+						"description": "Update content details or replace PDF"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Content",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/test-contents/:id",
+							"host": ["{{base_url}}"],
+							"path": ["test-contents", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{content_id}}"
+								}
+							]
+						},
+						"description": "Delete content and PDF file"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "3. Test Papers",
+			"item": [
+				{
+					"name": "Create Test Paper",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"categoryId\": \"{{exam_category_id}}\",\n  \"title\": \"Daily Practice Test 1\",\n  \"mainsCategory\": \"Prelims\",\n  \"year\": 2026,\n  \"month\": 4,\n  \"date\": \"2026-04-20\",\n  \"duration\": 60,\n  \"totalMarks\": 50,\n  \"negativeMarks\": 0.33,\n  \"description\": \"Daily practice test for prelims\",\n  \"status\": \"UPCOMING\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/test-papers",
+							"host": ["{{base_url}}"],
+							"path": ["test-papers"]
+						},
+						"description": "Create a new test paper"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Papers",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/test-papers",
+							"host": ["{{base_url}}"],
+							"path": ["test-papers"]
+						},
+						"description": "Get all test papers (public)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Papers by Category",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/test-papers?categoryId={{exam_category_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["test-papers"],
+							"query": [
+								{
+									"key": "categoryId",
+									"value": "{{exam_category_id}}"
+								}
+							]
+						},
+						"description": "Filter papers by category"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Papers by Year",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/test-papers?year=2026",
+							"host": ["{{base_url}}"],
+							"path": ["test-papers"],
+							"query": [
+								{
+									"key": "year",
+									"value": "2026"
+								}
+							]
+						},
+						"description": "Filter papers by year"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Single Paper with Questions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/test-papers/:id",
+							"host": ["{{base_url}}"],
+							"path": ["test-papers", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{paper_id}}"
+								}
+							]
+						},
+						"description": "Get paper details with all questions (without answers)"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Paper",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Updated Test Title\",\n  \"status\": \"LIVE\",\n  \"duration\": 90\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/test-papers/:id",
+							"host": ["{{base_url}}"],
+							"path": ["test-papers", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{paper_id}}"
+								}
+							]
+						},
+						"description": "Update paper details"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Paper",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/test-papers/:id",
+							"host": ["{{base_url}}"],
+							"path": ["test-papers", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{paper_id}}"
+								}
+							]
+						},
+						"description": "Delete paper, all questions, and all attempts"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "4. Test Questions",
+			"item": [
+				{
+					"name": "Create Single Question",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"paperId\": \"{{paper_id}}\",\n  \"questionNumber\": 1,\n  \"question\": \"What is the capital of India?\",\n  \"options\": [\"New Delhi\", \"Mumbai\", \"Hyderabad\", \"Pune\"],\n  \"correctAnswer\": 0,\n  \"explanation\": \"New Delhi is the capital of India\",\n  \"marks\": 1\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/test-questions",
+							"host": ["{{base_url}}"],
+							"path": ["test-questions"]
+						},
+						"description": "Create a single question for a test paper"
+					},
+					"response": []
+				},
+				{
+					"name": "Bulk Upload Questions",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"paperId\": \"{{paper_id}}\",\n  \"questions\": [\n    {\n      \"questionNumber\": 1,\n      \"question\": \"What is the capital of India?\",\n      \"options\": [\"New Delhi\", \"Mumbai\", \"Hyderabad\", \"Pune\"],\n      \"correctAnswer\": 0,\n      \"explanation\": \"New Delhi is the capital of India\",\n      \"marks\": 1\n    },\n    {\n      \"questionNumber\": 2,\n      \"question\": \"Which river is the longest in India?\",\n      \"options\": [\"Yamuna\", \"Ganga\", \"Godavari\", \"Brahmaputra\"],\n      \"correctAnswer\": 1,\n      \"explanation\": \"Ganga is the longest river in India\",\n      \"marks\": 1\n    },\n    {\n      \"questionNumber\": 3,\n      \"question\": \"Who wrote the Indian Constitution?\",\n      \"options\": [\"Gandhi\", \"Nehru\", \"Ambedkar\", \"Patel\"],\n      \"correctAnswer\": 2,\n      \"explanation\": \"Dr. B.R. Ambedkar was the chief architect\",\n      \"marks\": 1\n    },\n    {\n      \"questionNumber\": 4,\n      \"question\": \"What is the currency of India?\",\n      \"options\": [\"Dollar\", \"Euro\", \"Rupee\", \"Yen\"],\n      \"correctAnswer\": 2,\n      \"explanation\": \"Indian Rupee (INR) is the currency\",\n      \"marks\": 1\n    },\n    {\n      \"questionNumber\": 5,\n      \"question\": \"When did India get independence?\",\n      \"options\": [\"1945\", \"1947\", \"1950\", \"1952\"],\n      \"correctAnswer\": 1,\n      \"explanation\": \"India got independence on August 15, 1947\",\n      \"marks\": 1\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/test-questions/bulk",
+							"host": ["{{base_url}}"],
+							"path": ["test-questions", "bulk"]
+						},
+						"description": "Bulk upload questions to a test paper"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Questions by Paper (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/test-questions/paper/:paperId",
+							"host": ["{{base_url}}"],
+							"path": ["test-questions", "paper", ":paperId"],
+							"variable": [
+								{
+									"key": "paperId",
+									"value": "{{paper_id}}"
+								}
+							]
+						},
+						"description": "Get all questions with correct answers (admin only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Question",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"question\": \"Updated question text\",\n  \"correctAnswer\": 1,\n  \"explanation\": \"Updated explanation\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/test-questions/:id",
+							"host": ["{{base_url}}"],
+							"path": ["test-questions", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "QUESTION_ID_HERE"
+								}
+							]
+						},
+						"description": "Update a single question"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Question",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/test-questions/:id",
+							"host": ["{{base_url}}"],
+							"path": ["test-questions", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "QUESTION_ID_HERE"
+								}
+							]
+						},
+						"description": "Delete a single question"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "5. Test Attempts & Results",
+			"item": [
+				{
+					"name": "Submit Test Attempt",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{student_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"paperId\": \"{{paper_id}}\",\n  \"timeTaken\": 1800,\n  \"answers\": [\n    {\n      \"questionId\": \"QUESTION_1_ID\",\n      \"selectedOption\": 0\n    },\n    {\n      \"questionId\": \"QUESTION_2_ID\",\n      \"selectedOption\": 1\n    },\n    {\n      \"questionId\": \"QUESTION_3_ID\",\n      \"selectedOption\": 2\n    },\n    {\n      \"questionId\": \"QUESTION_4_ID\",\n      \"selectedOption\": 2\n    },\n    {\n      \"questionId\": \"QUESTION_5_ID\",\n      \"selectedOption\": 1\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/test-attempts",
+							"host": ["{{base_url}}"],
+							"path": ["test-attempts"]
+						},
+						"description": "Submit test answers (student only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Test Result",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{student_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/test-attempts/result/:paperId",
+							"host": ["{{base_url}}"],
+							"path": ["test-attempts", "result", ":paperId"],
+							"variable": [
+								{
+									"key": "paperId",
+									"value": "{{paper_id}}"
+								}
+							]
+						},
+						"description": "Get test result with score and rank"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Top Performers (Leaderboard)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/test-attempts/top-performers/:paperId?limit=10",
+							"host": ["{{base_url}}"],
+							"path": ["test-attempts", "top-performers", ":paperId"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							],
+							"variable": [
+								{
+									"key": "paperId",
+									"value": "{{paper_id}}"
+								}
+							]
+						},
+						"description": "Get leaderboard for a test paper (public)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get My All Attempts",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{student_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/test-attempts/my-attempts",
+							"host": ["{{base_url}}"],
+							"path": ["test-attempts", "my-attempts"]
+						},
+						"description": "Get all test attempts by logged-in student"
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

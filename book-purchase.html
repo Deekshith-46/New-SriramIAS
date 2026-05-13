@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Purchase - Sriram IAS (Books & Courses)</title>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #1b1a1b 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .setup-panel {
+      max-width: 900px;
+      margin: 0 auto 20px;
+      background: white;
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+
+    .setup-panel h2 {
+      color: #333;
+      margin-bottom: 20px;
+      font-size: 24px;
+    }
+
+    .input-group {
+      margin-bottom: 15px;
+    }
+
+    .input-group label {
+      display: block;
+      margin-bottom: 5px;
+      color: #555;
+      font-weight: 600;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+    }
+
+    .input-group input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .input-group select {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      background: white;
+      transition: border-color 0.3s;
+    }
+
+    .input-group select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .btn-load {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .btn-load:hover {
+      transform: translateY(-2px);
+    }
+
+    .container {
+      max-width: 900px;
+      margin: auto;
+      display: none;
+      gap: 30px;
+      background: white;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+
+    .book-img {
+      width: 250px;
+      height: 350px;
+      object-fit: cover;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .details {
+      flex: 1;
+    }
+
+    .details h2 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+
+    .author {
+      color: #666;
+      margin-bottom: 15px;
+      font-size: 16px;
+    }
+
+    .subjects {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .subject-tag {
+      background: #f0f0f0;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      color: #555;
+    }
+
+    .price-section {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+
+    .price {
+      font-size: 32px;
+      font-weight: bold;
+      color: #333;
+      margin: 10px 0;
+    }
+
+    .old-price {
+      text-decoration: line-through;
+      color: #999;
+      margin-right: 15px;
+      font-size: 20px;
+    }
+
+    .discount-badge {
+      background: #4caf50;
+      color: white;
+      padding: 5px 12px;
+      border-radius: 5px;
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    .coupon-section {
+      margin-bottom: 20px;
+    }
+
+    .coupon-input-wrapper {
+      display: flex;
+      gap: 10px;
+    }
+
+    .coupon-input-wrapper input {
+      flex: 1;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .btn-apply {
+      padding: 12px 24px;
+      background: #2196f3;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.3s;
+    }
+
+    .btn-apply:hover {
+      background: #1976d2;
+    }
+
+    .coupon-msg {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+
+    .coupon-msg.success {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .coupon-msg.error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .summary {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      line-height: 1.6;
+      color: #555;
+    }
+
+    .price-breakdown {
+      background: #fff3cd;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .price-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .price-row.total {
+      border-top: 2px solid #333;
+      padding-top: 10px;
+      margin-top: 10px;
+      font-size: 18px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .btn-pay {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(45deg, #4caf50, #45a049);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s;
+      box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+    }
+
+    .btn-pay:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn-pay:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+    }
+
+    .error-msg {
+      background: #f8d7da;
+      color: #721c24;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 10px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .address-section {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+
+    .address-section .input-group {
+      margin-bottom: 12px;
+    }
+
+    .address-section .input-group label {
+      font-size: 13px;
+      color: #555;
+    }
+
+    .address-section .input-group input {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    .address-section .input-group input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .address-section .input-group input:invalid {
+      border-color: #f44336;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        flex-direction: column;
+      }
+      
+      .book-img {
+        width: 100%;
+        height: 300px;
+      }
+
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- SETUP PANEL -->
+  <div class="setup-panel">
+    <h2>🔐 Setup Credentials</h2>
+    
+    <div class="input-group">
+      <label>Student Token (JWT)</label>
+      <input type="text" id="tokenInput" placeholder="Enter your authentication token">
+    </div>
+
+    <div class="input-group">
+      <label>Purchase Type</label>
+      <select id="purchaseType" onchange="handlePurchaseTypeChange()">
+        <option value="BOOK">BOOK</option>
+        <option value="COURSE">COURSE</option>
+      </select>
+    </div>
+
+    <div class="input-group">
+      <label id="itemIdLabel">Book ID</label>
+      <input type="text" id="itemIdInput" placeholder="Enter Book ID">
+    </div>
+
+    <div class="input-group" id="courseModeWrapper" style="display:none;">
+      <label>Course Mode</label>
+      <select id="courseMode">
+        <option value="online">ONLINE</option>
+        <option value="offline">OFFLINE</option>
+      </select>
+    </div>
+
+    <button class="btn-load" onclick="loadItem()">📚 Load Details</button>
+    <div id="setupError"></div>
+  </div>
+
+  <!-- BOOK PURCHASE CONTAINER -->
+  <div class="container" id="bookContainer">
+    
+    <!-- BOOK IMAGE -->
+    <img id="bookImage" src="" class="book-img" alt="Book Cover">
+
+    <!-- BOOK DETAILS -->
+    <div class="details">
+      <h2 id="bookTitle">Loading...</h2>
+      <p class="author" id="bookAuthor"></p>
+      
+      <div class="subjects" id="bookSubjects"></div>
+
+      <!-- PRICE SECTION -->
+      <div class="price-section">
+        <div>
+          <span class="old-price" id="oldPrice"></span>
+          <span class="discount-badge" id="discountBadge"></span>
+        </div>
+        <div class="price" id="finalPrice"></div>
+      </div>
+
+      <!-- COUPON SECTION -->
+      <div class="coupon-section">
+        <label style="font-weight: 600; margin-bottom: 8px; display: block;">🎫 Apply Coupon</label>
+        <div class="coupon-input-wrapper">
+          <input type="text" id="couponInput" placeholder="Enter coupon code (e.g., BOOK10)">
+          <button class="btn-apply" onclick="applyCoupon()">Apply</button>
+        </div>
+        <div id="couponMsg"></div>
+      </div>
+
+      <!-- PRICE BREAKDOWN -->
+      <div class="price-breakdown" id="priceBreakdown" style="display: none;">
+        <div class="price-row">
+          <span>Original Price:</span>
+          <span id="breakdownOriginal"></span>
+        </div>
+        <div class="price-row" id="discountRow" style="display: none;">
+          <span>Discount:</span>
+          <span id="breakdownDiscount" style="color: #4caf50;"></span>
+        </div>
+        <div class="price-row total">
+          <span>Final Amount:</span>
+          <span id="breakdownFinal"></span>
+        </div>
+      </div>
+
+      <!-- DELIVERY ADDRESS FORM -->
+      <div class="address-section" id="addressSection">
+        <h3 style="margin-bottom: 15px; color: #333;">📍 Delivery Address</h3>
+        
+        <div class="input-group">
+          <label>Full Name *</label>
+          <input type="text" id="fullName" placeholder="Enter your full name" required>
+        </div>
+
+        <div class="input-group">
+          <label>Mobile Number *</label>
+          <input type="tel" id="mobile" placeholder="10-digit mobile number" pattern="[6-9]{1}[0-9]{9}" maxlength="10" required>
+        </div>
+
+        <div class="input-group">
+          <label>Address Line *</label>
+          <input type="text" id="addressLine" placeholder="House/Flat No., Street, Locality" required>
+        </div>
+
+        <div class="form-row">
+          <div class="input-group">
+            <label>City *</label>
+            <input type="text" id="city" placeholder="City" required>
+          </div>
+          <div class="input-group">
+            <label>State *</label>
+            <input type="text" id="state" placeholder="State" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="input-group">
+            <label>Pincode *</label>
+            <input type="text" id="pincode" placeholder="6-digit pincode" pattern="[0-9]{6}" maxlength="6" required>
+          </div>
+          <div class="input-group">
+            <label>Landmark (Optional)</label>
+            <input type="text" id="landmark" placeholder="Near...">
+          </div>
+        </div>
+      </div>
+
+      <!-- SUMMARY -->
+      <div class="summary" id="bookSummary"></div>
+
+      <!-- PAYMENT BUTTON -->
+      <button class="btn-pay" id="payBtn" onclick="validateAndPay()">💳 Proceed To Payment</button>
+    </div>
+
+  </div>
+
+<script>
+  const API_BASE = "http://localhost:5000/api";
+  
+  let itemData = null;
+  let originalPrice = 0;
+  let finalAmount = 0;
+  let appliedCoupon = null;
+  let studentToken = "";
+  let itemId = "";
+  let purchaseType = "BOOK";
+
+  // 🔷 HANDLE PURCHASE TYPE CHANGE
+  function handlePurchaseTypeChange() {
+    purchaseType = document.getElementById("purchaseType").value;
+    
+    const label = document.getElementById("itemIdLabel");
+    const modeWrapper = document.getElementById("courseModeWrapper");
+    const addressSection = document.getElementById("addressSection");
+    const itemInput = document.getElementById("itemIdInput");
+
+    if (purchaseType === "BOOK") {
+      label.textContent = "Book ID";
+      itemInput.placeholder = "Enter Book ID";
+      modeWrapper.style.display = "none";
+      addressSection.style.display = "block";
+    } else {
+      label.textContent = "Course ID";
+      itemInput.placeholder = "Enter Course ID";
+      modeWrapper.style.display = "block";
+      addressSection.style.display = "none";
+    }
+  }
+
+  // 🔷 COMMON LOADER
+  async function loadItem() {
+    if (purchaseType === "BOOK") {
+      await loadBook();
+    } else {
+      await loadCourse();
+    }
+  }
+
+  // 🔷 LOAD BOOK DETAILS
+  async function loadBook() {
+    studentToken = document.getElementById("tokenInput").value.trim();
+    itemId = document.getElementById("itemIdInput").value.trim();
+    purchaseType = document.getElementById("purchaseType").value;
+
+    if (!studentToken || !itemId) {
+      showError("Please enter both Token and Book ID");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/books/${itemId}`, {
+        method: "GET",
+        headers: {
+          "Authorization": "Bearer " + studentToken
+        }
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        showError(data.message || "Failed to load book");
+        return;
+      }
+
+      itemData = data.data;
+      displayBook(itemData);
+      
+      // Hide setup panel, show book container
+      document.querySelector(".setup-panel").style.display = "none";
+      document.getElementById("bookContainer").style.display = "flex";
+
+    } catch (error) {
+      showError("Network error: " + error.message);
+    }
+  }
+
+  // 🔷 DISPLAY BOOK
+  function displayBook(book) {
+    document.getElementById("bookTitle").textContent = book.title;
+    document.getElementById("bookAuthor").textContent = "By: " + book.authorNames.join(", ");
+    document.getElementById("bookSummary").textContent = book.summary;
+    
+    // Image
+    if (book.image && book.image.url) {
+      document.getElementById("bookImage").src = book.image.url;
+    }
+
+    // Subjects
+    const subjectsContainer = document.getElementById("bookSubjects");
+    subjectsContainer.innerHTML = "";
+    if (book.subjects) {
+      book.subjects.forEach(subject => {
+        const tag = document.createElement("span");
+        tag.className = "subject-tag";
+        tag.textContent = subject;
+        subjectsContainer.appendChild(tag);
+      });
+    }
+
+    // Price
+    originalPrice = book.discountedPrice;
+    finalAmount = book.discountedPrice;
+    
+    document.getElementById("oldPrice").textContent = "₹" + book.fullPrice;
+    document.getElementById("finalPrice").textContent = "₹" + book.discountedPrice;
+    document.getElementById("discountBadge").textContent = book.discountPercent + "% OFF";
+
+    // Price breakdown
+    document.getElementById("priceBreakdown").style.display = "block";
+    document.getElementById("breakdownOriginal").textContent = "₹" + book.fullPrice;
+    document.getElementById("breakdownFinal").textContent = "₹" + book.discountedPrice;
+  }
+
+  // 🔷 LOAD COURSE DETAILS
+  async function loadCourse() {
+    studentToken = document.getElementById("tokenInput").value.trim();
+    itemId = document.getElementById("itemIdInput").value.trim();
+    purchaseType = document.getElementById("purchaseType").value;
+
+    if (!studentToken || !itemId) {
+      showError("Please enter both Token and Course ID");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/courses/${itemId}`, {
+        method: "GET",
+        headers: {
+          "Authorization": "Bearer " + studentToken
+        }
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        showError(data.message || "Failed to load course");
+        return;
+      }
+
+      itemData = data.data;
+      displayCourse(itemData);
+      
+      // Hide setup panel, show book container
+      document.querySelector(".setup-panel").style.display = "none";
+      document.getElementById("bookContainer").style.display = "flex";
+
+    } catch (error) {
+      showError("Network error: " + error.message);
+    }
+  }
+
+  // 🔷 DISPLAY COURSE
+  function displayCourse(course) {
+    document.getElementById("bookTitle").textContent = course.title;
+    document.getElementById("bookAuthor").textContent = course.category?.name || "";
+    document.getElementById("bookSummary").textContent = course.description || "";
+    
+    // Image
+    if (course.bannerImage && course.bannerImage.url) {
+      document.getElementById("bookImage").src = course.bannerImage.url;
+    }
+
+    // Course mode tag
+    const mode = document.getElementById("courseMode").value;
+    const subjectsContainer = document.getElementById("bookSubjects");
+    subjectsContainer.innerHTML = "";
+    const tag = document.createElement("span");
+    tag.className = "subject-tag";
+    tag.textContent = mode.toUpperCase() + " MODE";
+    subjectsContainer.appendChild(tag);
+
+    // Price based on mode
+    const fees = course.fees?.[mode];
+    originalPrice = fees.discountedPrice;
+    finalAmount = fees.discountedPrice;
+    
+    document.getElementById("oldPrice").textContent = "₹" + fees.actualPrice;
+    document.getElementById("finalPrice").textContent = "₹" + fees.discountedPrice;
+    document.getElementById("discountBadge").textContent = fees.discountPercent + "% OFF";
+
+    // Price breakdown
+    document.getElementById("priceBreakdown").style.display = "block";
+    document.getElementById("breakdownOriginal").textContent = "₹" + fees.actualPrice;
+    document.getElementById("breakdownFinal").textContent = "₹" + fees.discountedPrice;
+  }
+
+  // 🔷 APPLY COUPON
+  async function applyCoupon() {
+    const code = document.getElementById("couponInput").value.trim().toUpperCase();
+
+    if (!code) {
+      showCouponMessage("Please enter a coupon code", "error");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/coupons/apply`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + studentToken
+        },
+        body: JSON.stringify({
+          code,
+          category: purchaseType,
+          amount: originalPrice,
+          purchaseType: purchaseType
+        })
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        finalAmount = data.data.finalPrice;
+        appliedCoupon = code;
+
+        // Update UI
+        document.getElementById("finalPrice").textContent = "₹" + finalAmount;
+        document.getElementById("discountRow").style.display = "flex";
+        document.getElementById("breakdownDiscount").textContent = "-₹" + data.data.discount;
+        document.getElementById("breakdownFinal").textContent = "₹" + finalAmount;
+
+        showCouponMessage("✅ Coupon Applied! You saved ₹" + data.data.discount, "success");
+      } else {
+        showCouponMessage(data.message, "error");
+      }
+
+    } catch (error) {
+      showCouponMessage("Error applying coupon: " + error.message, "error");
+    }
+  }
+
+  // 🔷 VALIDATE AND PAY
+  function validateAndPay() {
+    // For BOOK purchases, validate address
+    if (purchaseType === "BOOK") {
+      const fullName = document.getElementById("fullName").value.trim();
+      const mobile = document.getElementById("mobile").value.trim();
+      const addressLine = document.getElementById("addressLine").value.trim();
+      const city = document.getElementById("city").value.trim();
+      const state = document.getElementById("state").value.trim();
+      const pincode = document.getElementById("pincode").value.trim();
+      const landmark = document.getElementById("landmark").value.trim();
+
+      // Validation
+      if (!fullName) {
+        alert("Please enter your full name");
+        return;
+      }
+
+      if (!mobile || !/^[6-9][0-9]{9}$/.test(mobile)) {
+        alert("Please enter a valid 10-digit mobile number");
+        return;
+      }
+
+      if (!addressLine) {
+        alert("Please enter your address");
+        return;
+      }
+
+      if (!city) {
+        alert("Please enter your city");
+        return;
+      }
+
+      if (!state) {
+        alert("Please enter your state");
+        return;
+      }
+
+      if (!pincode || !/^[0-9]{6}$/.test(pincode)) {
+        alert("Please enter a valid 6-digit pincode");
+        return;
+      }
+
+      // All validations passed, proceed to payment
+      payNow({
+        fullName,
+        mobile,
+        addressLine,
+        city,
+        state,
+        pincode,
+        landmark
+      });
+    } else {
+      // For COURSE purchases, no address needed
+      payNow(null);
+    }
+  }
+
+  // 🔷 PAYMENT
+  async function payNow(address) {
+    const payBtn = document.getElementById("payBtn");
+    payBtn.disabled = true;
+    payBtn.textContent = "Processing...";
+
+    try {
+      let orderEndpoint;
+      let requestBody;
+
+      if (purchaseType === "BOOK") {
+        // Book payment
+        orderEndpoint = `${API_BASE}/payments/book/create-order`;
+        requestBody = {
+          bookId: itemId,
+          quantity: 1,
+          couponCode: appliedCoupon,
+          shippingAddress: address
+        };
+      } else {
+        // Course payment
+        const mode = document.getElementById("courseMode").value;
+        orderEndpoint = `${API_BASE}/payments/course/create-order`;
+        requestBody = {
+          courseId: itemId,
+          mode: mode,
+          couponCode: appliedCoupon
+        };
+      }
+
+      // Create Razorpay Order
+      const res = await fetch(orderEndpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + studentToken
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      const order = await res.json();
+
+      if (!order.success) {
+        alert("Error: " + order.message);
+        payBtn.disabled = false;
+        payBtn.textContent = "💳 Proceed To Payment";
+        return;
+      }
+
+      // Open Razorpay
+      const options = {
+        key: "rzp_test_RPLRzNCjuNmGdU", // Your test key
+        amount: order.data.amountInPaise || order.data.amount * 100,
+        currency: "INR",
+        name: "Sriram IAS",
+        description: purchaseType === "BOOK" ? "Book Purchase" : "Course Enrollment",
+        order_id: order.data.orderId || order.data.razorpayOrderId,
+        handler: async function (response) {
+          await verifyPayment(response, address);
+        },
+        prefill: {
+          name: "Student",
+          email: "student@example.com"
+        },
+        theme: {
+          color: "#667eea"
+        }
+      };
+
+      const rzp = new Razorpay(options);
+      rzp.open();
+
+    } catch (error) {
+      alert("Payment error: " + error.message);
+    } finally {
+      payBtn.disabled = false;
+      payBtn.textContent = "💳 Proceed To Payment";
+    }
+  }
+
+  // 🔷 VERIFY PAYMENT
+  async function verifyPayment(razorpayResponse, address) {
+    try {
+      let verifyEndpoint;
+      let requestBody;
+
+      if (purchaseType === "BOOK") {
+        // Book payment verification
+        verifyEndpoint = `${API_BASE}/payments/book/verify`;
+        requestBody = {
+          razorpay_order_id: razorpayResponse.razorpay_order_id,
+          razorpay_payment_id: razorpayResponse.razorpay_payment_id,
+          razorpay_signature: razorpayResponse.razorpay_signature,
+          bookId: itemId,
+          quantity: 1,
+          couponCode: appliedCoupon,
+          shippingAddress: address
+        };
+      } else {
+        // Course payment verification
+        const mode = document.getElementById("courseMode").value;
+        verifyEndpoint = `${API_BASE}/payments/course/verify`;
+        requestBody = {
+          razorpay_order_id: razorpayResponse.razorpay_order_id,
+          razorpay_payment_id: razorpayResponse.razorpay_payment_id,
+          razorpay_signature: razorpayResponse.razorpay_signature,
+          courseId: itemId,
+          mode: mode,
+          couponCode: appliedCoupon
+        };
+      }
+
+      const res = await fetch(verifyEndpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + studentToken
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        const purchaseLabel = purchaseType === "BOOK" ? "Book Order" : "Course Enrollment";
+        alert("✅ Payment Successful!\n" + purchaseLabel + " ID: " + data.data._id);
+        // Optional: Redirect to order success page
+        // window.location.href = `/order-success.html?orderId=${data.data._id}`;
+      } else {
+        alert("Payment verification failed: " + data.message);
+      }
+
+    } catch (error) {
+      alert("Verification error: " + error.message);
+    }
+  }
+
+  // 🔷 HELPER FUNCTIONS
+  function showCouponMessage(message, type) {
+    const msgDiv = document.getElementById("couponMsg");
+    msgDiv.textContent = message;
+    msgDiv.className = "coupon-msg " + type;
+  }
+
+  function showError(message) {
+    const errorDiv = document.getElementById("setupError");
+    errorDiv.innerHTML = `<div class="error-msg">❌ ${message}</div>`;
+  }
+</script>
+
+</body>
+</html>

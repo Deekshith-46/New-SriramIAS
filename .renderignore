@@ -1,0 +1,13 @@
+node_modules/
+.env
+.DS_Store
+*.log
+uploads/
+.vscode/
+.idea/
+.qoder/
+*.md
+!README.md
+postman_collection.json
+scripts/
+test-*.js
