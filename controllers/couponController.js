@@ -9,7 +9,7 @@ const cloudinary = require('../config/cloudinary');
 // @access  Private
 exports.applyCoupon = async (req, res) => {
    try {
-      const { couponCode, cartAmount, quantity, categoryId } = req.body;
+      const { couponCode, cartAmount, quantity, categoryId, purchaseType } = req.body;
 
       if (!couponCode || !cartAmount) {
          return res.status(400).json({
@@ -55,9 +55,41 @@ exports.applyCoupon = async (req, res) => {
          });
       }
 
-      // Check category match
-      if (coupon.categoryId) {
-         if (!categoryId || categoryId !== coupon.categoryId.toString()) {
+      // CHECK APPLICABLE FOR (COURSE, BOOK, or BOTH)
+      if (coupon.applicableFor === 'COURSE' && purchaseType !== 'COURSE') {
+         return res.status(400).json({
+            success: false,
+            message: 'This coupon is only applicable for courses'
+         });
+      }
+
+      if (coupon.applicableFor === 'BOOK' && purchaseType !== 'BOOK') {
+         return res.status(400).json({
+            success: false,
+            message: 'This coupon is only applicable for books'
+         });
+      }
+
+      // For COURSE coupons, categoryId is REQUIRED and must match
+      if (coupon.applicableFor === 'COURSE') {
+         if (!coupon.categoryId) {
+            return res.status(400).json({
+               success: false,
+               message: 'Invalid coupon configuration: Course coupons require a category'
+            });
+         }
+         
+         if (!categoryId || categoryId.toString() !== coupon.categoryId._id.toString()) {
+            return res.status(400).json({
+               success: false,
+               message: `This coupon is only applicable for ${coupon.categoryId.name} category`
+            });
+         }
+      }
+
+      // For BOTH coupons with categoryId, it must match if provided
+      if (coupon.applicableFor === 'BOTH' && coupon.categoryId && purchaseType === 'COURSE') {
+         if (!categoryId || categoryId.toString() !== coupon.categoryId._id.toString()) {
             return res.status(400).json({
                success: false,
                message: `This coupon is only applicable for ${coupon.categoryId.name} category`
@@ -126,9 +158,9 @@ exports.applyCoupon = async (req, res) => {
             couponName: coupon.couponName,
             couponCode: coupon.couponCode,
             discountType: coupon.type,
-            discount: Math.round(discount),
+            discountAmount: Math.round(discount),
             originalPrice: Math.round(originalPrice),
-            finalPrice: Math.round(finalPrice),
+            finalAmount: Math.round(finalPrice),
             status: displayStatus
          }
       });
@@ -154,6 +186,7 @@ exports.createCoupon = async (req, res) => {
          type,
          value,
          categoryId,
+         applicableFor,
          validFrom,
          validTill,
          totalUsersLimit,
@@ -215,6 +248,7 @@ exports.createCoupon = async (req, res) => {
          type,
          value: parseFloat(value),
          categoryId: categoryId || null,
+         applicableFor: applicableFor || 'BOTH',
          backgroundImage,
          validFrom: new Date(validFrom),
          validTill: new Date(validTill),
@@ -427,6 +461,7 @@ exports.updateCoupon = async (req, res) => {
          type,
          value,
          categoryId,
+         applicableFor,
          validFrom,
          validTill,
          totalUsersLimit,
@@ -486,6 +521,7 @@ exports.updateCoupon = async (req, res) => {
       if (couponName) coupon.couponName = couponName;
       if (type) coupon.type = type;
       if (value !== undefined) coupon.value = parseFloat(value);
+      if (applicableFor) coupon.applicableFor = applicableFor;
       if (validFrom) coupon.validFrom = new Date(validFrom);
       if (validTill) coupon.validTill = new Date(validTill);
       if (totalUsersLimit !== undefined) coupon.totalUsersLimit = parseInt(totalUsersLimit) || null;
@@ -512,7 +548,7 @@ exports.updateCoupon = async (req, res) => {
    }
 };
 
-// @desc    Delete coupon (soft delete)
+// @desc    Delete coupon (hard delete - permanently removes from database)
 // @route   DELETE /api/coupons/:id
 // @access  Private (Super Admin & Admin)
 exports.deleteCoupon = async (req, res) => {
@@ -526,13 +562,17 @@ exports.deleteCoupon = async (req, res) => {
          });
       }
 
-      // Soft delete
-      coupon.isDeleted = true;
-      await coupon.save();
+      // Delete image from Cloudinary if exists
+      if (coupon.backgroundImage && coupon.backgroundImage.public_id) {
+         await cloudinary.uploader.destroy(coupon.backgroundImage.public_id);
+      }
+
+      // Hard delete - permanently remove from database
+      await Coupon.findByIdAndDelete(req.params.id);
 
       res.json({
          success: true,
-         message: 'Coupon deleted successfully'
+         message: 'Coupon permanently deleted'
       });
 
    } catch (error) {

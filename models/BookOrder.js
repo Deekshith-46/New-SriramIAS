@@ -63,8 +63,7 @@ const BookOrderSchema = new mongoose.Schema({
          'CANCELLED',
          'RETURNED'
       ],
-      default: 'PLACED',
-      index: true
+      default: 'PLACED'
    },
 
    // Razorpay Details

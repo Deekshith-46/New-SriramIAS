@@ -731,10 +731,21 @@ module.exports = router;
 
 ## 4. Step-by-Step API Testing
 
-### Prerequisites
+> **📋 How to Use This Guide:**
+> 1. Follow tests in order (Test 1 → Test 14)
+> 2. Replace placeholder IDs with actual IDs from your database
+> 3. Use Postman, Thunder Client, or curl for testing
+> 4. Check off each test as you complete it
 
-**Step 1: Get Student Authentication Token**
+---
 
+### 📌 PREREQUISITES (Do This First)
+
+#### ✅ Step 1: Get Student Authentication Token
+
+**Purpose:** All payment APIs require student authentication.
+
+**Request:**
 ```bash
 POST http://localhost:5000/api/auth/login
 Content-Type: application/json
@@ -748,81 +759,251 @@ Content-Type: application/json
 }
 ```
 
-**Response:**
+**Expected Response (200):**
 ```json
 {
    "success": true,
-   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+   "user": {
+      "_id": "USER_ID_HERE",
+      "name": "Test Student",
+      "email": "student@example.com",
+      "role": "student"
+   }
 }
 ```
 
-**Save this token** - You'll need it for all payment requests.
+**⚠️ Action Required:** Copy the `token` value. You'll use it in all subsequent requests as:
+```
+Authorization: Bearer YOUR_TOKEN_HERE
+```
 
 ---
 
-**Step 2: Get Course ID (For Course Testing)**
+#### ✅ Step 2: Get Course ID (For Course Payment Testing)
 
+**Request:**
 ```bash
 GET http://localhost:5000/api/courses
 ```
 
-Save a course `_id` from the response.
+**Expected Response (200):**
+```json
+{
+   "success": true,
+   "count": 5,
+   "data": [
+      {
+         "_id": "COURSE_ID_1",
+         "title": "UPSC GS Foundation Batch",
+         "slug": "upsc-gs-foundation-2026",
+         "category": "UPSC",
+         "fees": {
+            "online": {
+               "actualPrice": 150000,
+               "discountedPrice": 120000,
+               "discountPercent": 20
+            },
+            "offline": {
+               "actualPrice": 200000,
+               "discountedPrice": 160000,
+               "discountPercent": 20
+            }
+         }
+      }
+   ]
+}
+```
+
+**⚠️ Action Required:** Copy one course `_id` (e.g., `COURSE_ID_1`) for course payment tests.
 
 ---
 
-**Step 3: Get Book ID (For Book Testing)**
+#### ✅ Step 3: Get Book ID (For Book Payment Testing)
 
+**Request:**
 ```bash
 GET http://localhost:5000/api/books
 ```
 
-Save a book `_id` from the response.
+**Expected Response (200):**
+```json
+{
+   "success": true,
+   "count": 3,
+   "data": [
+      {
+         "_id": "BOOK_ID_1",
+         "title": "Indian Polity",
+         "authorNames": ["M. Laxmikanth"],
+         "fullPrice": 1200,
+         "discountedPrice": 900,
+         "discountPercent": 25,
+         "image": {
+            "url": "https://res.cloudinary.com/.../book.jpg"
+         }
+      }
+   ]
+}
+```
+
+**⚠️ Action Required:** Copy one book `_id` (e.g., `BOOK_ID_1`) for book payment tests.
 
 ---
 
-**Step 4: Create Coupons (Optional)**
+#### ✅ Step 4: Create Test Coupons (Optional but Recommended)
+
+**Note:** Use admin authentication for these requests.
+
+**⚠️ IMPORTANT: Coupon Validation Rules**
+
+| applicableFor | categoryId Required? | Behavior |
+|--------------|---------------------|----------|
+| `COURSE` | **YES** (Mandatory) | Valid ONLY for courses in that specific category |
+| `BOOK` | **NO** (Not used) | Valid for ALL books |
+| `BOTH` | Optional | If provided: valid for specific category + all books. If null: valid for all courses + all books |
+
+---
+
+**A. Create Course-Only Coupon (Category-Specific):**
+
+This coupon will ONLY work for courses in the "GS Foundation" category.
 
 ```bash
 POST http://localhost:5000/api/coupons
-Authorization: Bearer ADMIN_TOKEN
+Authorization: Bearer YOUR_ADMIN_TOKEN
 Content-Type: multipart/form-data
 ```
 
 **Form Data:**
 ```
-couponName: "Course Discount"
-couponCode: "COURSE500"
+couponName: GS Foundation Discount
+couponCode: GS500
 type: FLAT
 value: 500
 applicableFor: COURSE
+categoryId: CATEGORY_ID_OF_GS_FOUNDATION
 validFrom: 2026-01-01
 validTill: 2027-12-31
 minimumCartValue: 1000
 usageLimitPerCustomer: 1
 ```
 
-**Create Book Coupon:**
-```
-couponCode: "BOOK200"
-applicableFor: BOOK
-type: FLAT
-value: 200
+**⚠️ Note:** `categoryId` is **REQUIRED** when `applicableFor: COURSE`. Without it, the coupon will be rejected.
+
+**How to get categoryId:**
+```bash
+GET http://localhost:5000/api/categories
+Authorization: Bearer YOUR_ADMIN_TOKEN
 ```
 
-**Create Universal Coupon:**
+Save the `_id` of the category you want (e.g., "GS Foundation").
+
+---
+
+**B. Create Book-Only Coupon (All Books):**
+
+This coupon will work for ALL books (no category restriction).
+
 ```
-couponCode: "NEWUSER10"
-applicableFor: BOTH
+couponName: Book Discount
+couponCode: BOOK200
+type: FLAT
+value: 200
+applicableFor: BOOK
+validFrom: 2026-01-01
+validTill: 2027-12-31
+minimumCartValue: 500
+usageLimitPerCustomer: 2
+```
+
+**⚠️ Note:** DO NOT include `categoryId` for book coupons. It will be ignored.
+
+---
+
+**C. Create Universal Coupon (Works for Both):**
+
+**Option 1: Universal - All Courses + All Books**
+```
+couponName: New User Discount
+couponCode: NEWUSER10
 type: PERCENTAGE
 value: 10
+applicableFor: BOTH
+validFrom: 2026-01-01
+validTill: 2027-12-31
+minimumCartValue: 100
+usageLimitPerCustomer: 1
+```
+*(No categoryId = valid for everything)*
+
+**Option 2: Specific Category + All Books**
+```
+couponName: GS Foundation + Books
+couponCode: GSBOOKS15
+type: PERCENTAGE
+value: 15
+applicableFor: BOTH
+categoryId: CATEGORY_ID_OF_GS_FOUNDATION
+validFrom: 2026-01-01
+validTill: 2027-12-31
+minimumCartValue: 100
+usageLimitPerCustomer: 1
+```
+*(With categoryId = valid only for GS Foundation courses + all books)*
+
+---
+
+**✅ Verification:** Test coupon retrieval:
+```bash
+GET http://localhost:5000/api/coupons
+Authorization: Bearer YOUR_STUDENT_TOKEN
+```
+
+**Expected Response:**
+```json
+{
+   "success": true,
+   "data": [
+      {
+         "_id": "COUPON_ID",
+         "couponName": "GS Foundation Discount",
+         "couponCode": "GS500",
+         "type": "FLAT",
+         "value": 500,
+         "applicableFor": "COURSE",
+         "categoryId": "CATEGORY_ID",
+         "status": "ACTIVE"
+      },
+      {
+         "_id": "COUPON_ID",
+         "couponName": "Book Discount",
+         "couponCode": "BOOK200",
+         "type": "FLAT",
+         "value": 200,
+         "applicableFor": "BOOK",
+         "categoryId": null,
+         "status": "ACTIVE"
+      }
+   ]
+}
 ```
 
 ---
 
-### PART 1: COURSE PAYMENT TESTING
+---
 
-#### Test 1: Create Course Order (Without Coupon)
+### 📘 PART 1: COURSE PAYMENT TESTING (Tests 1-8)
 
+> **Flow:** Create Order → Pay with Razorpay → Verify Payment → Check Enrollment
+
+---
+
+#### ✅ Test 1: Create Course Order (Without Coupon)
+
+**Purpose:** Test basic course order creation without discount.
+
+**Request:**
 ```bash
 POST http://localhost:5000/api/payments/course/create-order
 Authorization: Bearer YOUR_STUDENT_TOKEN
@@ -833,7 +1014,7 @@ Content-Type: application/json
 ```json
 {
    "courseId": "COURSE_ID_HERE",
-   "enrolledMode": "online"
+   "mode": "online"
 }
 ```
 
@@ -843,8 +1024,8 @@ Content-Type: application/json
    "success": true,
    "data": {
       "razorpayOrderId": "order_NXXXXXXXXXXXXX",
-      "amount": 120000,
-      "actualPrice": 120000,
+      "amount": 1200,
+      "actualPrice": 1200,
       "discountAmount": 0,
       "currency": "INR",
       "key": "rzp_test_xxxxx",
@@ -857,12 +1038,19 @@ Content-Type: application/json
 }
 ```
 
-**✅ Implementation Step:** Save `razorpayOrderId` and `amount` for next steps.
+**✅ Check:** Amount should match course's `fees.online.discountedPrice`.
+
+**🔧 Next Step:** Use `razorpayOrderId` to initiate Razorpay payment.
 
 ---
 
-#### Test 2: Create Course Order (With Coupon)
+#### ✅ Test 2: Create Course Order (With Category-Specific Coupon)
 
+**Purpose:** Test coupon validation for specific course category.
+
+**Prerequisite:** Create coupon with `applicableFor: COURSE` and `categoryId` set.
+
+**Request:**
 ```bash
 POST http://localhost:5000/api/payments/course/create-order
 Authorization: Bearer YOUR_STUDENT_TOKEN
@@ -872,9 +1060,9 @@ Content-Type: application/json
 **Body:**
 ```json
 {
-   "courseId": "COURSE_ID_HERE",
-   "enrolledMode": "online",
-   "couponCode": "COURSE500"
+   "courseId": "COURSE_ID_IN_GS_FOUNDATION_CATEGORY",
+   "mode": "online",
+   "couponCode": "GS500"
 }
 ```
 
@@ -884,8 +1072,8 @@ Content-Type: application/json
    "success": true,
    "data": {
       "razorpayOrderId": "order_NXXXXXXXXXXXXX",
-      "amount": 119500,
-      "actualPrice": 120000,
+      "amount": 700,
+      "actualPrice": 1200,
       "discountAmount": 500,
       "currency": "INR",
       "key": "rzp_test_xxxxx",
@@ -894,7 +1082,7 @@ Content-Type: application/json
          "mode": "online"
       },
       "coupon": {
-         "code": "COURSE500",
+         "code": "GS500",
          "type": "FLAT",
          "value": 500
       }
@@ -902,12 +1090,30 @@ Content-Type: application/json
 }
 ```
 
-**✅ Implementation Step:** Save `razorpayOrderId` for payment verification.
+**✅ Price Calculation:**
+- Course Price: ₹1,200
+- Coupon Discount: -₹500
+- **Final Amount: ₹700**
+
+**🔧 Next Step:** Verify coupon works ONLY for courses in the specified category.
+
+**❌ Error Case:** If you try to use this coupon on a course from a DIFFERENT category:
+```json
+{
+   "success": false,
+   "message": "This coupon is not valid for this course category"
+}
+```
 
 ---
 
-#### Test 3: Verify Course Payment (After Razorpay Success)
+#### ✅ Test 3: Verify Course Payment (After Razorpay Success)
 
+**Purpose:** Complete payment verification and create enrollment.
+
+**Prerequisites:** Complete Test 1 or 2, then simulate Razorpay payment.
+
+**Request:**
 ```bash
 POST http://localhost:5000/api/payments/course/verify
 Authorization: Bearer YOUR_STUDENT_TOKEN
@@ -919,10 +1125,10 @@ Content-Type: application/json
 {
    "razorpay_order_id": "order_NXXXXXXXXXXXXX",
    "razorpay_payment_id": "pay_NXXXXXXXXXXXXX",
-   "razorpay_signature": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+   "razorpay_signature": "VALID_SIGNATURE_FROM_RAZORPAY",
    "courseId": "COURSE_ID_HERE",
-   "enrolledMode": "online",
-   "couponCode": "COURSE500"
+   "mode": "online",
+   "couponCode": "UPSC500"
 }
 ```
 
@@ -930,27 +1136,36 @@ Content-Type: application/json
 ```json
 {
    "success": true,
-   "message": "Payment successful! Enrollment completed.",
+   "message": "Payment successful! Enrollment created.",
    "data": {
-      "enrollment": {
-         "id": "ENROLLMENT_ID",
-         "receiptNumber": "RCPT-1715500000000-ABC123DEF",
-         "receiptUrl": "https://res.cloudinary.com/.../receipt.pdf",
-         "courseTitle": "UPSC GS Foundation",
-         "enrolledMode": "online",
-         "amountPaid": 119500,
-         "accessValidTill": "2027-05-12T00:00:00.000Z"
-      }
+      "_id": "ENROLLMENT_ID",
+      "userId": "USER_ID",
+      "courseId": "COURSE_ID",
+      "courseMode": "online",
+      "paymentStatus": "PAID",
+      "amountPaid": 700,
+      "receiptNumber": "RCPT-1715500000000-ABC123",
+      "receiptUrl": "https://res.cloudinary.com/.../receipt.pdf",
+      "accessValidTill": "2027-05-12T00:00:00.000Z",
+      "createdAt": "2026-05-12T10:30:00.000Z"
    }
 }
 ```
 
-**✅ Implementation Step:** Enrollment created! Student can now access course dashboard.
+**✅ Verification:**
+- Enrollment created in database
+- Receipt PDF generated and uploaded to Cloudinary
+- Student can now access course dashboard
+
+**🔧 Next Step:** Test enrollment retrieval (Test 4).
 
 ---
 
-#### Test 4: Get My Course Enrollments
+#### ✅ Test 4: Get My Course Enrollments
 
+**Purpose:** Retrieve all course enrollments for logged-in student.
+
+**Request:**
 ```bash
 GET http://localhost:5000/api/payments/course/my-enrollments
 Authorization: Bearer YOUR_STUDENT_TOKEN
@@ -960,30 +1175,35 @@ Authorization: Bearer YOUR_STUDENT_TOKEN
 ```json
 {
    "success": true,
-   "count": 2,
+   "count": 1,
    "data": [
       {
-         "_id": "...",
-         "userId": "...",
+         "_id": "ENROLLMENT_ID",
+         "userId": "USER_ID",
          "courseId": {
-            "_id": "...",
+            "_id": "COURSE_ID",
             "title": "UPSC GS Foundation",
-            "slug": "upsc-gs-foundation-...",
-            "bannerImage": { ... },
-            "fees": { ... }
-         },
-         "centerId": {
-            "_id": "...",
-            "name": "Pune Center"
+            "slug": "upsc-gs-foundation-2026",
+            "bannerImage": {
+               "url": "https://res.cloudinary.com/.../course.jpg"
+            },
+            "fees": {
+               "online": {
+                  "actualPrice": 150000,
+                  "discountedPrice": 120000,
+                  "discountPercent": 20
+               }
+            }
          },
          "courseMode": "online",
          "status": "active",
-         "totalFees": 120000,
-         "discount": 60000,
-         "couponCode": "SUMMER50",
-         "amountPaid": 60000,
+         "paymentStatus": "PAID",
+         "totalFees": 150000,
+         "discount": 80000,
+         "couponCode": "UPSC500",
+         "amountPaid": 700,
          "amountDue": 0,
-         "receiptNumber": "RCPT-1715500000000-ABC123DEF",
+         "receiptNumber": "RCPT-1715500000000-ABC123",
          "receiptUrl": "https://res.cloudinary.com/.../receipt.pdf",
          "enrolledAt": "2026-05-12T10:30:00.000Z",
          "accessValidTill": "2027-05-12T00:00:00.000Z"
@@ -992,12 +1212,17 @@ Authorization: Bearer YOUR_STUDENT_TOKEN
 }
 ```
 
+**✅ Verification:** Should show all courses student has purchased.
+
 ---
 
-#### Test 5: Check Course Access
+#### ✅ Test 5: Check Course Access
 
+**Purpose:** Verify if student has active access to a specific course.
+
+**Request:**
 ```bash
-GET http://localhost:5000/api/payments/course/check-access/COURSE_ID
+GET http://localhost:5000/api/payments/course/check-access/COURSE_ID_HERE
 Authorization: Bearer YOUR_STUDENT_TOKEN
 ```
 
@@ -1007,11 +1232,12 @@ Authorization: Bearer YOUR_STUDENT_TOKEN
    "success": true,
    "hasAccess": true,
    "enrollment": {
-      "id": "...",
+      "_id": "ENROLLMENT_ID",
       "status": "active",
+      "courseMode": "online",
       "enrolledAt": "2026-05-12T10:30:00.000Z",
       "accessValidTill": "2027-05-12T00:00:00.000Z",
-      "receiptNumber": "RCPT-1715500000000-ABC123DEF",
+      "receiptNumber": "RCPT-1715500000000-ABC123",
       "receiptUrl": "https://res.cloudinary.com/.../receipt.pdf"
    }
 }
@@ -1026,18 +1252,26 @@ Authorization: Bearer YOUR_STUDENT_TOKEN
 }
 ```
 
+**✅ Use Case:** Frontend checks this before showing course content.
+
 ---
 
-#### Test 6: Already Enrolled Error
+#### ❌ Test 6: Already Enrolled Error
 
+**Purpose:** Test duplicate enrollment prevention.
+
+**Request:**
 ```bash
 POST http://localhost:5000/api/payments/course/create-order
 Authorization: Bearer YOUR_STUDENT_TOKEN
 Content-Type: application/json
+```
 
+**Body:**
+```json
 {
-   "courseId": "ALREADY_ENROLLED_COURSE_ID",
-   "enrolledMode": "online"
+   "courseId": "COURSE_ID_ALREADY_ENROLLED",
+   "mode": "online"
 }
 ```
 
@@ -1049,19 +1283,27 @@ Content-Type: application/json
 }
 ```
 
+**✅ Verification:** System prevents duplicate enrollments.
+
 ---
 
-#### Test 7: Invalid Coupon Error
+#### ❌ Test 7: Invalid Coupon for Course (BOOK Coupon on COURSE)
 
+**Purpose:** Test coupon `applicableFor` validation (BOOK coupon rejected for course).
+
+**Request:**
 ```bash
 POST http://localhost:5000/api/payments/course/create-order
 Authorization: Bearer YOUR_STUDENT_TOKEN
 Content-Type: application/json
+```
 
+**Body:**
+```json
 {
-   "courseId": "COURSE_ID",
-   "enrolledMode": "online",
-   "couponCode": "INVALID123"
+   "courseId": "COURSE_ID_HERE",
+   "mode": "online",
+   "couponCode": "BOOK200"
 }
 ```
 
@@ -1069,25 +1311,67 @@ Content-Type: application/json
 ```json
 {
    "success": false,
-   "message": "Invalid coupon code"
+   "message": "This coupon is not applicable for courses"
 }
 ```
 
+**✅ Verification:** Coupon with `applicableFor: BOOK` rejected for course purchase.
+
 ---
 
-#### Test 8: Signature Verification Failed
+#### ❌ Test 7B: Misconfigured Course Coupon (Missing categoryId)
 
+**Purpose:** Test that COURSE coupons without categoryId are rejected.
+
+**Scenario:** Admin creates coupon with `applicableFor: COURSE` but forgets to set `categoryId`.
+
+**Request:**
+```bash
+POST http://localhost:5000/api/payments/course/create-order
+Authorization: Bearer YOUR_STUDENT_TOKEN
+Content-Type: application/json
+```
+
+**Body:**
+```json
+{
+   "courseId": "COURSE_ID_HERE",
+   "mode": "online",
+   "couponCode": "MISCONFIGURED_COURSE_COUPON"
+}
+```
+
+**Expected Response (400):**
+```json
+{
+   "success": false,
+   "message": "Invalid coupon configuration: Course coupons require a category"
+}
+```
+
+**✅ Verification:** System prevents misconfigured COURSE coupons from being used.
+
+---
+
+#### ❌ Test 8: Invalid Signature Verification
+
+**Purpose:** Test payment signature validation security.
+
+**Request:**
 ```bash
 POST http://localhost:5000/api/payments/course/verify
 Authorization: Bearer YOUR_STUDENT_TOKEN
 Content-Type: application/json
+```
 
+**Body:**
+```json
 {
-   "razorpay_order_id": "order_xxx",
-   "razorpay_payment_id": "pay_xxx",
-   "razorpay_signature": "INVALID_SIGNATURE",
-   "courseId": "COURSE_ID",
-   "enrolledMode": "online"
+   "razorpay_order_id": "order_NXXXXXXXXXXXXX",
+   "razorpay_payment_id": "pay_NXXXXXXXXXXXXX",
+   "razorpay_signature": "INVALID_FAKE_SIGNATURE",
+   "courseId": "COURSE_ID_HERE",
+   "mode": "online"
 }
 ```
 
@@ -1099,14 +1383,25 @@ Content-Type: application/json
 }
 ```
 
-** COURSE TESTING COMPLETE!**
+**✅ Verification:** Tampered payments are rejected.
 
 ---
 
-### PART 2: BOOK PAYMENT TESTING
+**🎉 COURSE PAYMENT TESTING COMPLETE!**
 
-#### Test 9: Create Book Order (Without Coupon)
+---
 
+### 📦 PART 2: BOOK PAYMENT TESTING (Tests 9-14)
+
+> **Flow:** Create Order → Pay with Razorpay → Verify Payment → Track Shipping
+
+---
+
+#### ✅ Test 9: Create Book Order (Without Coupon)
+
+**Purpose:** Test basic book order creation with shipping address.
+
+**Request:**
 ```bash
 POST http://localhost:5000/api/payments/book/create-order
 Authorization: Bearer YOUR_STUDENT_TOKEN
@@ -1152,17 +1447,20 @@ Content-Type: application/json
 }
 ```
 
-**✅ Implementation Step:** Save `razorpayOrderId` for payment verification.
-
-**Price Breakdown:**
+**✅ Price Calculation:**
 - Book Price: ₹900 x 2 = ₹1,800
 - Delivery Charge: ₹50
 - **Total: ₹1,850**
 
+**🔧 Next Step:** Use `razorpayOrderId` to initiate Razorpay payment.
+
 ---
 
-#### Test 10: Create Book Order (With Coupon)
+#### ✅ Test 10: Create Book Order (With Coupon)
 
+**Purpose:** Test coupon validation and discount calculation for books.
+
+**Request:**
 ```bash
 POST http://localhost:5000/api/payments/book/create-order
 Authorization: Bearer YOUR_STUDENT_TOKEN
@@ -1211,16 +1509,23 @@ Content-Type: application/json
 }
 ```
 
-**Price Breakdown:**
+**✅ Price Calculation:**
 - Book Price: ₹900
 - Discount: -₹200
 - Delivery Charge: +₹50
 - **Total: ₹750**
 
+**🔧 Next Step:** Verify coupon `applicableFor` is 'BOOK' or 'BOTH'.
+
 ---
 
-#### Test 11: Verify Book Payment (After Razorpay Success)
+#### ✅ Test 11: Verify Book Payment (After Razorpay Success)
 
+**Purpose:** Complete payment verification and create book order.
+
+**Prerequisites:** Complete Test 9 or 10, then simulate Razorpay payment.
+
+**Request:**
 ```bash
 POST http://localhost:5000/api/payments/book/verify
 Authorization: Bearer YOUR_STUDENT_TOKEN
@@ -1232,7 +1537,7 @@ Content-Type: application/json
 {
    "razorpay_order_id": "order_NXXXXXXXXXXXXX",
    "razorpay_payment_id": "pay_NXXXXXXXXXXXXX",
-   "razorpay_signature": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+   "razorpay_signature": "VALID_SIGNATURE_FROM_RAZORPAY",
    "bookId": "BOOK_ID_HERE",
    "quantity": 2,
    "couponCode": "BOOK200",
@@ -1255,26 +1560,52 @@ Content-Type: application/json
    "success": true,
    "message": "Book order placed successfully!",
    "data": {
-      "order": {
-         "id": "BOOK_ORDER_ID",
-         "receiptNumber": "BOOK-1715500000000-ABC123",
-         "invoiceUrl": "https://res.cloudinary.com/.../invoice.pdf",
-         "bookTitle": "Indian Polity",
-         "quantity": 2,
-         "totalAmount": 1650,
-         "orderStatus": "PLACED",
-         "estimatedDelivery": "19/05/2026"
-      }
+      "_id": "BOOK_ORDER_ID",
+      "userId": "USER_ID",
+      "bookId": "BOOK_ID",
+      "quantity": 2,
+      "actualPrice": 1800,
+      "discountAmount": 200,
+      "deliveryCharge": 50,
+      "finalAmount": 1650,
+      "paymentStatus": "PAID",
+      "orderStatus": "PLACED",
+      "receiptNumber": "BOOK-1715500000000-ABC123",
+      "invoiceUrl": "https://res.cloudinary.com/.../invoice.pdf",
+      "shippingAddress": {
+         "fullName": "Deekshith",
+         "mobile": "9963735220",
+         "addressLine": "Madhapur, Hitech City",
+         "city": "Hyderabad",
+         "state": "Telangana",
+         "pincode": "500081"
+      },
+      "bookSnapshot": {
+         "title": "Indian Polity",
+         "authorNames": ["M. Laxmikanth"],
+         "price": 900
+      },
+      "estimatedDelivery": "2026-05-19T00:00:00.000Z",
+      "createdAt": "2026-05-12T10:30:00.000Z"
    }
 }
 ```
 
-**✅ Implementation Step:** BookOrder created! Shipping process can begin.
+**✅ Verification:**
+- BookOrder created in database
+- Invoice PDF generated and uploaded to Cloudinary
+- Order status set to "PLACED"
+- Shipping process can begin
+
+**🔧 Next Step:** Test order retrieval (Test 12).
 
 ---
 
-#### Test 12: Get My Book Orders
+#### ✅ Test 12: Get My Book Orders
 
+**Purpose:** Retrieve all book orders for logged-in student.
+
+**Request:**
 ```bash
 GET http://localhost:5000/api/payments/book/my-orders
 Authorization: Bearer YOUR_STUDENT_TOKEN
@@ -1299,12 +1630,13 @@ Authorization: Bearer YOUR_STUDENT_TOKEN
          },
          "quantity": 2,
          "actualPrice": 1800,
-         "couponCode": "BOOK200",
          "discountAmount": 200,
-         "finalAmount": 1650,
          "deliveryCharge": 50,
+         "finalAmount": 1650,
          "paymentStatus": "PAID",
          "orderStatus": "PLACED",
+         "receiptNumber": "BOOK-1715500000000-ABC123",
+         "invoiceUrl": "https://res.cloudinary.com/.../invoice.pdf",
          "shippingAddress": {
             "fullName": "Deekshith",
             "mobile": "9963735220",
@@ -1313,23 +1645,27 @@ Authorization: Bearer YOUR_STUDENT_TOKEN
             "state": "Telangana",
             "pincode": "500081"
          },
-         "receiptNumber": "BOOK-1715500000000-ABC123",
-         "invoiceUrl": "https://res.cloudinary.com/.../invoice.pdf",
          "bookSnapshot": {
             "title": "Indian Polity",
             "authorNames": ["M. Laxmikanth"],
             "price": 900
          },
-         "createdAt": "2026-05-12T10:30:00.000Z"
+         "createdAt": "2026-05-12T10:30:00.000Z",
+         "updatedAt": "2026-05-12T10:30:00.000Z"
       }
    ]
 }
 ```
 
+**✅ Verification:** Should show all books student has ordered.
+
 ---
 
-#### Test 13: Invalid Coupon for Book (Course-Only Coupon)
+#### ❌ Test 13: Invalid Coupon for Book (Course-Only Coupon)
 
+**Purpose:** Test coupon `applicableFor` validation (COURSE coupon on BOOK).
+
+**Request:**
 ```bash
 POST http://localhost:5000/api/payments/book/create-order
 Authorization: Bearer YOUR_STUDENT_TOKEN
@@ -1341,11 +1677,11 @@ Content-Type: application/json
 {
    "bookId": "BOOK_ID_HERE",
    "quantity": 1,
-   "couponCode": "COURSE500",
+   "couponCode": "UPSC500",
    "shippingAddress": {
       "fullName": "Deekshith",
       "mobile": "9963735220",
-      "addressLine": "Madhapur",
+      "addressLine": "Madhapur, Hitech City",
       "city": "Hyderabad",
       "state": "Telangana",
       "pincode": "500081"
@@ -1361,30 +1697,36 @@ Content-Type: application/json
 }
 ```
 
-**✅ This validates the `applicableFor` field in coupons!**
+**✅ Verification:** Coupon with `applicableFor: COURSE` rejected for book purchase.
 
 ---
 
-#### Test 14: Signature Verification Failed (Book)
+#### ❌ Test 14: Invalid Signature Verification (Book)
 
+**Purpose:** Test payment signature validation security for books.
+
+**Request:**
 ```bash
 POST http://localhost:5000/api/payments/book/verify
 Authorization: Bearer YOUR_STUDENT_TOKEN
 Content-Type: application/json
+```
 
+**Body:**
+```json
 {
-   "razorpay_order_id": "order_xxx",
-   "razorpay_payment_id": "pay_xxx",
-   "razorpay_signature": "INVALID_SIGNATURE",
-   "bookId": "BOOK_ID",
+   "razorpay_order_id": "order_NXXXXXXXXXXXXX",
+   "razorpay_payment_id": "pay_NXXXXXXXXXXXXX",
+   "razorpay_signature": "INVALID_FAKE_SIGNATURE",
+   "bookId": "BOOK_ID_HERE",
    "quantity": 1,
    "shippingAddress": {
-      "fullName": "Test",
-      "mobile": "1234567890",
-      "addressLine": "Test Address",
-      "city": "Test City",
-      "state": "Test State",
-      "pincode": "123456"
+      "fullName": "Deekshith",
+      "mobile": "9963735220",
+      "addressLine": "Madhapur, Hitech City",
+      "city": "Hyderabad",
+      "state": "Telangana",
+      "pincode": "500081"
    }
 }
 ```
@@ -1397,13 +1739,104 @@ Content-Type: application/json
 }
 ```
 
-** BOOK TESTING COMPLETE!**
+**✅ Verification:** Tampered payments are rejected.
 
 ---
 
-### RAZORPAY TEST CARD DETAILS
+**🎉 BOOK PAYMENT TESTING COMPLETE!**
 
-Use these details for testing payments:
+---
+
+### 🚀 QUICK START TESTING GUIDE
+
+**Follow this exact order to test the complete payment flow:**
+
+#### **Phase 1: Setup (5 minutes)**
+1. Start your server: `npm run dev`
+2. Login as student and copy token
+3. Get 1 Course ID and 1 Book ID from list APIs
+4. Create 3 test coupons (UPSC500, BOOK200, NEWUSER10)
+
+#### **Phase 2: Test Course Payment (10 minutes)**
+1. **Test 1:** Create order without coupon → Save `razorpayOrderId`
+2. **Test 3:** Verify payment with Razorpay test card → Check enrollment created
+3. **Test 4:** Get enrollments → Verify course appears
+4. **Test 5:** Check access → Should return `hasAccess: true`
+5. **Test 6:** Try enrolling again → Should get "Already enrolled" error
+
+#### **Phase 3: Test Book Payment (10 minutes)**
+1. **Test 9:** Create order without coupon → Save `razorpayOrderId`
+2. **Test 11:** Verify payment with Razorpay test card → Check BookOrder created
+3. **Test 12:** Get orders → Verify book appears
+4. **Download invoice PDF** from `invoiceUrl` in response
+
+#### **Phase 4: Test Coupons (5 minutes)**
+1. **Test 2:** Apply GS500 coupon to course in GS category → Verify ₹500 discount ✅
+2. **Test 10:** Apply BOOK200 coupon to book → Verify ₹200 discount ✅
+3. **Test 7:** Apply BOOK200 to course → Should fail (applicableFor: BOOK) ❌
+4. **Test 7B:** Apply COURSE coupon without categoryId → Should fail (misconfigured) ❌
+5. Apply NEWUSER10 to both → Should work (applicableFor: BOTH) ✅
+6. **Important:** Try GS500 on course from DIFFERENT category → Should fail (category mismatch) ❌
+
+#### **Phase 5: Test Error Handling (5 minutes)**
+1. **Test 8:** Use invalid signature for course → Should reject
+2. **Test 14:** Use invalid signature for book → Should reject
+3. Try expired coupon → Should reject
+4. Try invalid course/book ID → Should return 404
+
+**Total Time: ~35 minutes for complete testing**
+
+---
+
+### 🧪 TESTING CHECKLIST
+
+**Before You Start:**
+- [ ] Server running on `http://localhost:5000`
+- [ ] MongoDB connected
+- [ ] Razorpay test credentials configured in `.env`
+- [ ] Student account created and token obtained
+- [ ] At least 1 course and 1 book in database
+
+**Course Payment Tests:**
+- [ ] Test 1: Create course order (no coupon) ✅
+- [ ] Test 2: Create course order (with coupon) ✅
+- [ ] Test 3: Verify course payment ✅
+- [ ] Test 4: Get my enrollments ✅
+- [ ] Test 5: Check course access ✅
+- [ ] Test 6: Duplicate enrollment prevention ✅
+- [ ] Test 7: Invalid coupon (BOOK coupon on COURSE) ✅
+- [ ] Test 8: Invalid signature ✅
+
+**Book Payment Tests:**
+- [ ] Test 9: Create book order (no coupon) ✅
+- [ ] Test 10: Create book order (with coupon) ✅
+- [ ] Test 11: Verify book payment ✅
+- [ ] Test 12: Get my book orders ✅
+- [ ] Test 13: Invalid coupon (COURSE coupon on BOOK) ✅
+- [ ] Test 14: Invalid signature ✅
+
+**Advanced Testing:**
+- [ ] Test COURSE coupon with categoryId on matching category course → Should work ✅
+- [ ] Test COURSE coupon with categoryId on different category course → Should fail ❌
+- [ ] Test COURSE coupon without categoryId → Should fail (misconfigured) ❌
+- [ ] Test BOOK coupon on any book → Should work (all books) ✅
+- [ ] Test BOTH coupon (no categoryId) on courses → Should work ✅
+- [ ] Test BOTH coupon (no categoryId) on books → Should work ✅
+- [ ] Test BOTH coupon (with categoryId) on matching course → Should work ✅
+- [ ] Test BOTH coupon (with categoryId) on different course → Should fail ❌
+- [ ] Test BOTH coupon (with categoryId) on any book → Should work ✅
+- [ ] Test with expired coupon → Should reject ❌
+- [ ] Test with coupon exceeding usage limit → Should reject ❌
+- [ ] Test offline mode course payment with category coupon → Should work ✅
+- [ ] Test multiple book quantities with BOOK coupon → Should work ✅
+- [ ] Verify receipt PDF generation (courses) ✅
+- [ ] Verify invoice PDF generation (books) ✅
+
+---
+
+### 💳 RAZORPAY TEST CARD DETAILS
+
+Use these details for testing payments in Razorpay checkout:
 
 ```
 Card Number: 4111 1111 1111 1111
@@ -1411,6 +1844,11 @@ Expiry Date: Any future date (e.g., 12/27)
 CVV: 123
 OTP: 123456
 ```
+
+**Additional Test Cards:**
+- **Success:** 4111 1111 1111 1111
+- **Failure:** 4000 0000 0000 0002
+- **3D Secure:** 4111 1111 1111 1111
 
 ---
 
@@ -1813,7 +2251,13 @@ RAZORPAY_KEY_SECRET=xxxxxxxx
 
 ---
 
-**Last Updated:** May 12, 2026  
-**Version:** 2.0 (Unified Payment System)  
-**Status:** Production Ready ✅
+**Last Updated:** May 11, 2026  
+**Version:** 2.2 (Category-Specific Course Coupons)  
+**Status:** Production Ready ✅  
+**Testing Guide:** 15 Comprehensive Tests with Quick Start  
+
+**Key Features:**
+- ✅ COURSE coupons require categoryId (category-specific only)
+- ✅ BOOK coupons work for all books (no categoryId)
+- ✅ BOTH coupons optional categoryId (flexible targeting)  
 

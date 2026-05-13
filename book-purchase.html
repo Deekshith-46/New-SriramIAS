@@ -514,6 +514,19 @@
     }
   }
 
+  // 🔷 HANDLE COURSE MODE CHANGE
+  document.addEventListener('DOMContentLoaded', function() {
+    const courseModeSelect = document.getElementById("courseMode");
+    if (courseModeSelect) {
+      courseModeSelect.addEventListener('change', function() {
+        // If course is already loaded, update the display
+        if (itemData && purchaseType === "COURSE") {
+          displayCourse(itemData);
+        }
+      });
+    }
+  });
+
   // 🔷 COMMON LOADER
   async function loadItem() {
     if (purchaseType === "BOOK") {
@@ -610,6 +623,8 @@
     }
 
     try {
+      console.log('📡 Fetching course:', `${API_BASE}/courses/${itemId}`);
+      
       const res = await fetch(`${API_BASE}/courses/${itemId}`, {
         method: "GET",
         headers: {
@@ -618,13 +633,23 @@
       });
 
       const data = await res.json();
+      console.log('📦 Course API Response:', data);
 
       if (!data.success) {
         showError(data.message || "Failed to load course");
         return;
       }
 
-      itemData = data.data;
+      // API returns { success: true, course } not { success: true, data }
+      itemData = data.course;
+      
+      console.log('📚 Course Data:', itemData);
+      
+      if (!itemData) {
+        showError("Course data is empty");
+        return;
+      }
+      
       displayCourse(itemData);
       
       // Hide setup panel, show book container
@@ -632,6 +657,7 @@
       document.getElementById("bookContainer").style.display = "flex";
 
     } catch (error) {
+      console.error('❌ Course Load Error:', error);
       showError("Network error: " + error.message);
     }
   }
@@ -651,13 +677,28 @@
     const mode = document.getElementById("courseMode").value;
     const subjectsContainer = document.getElementById("bookSubjects");
     subjectsContainer.innerHTML = "";
-    const tag = document.createElement("span");
-    tag.className = "subject-tag";
-    tag.textContent = mode.toUpperCase() + " MODE";
-    subjectsContainer.appendChild(tag);
+    
+    // Add mode tag
+    const modeTag = document.createElement("span");
+    modeTag.className = "subject-tag";
+    modeTag.textContent = mode.toUpperCase() + " MODE";
+    subjectsContainer.appendChild(modeTag);
+    
+    // Add category tag
+    if (course.category?.name) {
+      const catTag = document.createElement("span");
+      catTag.className = "subject-tag";
+      catTag.textContent = course.category.name;
+      subjectsContainer.appendChild(catTag);
+    }
 
     // Price based on mode
     const fees = course.fees?.[mode];
+    if (!fees) {
+      showError("Fees not available for " + mode + " mode");
+      return;
+    }
+    
     originalPrice = fees.discountedPrice;
     finalAmount = fees.discountedPrice;
     
@@ -669,6 +710,12 @@
     document.getElementById("priceBreakdown").style.display = "block";
     document.getElementById("breakdownOriginal").textContent = "₹" + fees.actualPrice;
     document.getElementById("breakdownFinal").textContent = "₹" + fees.discountedPrice;
+    
+    // Reset coupon
+    appliedCoupon = null;
+    document.getElementById("couponInput").value = "";
+    document.getElementById("discountRow").style.display = "none";
+    showCouponMessage("", "");
   }
 
   // 🔷 APPLY COUPON
@@ -681,38 +728,65 @@
     }
 
     try {
+      let requestBody;
+      
+      if (purchaseType === "BOOK") {
+        // Book coupon validation
+        requestBody = {
+          couponCode: code,
+          cartAmount: originalPrice,
+          quantity: 1,
+          purchaseType: "BOOK"
+        };
+      } else {
+        // Course coupon validation - need categoryId
+        const mode = document.getElementById("courseMode").value;
+        const categoryId = itemData.category?._id || itemData.category;
+        
+        if (!categoryId) {
+          showCouponMessage("Course category not found", "error");
+          return;
+        }
+        
+        requestBody = {
+          couponCode: code,
+          cartAmount: originalPrice,
+          categoryId: categoryId,
+          purchaseType: "COURSE"
+        };
+      }
+
+      console.log('🎫 Validating coupon:', requestBody);
+
       const res = await fetch(`${API_BASE}/coupons/apply`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": "Bearer " + studentToken
         },
-        body: JSON.stringify({
-          code,
-          category: purchaseType,
-          amount: originalPrice,
-          purchaseType: purchaseType
-        })
+        body: JSON.stringify(requestBody)
       });
 
       const data = await res.json();
+      console.log('🎫 Coupon response:', data);
 
       if (data.success) {
-        finalAmount = data.data.finalPrice;
+        finalAmount = data.data.finalAmount;
         appliedCoupon = code;
 
         // Update UI
         document.getElementById("finalPrice").textContent = "₹" + finalAmount;
         document.getElementById("discountRow").style.display = "flex";
-        document.getElementById("breakdownDiscount").textContent = "-₹" + data.data.discount;
+        document.getElementById("breakdownDiscount").textContent = "-₹" + data.data.discountAmount;
         document.getElementById("breakdownFinal").textContent = "₹" + finalAmount;
 
-        showCouponMessage("✅ Coupon Applied! You saved ₹" + data.data.discount, "success");
+        showCouponMessage("✅ Coupon Applied! You saved ₹" + data.data.discountAmount, "success");
       } else {
         showCouponMessage(data.message, "error");
       }
 
     } catch (error) {
+      console.error('❌ Coupon error:', error);
       showCouponMessage("Error applying coupon: " + error.message, "error");
     }
   }
@@ -801,10 +875,12 @@
         orderEndpoint = `${API_BASE}/payments/course/create-order`;
         requestBody = {
           courseId: itemId,
-          mode: mode,
+          enrolledMode: mode,  // ← Changed from 'mode' to 'enrolledMode'
           couponCode: appliedCoupon
         };
       }
+
+      console.log('💳 Creating order:', requestBody);
 
       // Create Razorpay Order
       const res = await fetch(orderEndpoint, {
@@ -817,6 +893,7 @@
       });
 
       const order = await res.json();
+      console.log('💳 Order response:', order);
 
       if (!order.success) {
         alert("Error: " + order.message);
@@ -849,6 +926,7 @@
       rzp.open();
 
     } catch (error) {
+      console.error('❌ Payment error:', error);
       alert("Payment error: " + error.message);
     } finally {
       payBtn.disabled = false;
@@ -883,10 +961,12 @@
           razorpay_payment_id: razorpayResponse.razorpay_payment_id,
           razorpay_signature: razorpayResponse.razorpay_signature,
           courseId: itemId,
-          mode: mode,
+          enrolledMode: mode,  // ← Changed from 'mode' to 'enrolledMode'
           couponCode: appliedCoupon
         };
       }
+
+      console.log('✓ Verifying payment:', requestBody);
 
       const res = await fetch(verifyEndpoint, {
         method: "POST",
@@ -898,6 +978,7 @@
       });
 
       const data = await res.json();
+      console.log('✓ Verification response:', data);
 
       if (data.success) {
         const purchaseLabel = purchaseType === "BOOK" ? "Book Order" : "Course Enrollment";
@@ -909,6 +990,7 @@
       }
 
     } catch (error) {
+      console.error('❌ Verification error:', error);
       alert("Verification error: " + error.message);
     }
   }

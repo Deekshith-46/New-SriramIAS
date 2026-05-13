@@ -27,7 +27,9 @@ const bookRoutes = require('./routes/bookRoutes');
 const bookOverviewRoutes = require('./routes/bookOverviewRoutes');
 const bookTopperRoutes = require('./routes/bookTopperRoutes');
 const couponRoutes = require('./routes/couponRoutes');
+const fixCouponRoutes = require('./routes/fixCouponRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
+const orderRoutes = require('./routes/orderRoutes');
 
 const centerDataRoutes = require('./routes/centerDataRoutes');
 const testCategoryRoutes = require('./routes/testCategoryRoutes');
@@ -118,9 +120,13 @@ app.use('/api/toppers', bookTopperRoutes);      // Independent topper videos
 
 // Coupon routes
 app.use('/api/coupons', couponRoutes);
+app.use('/api/coupons', fixCouponRoutes); // Fix duplicate coupon issues
 
 // Payment & Enrollment routes
 app.use('/api/payments', paymentRoutes);
+
+// Order Management routes
+app.use('/api/orders', orderRoutes);
 
 
 // Center Data routes

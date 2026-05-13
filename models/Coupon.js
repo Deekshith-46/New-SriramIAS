@@ -29,6 +29,9 @@ const CouponSchema = new mongoose.Schema({
    },
 
    // Category API relation
+   // REQUIRED when applicableFor = 'COURSE' (coupon valid only for that category)
+   // OPTIONAL when applicableFor = 'BOTH' (can apply to specific category or all)
+   // NOT USED when applicableFor = 'BOOK' (valid for all books)
    categoryId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Category',
@@ -79,6 +82,9 @@ const CouponSchema = new mongoose.Schema({
    },
 
    // Applicable for (Course, Book, or Both)
+   // COURSE: Valid ONLY for specific category (categoryId REQUIRED)
+   // BOOK: Valid for ALL books (categoryId NOT USED)
+   // BOTH: Can be used for both courses and books (categoryId OPTIONAL)
    applicableFor: {
       type: String,
       enum: ['COURSE', 'BOOK', 'BOTH'],

@@ -99,6 +99,14 @@ exports.createOrder = async (req, res) => {
             });
          }
 
+         // COURSE coupons MUST have categoryId (specific category only)
+         if (coupon.applicableFor === 'COURSE' && !coupon.categoryId) {
+            return res.status(400).json({
+               success: false,
+               message: 'Invalid coupon configuration: Course coupons require a category'
+            });
+         }
+
          // Check validity
          const now = new Date();
          if (now < coupon.validFrom || now > coupon.validTill) {
@@ -108,7 +116,7 @@ exports.createOrder = async (req, res) => {
             });
          }
 
-         // Category validation only for courses
+         // Category validation (required for COURSE coupons, optional for BOTH)
          if (coupon.categoryId && course.category.toString() !== coupon.categoryId.toString()) {
             return res.status(400).json({
                success: false,

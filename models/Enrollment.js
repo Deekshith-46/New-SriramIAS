@@ -57,8 +57,7 @@ const enrollmentSchema = new mongoose.Schema({
       status: {
         type: String,
         enum: ['pending', 'paid', 'overdue', 'cancelled'],
-        default: 'pending',
-        index: true
+        default: 'pending'
       },
       paidAt: { type: Date },
       transactionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Transaction' },

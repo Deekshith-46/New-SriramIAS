@@ -1,19 +1,39 @@
 const express = require('express');
 const router = express.Router();
 const {
-  getMyOrders,
-  getOrder,
-  getAllOrders,
-  updateOrderStatus
-} = require('../controllers/paymentController');
-const { protect, authorize } = require('../middleware/authMiddleware');
+   getMyOrders,
+   getOrderDetails,
+   getAllOrders,
+   updateOrderStatus,
+   getOrderStats
+} = require('../controllers/orderController');
+const { protect } = require('../middleware/authMiddleware');
+const { allowRoles } = require('../middleware/roleMiddleware');
 
-// User routes
-router.get('/my-orders', protect, getMyOrders);
-router.get('/:id', protect, getOrder);
+// All routes require authentication
+router.use(protect);
 
-// Admin routes
-router.get('/', protect, authorize('super_admin', 'admin'), getAllOrders);
-router.put('/:id/status', protect, authorize('super_admin', 'admin'), updateOrderStatus);
+// ========================================
+// STUDENT ORDER ROUTES
+// ========================================
+
+// Get my orders (with optional filters)
+router.get('/my-orders', getMyOrders);
+
+// Get single order details
+router.get('/:id', getOrderDetails);
+
+// ========================================
+// ADMIN ORDER ROUTES
+// ========================================
+
+// Get all orders (Admin only)
+router.get('/', allowRoles('super_admin', 'center_admin'), getAllOrders);
+
+// Get order statistics (Admin only)
+router.get('/stats', allowRoles('super_admin', 'center_admin'), getOrderStats);
+
+// Update order status (Admin only) - For BOOK orders
+router.put('/:id/status', allowRoles('super_admin', 'center_admin'), updateOrderStatus);
 
 module.exports = router;
