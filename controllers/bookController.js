@@ -14,6 +14,9 @@ exports.createBook = async (req, res) => {
       summary,
       fullPrice,
       discountPercent,
+      stock,
+      deliveryCharge,
+      offerText,
       isBestSeller
     } = req.body;
 
@@ -62,6 +65,11 @@ exports.createBook = async (req, res) => {
       fullPrice: parsedFullPrice,
       discountPercent: parsedDiscountPercent,
       discountedPrice: calculatedDiscountedPrice,
+      stock: parseInt(stock) || 0,
+      inStock: parseInt(stock) > 0,
+      deliveryCharge: parseFloat(deliveryCharge) || 0,
+      offerText: offerText || '',
+      isCouponApplicable: true,
       isBestSeller: isBestSeller === 'true' || isBestSeller === true,
       createdBy: req.user?._id
     });
@@ -204,6 +212,9 @@ exports.updateBook = async (req, res) => {
       summary,
       fullPrice,
       discountPercent,
+      stock,
+      deliveryCharge,
+      offerText,
       isBestSeller
     } = req.body;
 
@@ -231,6 +242,23 @@ exports.updateBook = async (req, res) => {
       book.discountPercent = newDiscountPercent;
       book.discountedPrice = Math.round(newFullPrice - (newFullPrice * newDiscountPercent / 100));
     }
+    
+    // Update stock
+    if (stock !== undefined) {
+      book.stock = parseInt(stock);
+      book.inStock = parseInt(stock) > 0;
+    }
+    
+    // Update delivery charge
+    if (deliveryCharge !== undefined) {
+      book.deliveryCharge = parseFloat(deliveryCharge);
+    }
+    
+    // Update offer text
+    if (offerText !== undefined) {
+      book.offerText = offerText;
+    }
+    
     if (isBestSeller !== undefined) book.isBestSeller = isBestSeller === 'true' || isBestSeller === true;
 
     // Upload new image if provided

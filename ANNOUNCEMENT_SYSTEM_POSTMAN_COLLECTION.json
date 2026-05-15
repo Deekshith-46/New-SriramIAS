@@ -1,0 +1,628 @@
+{
+	"info": {
+		"_postman_id": "announcement-system-sriram-ias",
+		"name": "Announcement System - Sriram IAS",
+		"description": "Complete API collection for the Course-based Announcement System",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:5000",
+			"type": "string"
+		},
+		{
+			"key": "adminToken",
+			"value": "YOUR_ADMIN_JWT_TOKEN",
+			"type": "string"
+		},
+		{
+			"key": "studentToken",
+			"value": "YOUR_STUDENT_JWT_TOKEN",
+			"type": "string"
+		},
+		{
+			"key": "announcementId",
+			"value": "ANNOUNCEMENT_ID_HERE",
+			"type": "string"
+		},
+		{
+			"key": "courseId",
+			"value": "COURSE_ID_HERE",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "👨‍💼 Admin APIs",
+			"item": [
+				{
+					"name": "Create Announcement",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "title",
+									"value": "Anubuthi III Results Announced",
+									"type": "text"
+								},
+								{
+									"key": "description",
+									"value": "Results officially announced. Check your dashboard for details.",
+									"type": "text"
+								},
+								{
+									"key": "courseId",
+									"value": "{{courseId}}",
+									"type": "text"
+								},
+								{
+									"key": "announcementType",
+									"value": "result",
+									"type": "text"
+								},
+								{
+									"key": "categoryId",
+									"value": "",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "centerId",
+									"value": "",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "publishedAt",
+									"value": "",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "thumbnail",
+									"type": "file",
+									"src": [],
+									"disabled": true
+								},
+								{
+									"key": "pdf",
+									"type": "file",
+									"src": [],
+									"disabled": true
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/announcements",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"announcements"
+							]
+						},
+						"description": "Create a new announcement with optional thumbnail and PDF attachments."
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Announcements",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/announcements?page=1&limit=20",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"announcements"
+							],
+							"query": [
+								{
+									"key": "courseId",
+									"value": "",
+									"disabled": true
+								},
+								{
+									"key": "centerId",
+									"value": "",
+									"disabled": true
+								},
+								{
+									"key": "categoryId",
+									"value": "",
+									"disabled": true
+								},
+								{
+									"key": "announcementType",
+									"value": "",
+									"description": "general, exam, result, important",
+									"disabled": true
+								},
+								{
+									"key": "isActive",
+									"value": "true",
+									"disabled": true
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "20"
+								}
+							]
+						},
+						"description": "Retrieve all announcements with filtering and pagination."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Single Announcement",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/announcements/{{announcementId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"announcements",
+								"{{announcementId}}"
+							]
+						},
+						"description": "Retrieve details of a specific announcement."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Announcement",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "title",
+									"value": "Updated Announcement Title",
+									"type": "text"
+								},
+								{
+									"key": "description",
+									"value": "Updated description text",
+									"type": "text"
+								},
+								{
+									"key": "announcementType",
+									"value": "important",
+									"type": "text"
+								},
+								{
+									"key": "thumbnail",
+									"type": "file",
+									"src": [],
+									"disabled": true
+								},
+								{
+									"key": "pdf",
+									"type": "file",
+									"src": [],
+									"disabled": true
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/announcements/{{announcementId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"announcements",
+								"{{announcementId}}"
+							]
+						},
+						"description": "Update an existing announcement with new data and optional file uploads."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Announcement Permanently",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/announcements/{{announcementId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"announcements",
+								"{{announcementId}}"
+							]
+						},
+						"description": "Permanently delete an announcement from the database."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "👨‍🎓 Student APIs",
+			"item": [
+				{
+					"name": "Get Student Announcements",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{studentToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/announcements/student?page=1&limit=20",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"announcements",
+								"student"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "20"
+								}
+							]
+						},
+						"description": "Fetch announcements for enrolled courses with read status."
+					},
+					"response": []
+				},
+				{
+					"name": "Mark Announcement as Read",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{studentToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/announcements/{{announcementId}}/read",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"announcements",
+								"{{announcementId}}",
+								"read"
+							]
+						},
+						"description": "Mark a specific announcement as read by the student."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Unread Count",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{studentToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/announcements/student/unread-count",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"announcements",
+								"student",
+								"unread-count"
+							]
+						},
+						"description": "Get the count of unread announcements for the student."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "🔧 Testing & Examples",
+			"item": [
+				{
+					"name": "Example: Create General Announcement",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "title",
+									"value": "New Batch Starting Next Week",
+									"type": "text"
+								},
+								{
+									"key": "description",
+									"value": "A new batch for UPSC CSE 2025 will start from Monday. Registration is now open.",
+									"type": "text"
+								},
+								{
+									"key": "courseId",
+									"value": "{{courseId}}",
+									"type": "text"
+								},
+								{
+									"key": "announcementType",
+									"value": "general",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/announcements",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"announcements"
+							]
+						},
+						"description": "Example: Create a general announcement without files."
+					},
+					"response": []
+				},
+				{
+					"name": "Example: Create Exam Announcement",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "title",
+									"value": "Mock Test Schedule Updated",
+									"type": "text"
+								},
+								{
+									"key": "description",
+									"value": "The mock test schedule has been updated. Please check the new timetable.",
+									"type": "text"
+								},
+								{
+									"key": "courseId",
+									"value": "{{courseId}}",
+									"type": "text"
+								},
+								{
+									"key": "announcementType",
+									"value": "exam",
+									"type": "text"
+								},
+								{
+									"key": "pdf",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/announcements",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"announcements"
+							]
+						},
+						"description": "Example: Create an exam-type announcement with PDF attachment."
+					},
+					"response": []
+				},
+				{
+					"name": "Example: Create Important Announcement with Thumbnail",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "title",
+									"value": "Holiday Notice - Republic Day",
+									"type": "text"
+								},
+								{
+									"key": "description",
+									"value": "All classes will remain closed on 26th January on account of Republic Day.",
+									"type": "text"
+								},
+								{
+									"key": "courseId",
+									"value": "{{courseId}}",
+									"type": "text"
+								},
+								{
+									"key": "announcementType",
+									"value": "important",
+									"type": "text"
+								},
+								{
+									"key": "thumbnail",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/announcements",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"announcements"
+							]
+						},
+						"description": "Example: Create an important announcement with thumbnail image."
+					},
+					"response": []
+				},
+				{
+					"name": "Example: Filter by Type",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/announcements?announcementType=result&page=1&limit=10",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"announcements"
+							],
+							"query": [
+								{
+									"key": "announcementType",
+									"value": "result"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Example: Filter announcements by type (result)."
+					},
+					"response": []
+				},
+				{
+					"name": "Example: Student View - Recent Announcements",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{studentToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/announcements/student?page=1&limit=5",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"announcements",
+								"student"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "5"
+								}
+							]
+						},
+						"description": "Example: Student fetches recent 5 announcements from enrolled courses."
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

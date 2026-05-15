@@ -45,6 +45,38 @@ const BookSchema = new mongoose.Schema({
     required: [true, 'Discounted price is required'],
     min: [0, 'Discounted price cannot be negative']
   },
+  
+  // Stock management
+  stock: {
+    type: Number,
+    default: 0,
+    min: [0, 'Stock cannot be negative']
+  },
+  
+  inStock: {
+    type: Boolean,
+    default: true
+  },
+  
+  // Delivery charge
+  deliveryCharge: {
+    type: Number,
+    default: 0,
+    min: [0, 'Delivery charge cannot be negative']
+  },
+  
+  // Offer label for UI display
+  offerText: {
+    type: String,
+    default: ''
+  },
+  
+  // Coupon eligibility
+  isCouponApplicable: {
+    type: Boolean,
+    default: true
+  },
+  
   isBestSeller: {
     type: Boolean,
     default: false

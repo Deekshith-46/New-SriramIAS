@@ -1,0 +1,924 @@
+{
+	"info": {
+		"_postman_id": "live-class-sriram-ias",
+		"name": "Live Class API - Sriram IAS",
+		"description": "Complete Live Class/Webinar System API Collection\n\n**Features:**\n- Create live classes with thumbnail upload\n- Teacher-controlled class lifecycle\n- Student enrollment validation\n- Secure token generation (1-hour expiry)\n- Time-based access control\n- Center admin isolation\n\n**Base URL:** http://localhost:5000\n**Full Path:** http://localhost:5000/api/live-classes\n\n**Authentication:** Bearer Token (JWT)\n\n**Version:** 3.0",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:5000",
+			"type": "string"
+		},
+		{
+			"key": "adminToken",
+			"value": "YOUR_ADMIN_JWT_TOKEN",
+			"type": "string"
+		},
+		{
+			"key": "studentToken",
+			"value": "YOUR_STUDENT_JWT_TOKEN",
+			"type": "string"
+		},
+		{
+			"key": "classId",
+			"value": "CLASS_ID_HERE",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "👨‍💼 ADMIN APIs",
+			"item": [
+				{
+					"name": "1. Create Live Class (with Thumbnail)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "title",
+									"value": "Polity Live Class",
+									"type": "text"
+								},
+								{
+									"key": "topic",
+									"value": "Indian Constitution - Basic Structure Doctrine",
+									"type": "text"
+								},
+								{
+									"key": "lectureTitle",
+									"value": "Lecture 15",
+									"type": "text"
+								},
+								{
+									"key": "subject",
+									"value": "Polity",
+									"type": "text"
+								},
+								{
+									"key": "startDateTime",
+									"value": "2026-05-20T10:00:00.000Z",
+									"type": "text",
+									"description": "ISO 8601 format (must be future date)"
+								},
+								{
+									"key": "endDateTime",
+									"value": "2026-05-20T12:00:00.000Z",
+									"type": "text",
+									"description": "ISO 8601 format (must be after start)"
+								},
+								{
+									"key": "courseId",
+									"value": "69eca3e762787eda1fe5830c",
+									"type": "text"
+								},
+								{
+									"key": "centerId",
+									"value": "69eb85ac5d077777e13c3a31",
+									"type": "text"
+								},
+								{
+									"key": "categoryId",
+									"value": "69ec5e30627224fd9450ff5c",
+									"type": "text"
+								},
+								{
+									"key": "teacherName",
+									"value": "Dr. Sharma",
+									"type": "text"
+								},
+								{
+									"key": "description",
+									"value": "Detailed discussion on basic structure doctrine with case studies",
+									"type": "text"
+								},
+								{
+									"key": "thumbnail",
+									"type": "file",
+									"description": "Optional: Upload thumbnail image (JPEG, PNG, WebP)"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/live-classes/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"live-classes",
+								""
+							]
+						},
+						"description": "Create a new live class with optional thumbnail upload.\n\n**Required Fields:**\n- title, topic, lectureTitle, subject\n- startDateTime, endDateTime (future dates)\n- courseId, centerId, categoryId\n- teacherName\n\n**Optional:**\n- description\n- thumbnail (image file)\n\n**Auto-calculated:**\n- durationInMinutes (from start/end times)\n- roomId, roomName (from 100ms)"
+					},
+					"response": []
+				},
+				{
+					"name": "2. Get All Live Classes",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/live-classes/?status=scheduled&page=1&limit=20",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"live-classes",
+								""
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "scheduled",
+									"description": "Filter by status (scheduled, live, completed, cancelled)"
+								},
+								{
+									"key": "courseId",
+									"value": "",
+									"disabled": true
+								},
+								{
+									"key": "centerId",
+									"value": "",
+									"disabled": true
+								},
+								{
+									"key": "categoryId",
+									"value": "",
+									"disabled": true
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "20",
+									"description": "Max: 100"
+								}
+							]
+						},
+						"description": "Get all live classes with filters.\n\n**Note:** Cancelled classes are excluded by default. Set status=cancelled to view them.\n\n**Pagination:**\n- page: default 1\n- limit: default 20, max 100"
+					},
+					"response": []
+				},
+				{
+					"name": "3. Get Single Live Class",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/live-classes/{{classId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"live-classes",
+								"{{classId}}"
+							]
+						},
+						"description": "Get details of a single live class with populated relations."
+					},
+					"response": []
+				},
+				{
+					"name": "4. Update Live Class",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Updated Polity Class\",\n  \"topic\": \"Updated Topic\",\n  \"startDateTime\": \"2026-05-20T11:00:00.000Z\",\n  \"endDateTime\": \"2026-05-20T13:00:00.000Z\",\n  \"teacherName\": \"Prof. Verma\",\n  \"description\": \"Updated description\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/live-classes/{{classId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"live-classes",
+								"{{classId}}"
+							]
+						},
+						"description": "Update live class details.\n\n**⚠️ Restriction:** Cannot edit live or completed classes. Only scheduled classes can be edited.\n\n**Auto-recalculated:** durationInMinutes (if times changed)"
+					},
+					"response": []
+				},
+				{
+					"name": "5. Start Live Class (Teacher)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/live-classes/{{classId}}/start",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"live-classes",
+								"{{classId}}",
+								"start"
+							]
+						},
+						"description": "Start a live class (changes status to 'live' and generates teacher token).\n\n**⏰ Time Restriction:** Can only start 15 minutes before scheduled time.\n\n**Returns:**\n- Teacher join token (1-hour expiry)\n- Room ID and name\n- Updated class data\n\n**State Transition:** scheduled → live"
+					},
+					"response": []
+				},
+				{
+					"name": "6. Cancel Live Class",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/live-classes/{{classId}}/cancel",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"live-classes",
+								"{{classId}}",
+								"cancel"
+							]
+						},
+						"description": "Cancel a scheduled live class.\n\n**⚠️ Restriction:** Cannot cancel live classes. Must end live session first.\n\n**State Transition:** scheduled → cancelled\n\n**Note:** Non-destructive (preserves class history)"
+					},
+					"response": []
+				},
+				{
+					"name": "7. Update Class Status",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"completed\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/live-classes/{{classId}}/status",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"live-classes",
+								"{{classId}}",
+								"status"
+							]
+						},
+						"description": "Update class status with state transition validation.\n\n**Valid Transitions:**\n- scheduled → live, cancelled\n- live → completed\n- completed → (none)\n- cancelled → (none)\n\n**Example:** End a live class by setting status to 'completed'"
+					},
+					"response": []
+				},
+				{
+					"name": "8. Get Statistics",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/live-classes/stats",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"live-classes",
+								"stats"
+							]
+						},
+						"description": "Get live class statistics grouped by status.\n\n**Returns:**\n- Count by status (scheduled, live, completed, cancelled)\n- Today's class count"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "👨‍🏫 TEACHER APIs",
+			"item": [
+				{
+					"name": "9. Teacher Join Class",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/live-classes/{{classId}}/teacher-join",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"live-classes",
+								"{{classId}}",
+								"teacher-join"
+							]
+						},
+						"description": "Generate teacher join token.\n\n**Security:**\n- center_admin can only join classes from their center\n- super_admin can join any class\n\n**Token:**\n- Role: teacher (full permissions)\n- Expiry: 1 hour\n- Video/Audio: Enabled\n- Screen Share: Enabled"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "👨‍🎓 STUDENT APIs",
+			"item": [
+				{
+					"name": "10. Get Today's Classes",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{studentToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/live-classes/today",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"live-classes",
+								"today"
+							]
+						},
+						"description": "Get all live classes scheduled for today.\n\n**Filters:**\n- Only enrolled courses\n- Only today's date\n- Status: scheduled or live\n- Sorted by start time"
+					},
+					"response": []
+				},
+				{
+					"name": "11. Get Upcoming Classes",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{studentToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/live-classes/upcoming?page=1&limit=10",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"live-classes",
+								"upcoming"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Max: 100"
+								}
+							]
+						},
+						"description": "Get upcoming scheduled classes.\n\n**Filters:**\n- Only enrolled courses\n- Future dates only\n- Status: scheduled only\n- Paginated results"
+					},
+					"response": []
+				},
+				{
+					"name": "12. Join Live Class (Student)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{studentToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/live-classes/{{classId}}/join",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"live-classes",
+								"{{classId}}",
+								"join"
+							]
+						},
+						"description": "Generate student join token.\n\n**Validations:**\n- ✅ Must be enrolled in course\n- ✅ Class must be active (not cancelled)\n- ✅ Class must not be completed\n- ⏰ Can join 15 minutes before start time\n- ⏰ Cannot join after end time\n\n**Token:**\n- Role: student (watch-only)\n- Expiry: 1 hour\n- Video/Audio: Disabled\n- Chat: Enabled\n\n**Returns:**\n- Join token\n- Room ID and name\n- Class title and teacher name\n- startDateTime and endDateTime (for timer)"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "🧪 TEST SCENARIOS",
+			"item": [
+				{
+					"name": "TEST 1: Create Class Success",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "title",
+									"value": "History Live Class",
+									"type": "text"
+								},
+								{
+									"key": "topic",
+									"value": "Modern Indian History - Freedom Struggle",
+									"type": "text"
+								},
+								{
+									"key": "lectureTitle",
+									"value": "Lecture 8",
+									"type": "text"
+								},
+								{
+									"key": "subject",
+									"value": "History",
+									"type": "text"
+								},
+								{
+									"key": "startDateTime",
+									"value": "2026-05-20T14:00:00.000Z",
+									"type": "text"
+								},
+								{
+									"key": "endDateTime",
+									"value": "2026-05-20T16:00:00.000Z",
+									"type": "text"
+								},
+								{
+									"key": "courseId",
+									"value": "69eca3e762787eda1fe5830c",
+									"type": "text"
+								},
+								{
+									"key": "centerId",
+									"value": "69eb85ac5d077777e13c3a31",
+									"type": "text"
+								},
+								{
+									"key": "categoryId",
+									"value": "69ec5e30627224fd9450ff5c",
+									"type": "text"
+								},
+								{
+									"key": "teacherName",
+									"value": "Prof. Gupta",
+									"type": "text"
+								},
+								{
+									"key": "description",
+									"value": "Comprehensive coverage of Indian freedom movement",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/live-classes/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"live-classes",
+								""
+							]
+						},
+						"description": "Test creating a class successfully.\n\n**Verify:**\n- ✅ durationInMinutes = 120 (auto-calculated)\n- ✅ roomId present (from 100ms)\n- ✅ createdBy = admin user ID\n- ✅ status = scheduled\n- Save the returned _id as {{classId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "TEST 2: Create Class - Past Date (Should Fail)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "title",
+									"value": "Past Class",
+									"type": "text"
+								},
+								{
+									"key": "topic",
+									"value": "Should fail",
+									"type": "text"
+								},
+								{
+									"key": "lectureTitle",
+									"value": "Lecture 1",
+									"type": "text"
+								},
+								{
+									"key": "subject",
+									"value": "Test",
+									"type": "text"
+								},
+								{
+									"key": "startDateTime",
+									"value": "2020-01-01T10:00:00.000Z",
+									"type": "text"
+								},
+								{
+									"key": "endDateTime",
+									"value": "2020-01-01T12:00:00.000Z",
+									"type": "text"
+								},
+								{
+									"key": "courseId",
+									"value": "69eca3e762787eda1fe5830c",
+									"type": "text"
+								},
+								{
+									"key": "centerId",
+									"value": "69eb85ac5d077777e13c3a31",
+									"type": "text"
+								},
+								{
+									"key": "categoryId",
+									"value": "69ec5e30627224fd9450ff5c",
+									"type": "text"
+								},
+								{
+									"key": "teacherName",
+									"value": "Test Teacher",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/live-classes/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"live-classes",
+								""
+							]
+						},
+						"description": "Test creating a class with past date.\n\n**Expected Error (400):**\n```json\n{\n  \"success\": false,\n  \"message\": \"Class start time must be in the future\"\n}\n```"
+					},
+					"response": []
+				},
+				{
+					"name": "TEST 3: Start Class Success",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/live-classes/{{classId}}/start",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"live-classes",
+								"{{classId}}",
+								"start"
+							]
+						},
+						"description": "Test starting a class.\n\n**Verify:**\n- ✅ status = live\n- ✅ token returned (teacher token)\n- ✅ roomId returned\n\n**Note:** Must be 15 mins before scheduled time"
+					},
+					"response": []
+				},
+				{
+					"name": "TEST 4: Edit Live Class (Should Fail)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"New Title\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/live-classes/{{classId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"live-classes",
+								"{{classId}}"
+							]
+						},
+						"description": "Test editing a live class (should fail).\n\n**Expected Error (400):**\n```json\n{\n  \"success\": false,\n  \"message\": \"Cannot edit a live class. Only scheduled classes can be edited.\"\n}\n```"
+					},
+					"response": []
+				},
+				{
+					"name": "TEST 5: Student Join Success",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{studentToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/live-classes/{{classId}}/join",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"live-classes",
+								"{{classId}}",
+								"join"
+							]
+						},
+						"description": "Test student joining a class.\n\n**Verify:**\n- ✅ token returned (student token)\n- ✅ roomId returned\n- ✅ startDateTime and endDateTime for timer\n\n**Requirements:**\n- Student must be enrolled in course\n- Within join window (15 mins before start)"
+					},
+					"response": []
+				},
+				{
+					"name": "TEST 6: Student Not Enrolled (Should Fail)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{studentToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/live-classes/{{classId}}/join",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"live-classes",
+								"{{classId}}",
+								"join"
+							]
+						},
+						"description": "Test student joining without enrollment.\n\n**Expected Error (403):**\n```json\n{\n  \"success\": false,\n  \"message\": \"Access denied. You are not enrolled in this course.\"\n}\n```"
+					},
+					"response": []
+				},
+				{
+					"name": "TEST 7: Cancel Class Success",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/live-classes/{{classId}}/cancel",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"live-classes",
+								"{{classId}}",
+								"cancel"
+							]
+						},
+						"description": "Test cancelling a class.\n\n**Verify:**\n- ✅ status = cancelled\n- ✅ Class preserved in database\n\n**Note:** Cannot cancel live classes"
+					},
+					"response": []
+				},
+				{
+					"name": "TEST 8: State Transition Validation",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"scheduled\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/live-classes/{{classId}}/status",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"live-classes",
+								"{{classId}}",
+								"status"
+							]
+						},
+						"description": "Test invalid state transition (completed → scheduled).\n\n**Expected Error (400):**\n```json\n{\n  \"success\": false,\n  \"message\": \"Invalid status transition from completed to scheduled. Allowed: none\"\n}\n```"
+					},
+					"response": []
+				},
+				{
+					"name": "TEST 9: Center Admin Security",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{centerAdminToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "title",
+									"value": "Test Class",
+									"type": "text"
+								},
+								{
+									"key": "topic",
+									"value": "Security Test",
+									"type": "text"
+								},
+								{
+									"key": "lectureTitle",
+									"value": "Lecture 1",
+									"type": "text"
+								},
+								{
+									"key": "subject",
+									"value": "Test",
+									"type": "text"
+								},
+								{
+									"key": "startDateTime",
+									"value": "2026-05-20T10:00:00.000Z",
+									"type": "text"
+								},
+								{
+									"key": "endDateTime",
+									"value": "2026-05-20T12:00:00.000Z",
+									"type": "text"
+								},
+								{
+									"key": "courseId",
+									"value": "69eca3e762787eda1fe5830c",
+									"type": "text"
+								},
+								{
+									"key": "centerId",
+									"value": "DIFFERENT_CENTER_ID",
+									"type": "text",
+									"description": "Use a different center ID"
+								},
+								{
+									"key": "categoryId",
+									"value": "69ec5e30627224fd9450ff5c",
+									"type": "text"
+								},
+								{
+									"key": "teacherName",
+									"value": "Test Teacher",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/live-classes/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"live-classes",
+								""
+							]
+						},
+						"description": "Test center admin creating class for different center.\n\n**Expected Error (403):**\n```json\n{\n  \"success\": false,\n  \"message\": \"You can only create classes for your own center\"\n}\n```"
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

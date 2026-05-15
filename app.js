@@ -30,6 +30,9 @@ const couponRoutes = require('./routes/couponRoutes');
 const fixCouponRoutes = require('./routes/fixCouponRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const orderRoutes = require('./routes/orderRoutes');
+const liveClassRoutes = require('./routes/liveClassRoutes');
+const announcementRoutes = require('./routes/announcementRoutes');
+const cartRoutes = require('./routes/cartRoutes');
 
 const centerDataRoutes = require('./routes/centerDataRoutes');
 const testCategoryRoutes = require('./routes/testCategoryRoutes');
@@ -127,6 +130,15 @@ app.use('/api/payments', paymentRoutes);
 
 // Order Management routes
 app.use('/api/orders', orderRoutes);
+
+// Live Class routes
+app.use('/api/live-classes', liveClassRoutes);
+
+// Announcement routes
+app.use('/api/announcements', announcementRoutes);
+
+// Cart routes
+app.use('/api/cart', cartRoutes);
 
 
 // Center Data routes

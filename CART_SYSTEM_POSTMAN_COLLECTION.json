@@ -1,0 +1,363 @@
+{
+  "info": {
+    "_postman_id": "cart-system-sriram-ias-2025",
+    "name": "Sriram IAS - Cart System API",
+    "description": "Complete API collection for testing the Add to Cart system for Courses and Books",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Add Course to Cart (Online)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{JWT_TOKEN}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"itemType\": \"COURSE\",\n  \"itemId\": \"{{COURSE_ID}}\",\n  \"courseMode\": \"online\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/cart/add",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "cart", "add"]
+        },
+        "description": "Add an online course to the cart. Replace {{COURSE_ID}} with actual course ID."
+      },
+      "response": []
+    },
+    {
+      "name": "2. Add Course to Cart (Offline)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{JWT_TOKEN}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"itemType\": \"COURSE\",\n  \"itemId\": \"{{COURSE_ID}}\",\n  \"courseMode\": \"offline\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/cart/add",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "cart", "add"]
+        },
+        "description": "Add an offline course to the cart. This will be a separate cart item from online mode."
+      },
+      "response": []
+    },
+    {
+      "name": "3. Add Book to Cart",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{JWT_TOKEN}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"itemType\": \"BOOK\",\n  \"itemId\": \"{{BOOK_ID}}\",\n  \"quantity\": 2\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/cart/add",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "cart", "add"]
+        },
+        "description": "Add a book to the cart with specified quantity. If book already exists, quantity will be incremented."
+      },
+      "response": []
+    },
+    {
+      "name": "4. Add Same Book Again (Increment Quantity)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{JWT_TOKEN}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"itemType\": \"BOOK\",\n  \"itemId\": \"{{BOOK_ID}}\",\n  \"quantity\": 1\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/cart/add",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "cart", "add"]
+        },
+        "description": "Adding the same book again will increment the quantity by the specified amount."
+      },
+      "response": []
+    },
+    {
+      "name": "5. Get User's Cart",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{JWT_TOKEN}}"
+          }
+        ],
+        "url": {
+          "raw": "{{BASE_URL}}/api/cart",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "cart"]
+        },
+        "description": "Retrieve all items in the user's cart with calculated totals."
+      },
+      "response": []
+    },
+    {
+      "name": "6. Get Cart Total",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{JWT_TOKEN}}"
+          }
+        ],
+        "url": {
+          "raw": "{{BASE_URL}}/api/cart/total",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "cart", "total"]
+        },
+        "description": "Get only the cart total summary (items count, prices, discount, savings percent)."
+      },
+      "response": []
+    },
+    {
+      "name": "7. Check if Course is in Cart (Online)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{JWT_TOKEN}}"
+          }
+        ],
+        "url": {
+          "raw": "{{BASE_URL}}/api/cart/check/COURSE/{{COURSE_ID}}?courseMode=online",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "cart", "check", "COURSE", "{{COURSE_ID}}"],
+          "query": [
+            {
+              "key": "courseMode",
+              "value": "online"
+            }
+          ]
+        },
+        "description": "Check if a specific course (online mode) is already in the cart. Returns isInCart: true/false."
+      },
+      "response": []
+    },
+    {
+      "name": "8. Check if Book is in Cart",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{JWT_TOKEN}}"
+          }
+        ],
+        "url": {
+          "raw": "{{BASE_URL}}/api/cart/check/BOOK/{{BOOK_ID}}",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "cart", "check", "BOOK", "{{BOOK_ID}}"]
+        },
+        "description": "Check if a specific book is already in the cart. Returns isInCart: true/false."
+      },
+      "response": []
+    },
+    {
+      "name": "9. Update Book Quantity",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{JWT_TOKEN}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"quantity\": 5\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/cart/update-quantity/{{CART_ITEM_ID}}",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "cart", "update-quantity", "{{CART_ITEM_ID}}"]
+        },
+        "description": "Update the quantity of a book in the cart. Replace {{CART_ITEM_ID}} with the _id from cart.items array. NOTE: Courses cannot have their quantity changed (always 1)."
+      },
+      "response": []
+    },
+    {
+      "name": "10. Remove Course from Cart (Online)",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{JWT_TOKEN}}"
+          }
+        ],
+        "url": {
+          "raw": "{{BASE_URL}}/api/cart/remove/{{CART_ITEM_ID}}?courseMode=online",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "cart", "remove", "{{CART_ITEM_ID}}"],
+          "query": [
+            {
+              "key": "courseMode",
+              "value": "online"
+            }
+          ]
+        },
+        "description": "Remove a specific course (online mode) from the cart. Replace {{CART_ITEM_ID}} with the _id from cart.items array."
+      },
+      "response": []
+    },
+    {
+      "name": "11. Remove Book from Cart",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{JWT_TOKEN}}"
+          }
+        ],
+        "url": {
+          "raw": "{{BASE_URL}}/api/cart/remove/{{CART_ITEM_ID}}",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "cart", "remove", "{{CART_ITEM_ID}}"]
+        },
+        "description": "Remove a specific book from the cart. Replace {{CART_ITEM_ID}} with the _id from cart.items array."
+      },
+      "response": []
+    },
+    {
+      "name": "12. Clear Entire Cart",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{JWT_TOKEN}}"
+          }
+        ],
+        "url": {
+          "raw": "{{BASE_URL}}/api/cart/clear",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "cart", "clear"]
+        },
+        "description": "Remove all items from the cart. This action cannot be undone."
+      },
+      "response": []
+    },
+    {
+      "name": "13. Apply Coupon to Cart",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{JWT_TOKEN}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"couponCode\": \"SAVE20\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/cart/apply-coupon",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "cart", "apply-coupon"]
+        },
+        "description": "Apply a coupon code to the cart. Validates expiry, usage limits, minimum cart value, and item eligibility. Auto-calculates final amount."
+      },
+      "response": []
+    },
+    {
+      "name": "14. Remove Coupon from Cart",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{JWT_TOKEN}}"
+          }
+        ],
+        "url": {
+          "raw": "{{BASE_URL}}/api/cart/remove-coupon",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "cart", "remove-coupon"]
+        },
+        "description": "Remove the applied coupon from the cart. Recalculates final amount without discount."
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "BASE_URL",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "JWT_TOKEN",
+      "value": "your_jwt_token_here",
+      "type": "string"
+    },
+    {
+      "key": "COURSE_ID",
+      "value": "course_id_here",
+      "type": "string"
+    },
+    {
+      "key": "BOOK_ID",
+      "value": "book_id_here",
+      "type": "string"
+    },
+    {
+      "key": "CART_ITEM_ID",
+      "value": "cart_item_id_here",
+      "type": "string"
+    }
+  ]
+}
