@@ -194,18 +194,13 @@ app.use('/api/home-videos', homeVideoRoutes);
 
 
 
-const { isEmailConfigured } = require('./utils/emailConfig');
+const { getEmailHealth } = require('./utils/emailService');
 
 const healthPayload = () => ({
   status: 'OK',
   message: 'Sriram IAS Backend is running',
   timestamp: new Date().toISOString(),
-  email: {
-    configured: isEmailConfigured(),
-    hint: isEmailConfigured()
-      ? null
-      : 'Set EMAIL_USER and EMAIL_PASS (Gmail App Password) in Render Environment'
-  }
+  email: getEmailHealth()
 });
 
 // Health check endpoints (Render uses /api/health)
@@ -215,6 +210,20 @@ app.get('/health', (req, res) => {
 
 app.get('/api/health', (req, res) => {
   res.json(healthPayload());
+});
+
+app.get('/api/health/email', async (req, res) => {
+  const { verifyEmailConnection, getEmailHealth } = require('./utils/emailService');
+  try {
+    await verifyEmailConnection();
+    res.json({ success: true, email: getEmailHealth() });
+  } catch (err) {
+    res.status(503).json({
+      success: false,
+      email: getEmailHealth(),
+      error: err.message
+    });
+  }
 });
 
 // Root endpoint

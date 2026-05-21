@@ -1,12 +1,14 @@
 const app = require('./app');
-const { getTransporter } = require('./utils/emailService');
+const { verifyEmailConnection } = require('./utils/emailService');
 const { isEmailConfigured } = require('./utils/emailConfig');
 
 if (isEmailConfigured()) {
-  getTransporter();
+  verifyEmailConnection().catch(() => {
+    // Error already logged; signup will return a clearer message
+  });
 } else {
   console.warn(
-    '⚠️  EMAIL_USER / EMAIL_PASS not set — OTP emails will fail until you add them in Render → Environment'
+    '⚠️  EMAIL_USER / EMAIL_PASS not set — OTP emails will fail. On Render: Dashboard → Environment (not .env file).'
   );
 }
 

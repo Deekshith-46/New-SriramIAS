@@ -1,6 +1,7 @@
 const OTP = require('../models/OTP');
 const { sendOTPEmail } = require('./emailService');
 const { assertEmailConfigured } = require('./emailConfig');
+const { getPublicEmailErrorMessage } = require('./emailErrors');
 
 const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -53,12 +54,11 @@ const sendOTP = async (userId, mobile, email, type = 'student', userName = null)
       await sendOTPEmailWithTimeout(email, otp, userName || 'User', type);
     } catch (error) {
       console.error('❌ Failed to send OTP email:', error.message);
+      if (error.response) console.error('   SMTP response:', error.response);
       if (process.env.NODE_ENV !== 'production') {
         console.log(`\n🔐 OTP (${type}) for ${mobile || email}: ${otp}\n`);
       }
-      const err = new Error(
-        'Could not send OTP email. Check server email configuration (EMAIL_USER / EMAIL_PASS on Render).'
-      );
+      const err = new Error(getPublicEmailErrorMessage(error));
       err.statusCode = 503;
       err.cause = error;
       throw err;
