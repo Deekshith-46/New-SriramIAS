@@ -1,3 +1,4 @@
+const dns = require('dns').promises;
 const nodemailer = require('nodemailer');
 const {
   isEmailConfigured,
@@ -5,39 +6,67 @@ const {
   getEmailPass,
   maskEmail
 } = require('./emailConfig');
-const { lookupIpv4 } = require('./dnsIpv4');
 
 let transporter = null;
+let resolvedSmtpIpv4 = null;
+let resolvedSmtpHostname = null;
 let lastSmtpVerify = { ok: null, error: null, checkedAt: null };
+
+const getSmtpHostname = () =>
+  (process.env.EMAIL_HOST || 'smtp.gmail.com').replace(/^smtp:\/\//, '');
 
 const resetTransporter = () => {
   transporter = null;
+  resolvedSmtpIpv4 = null;
+  resolvedSmtpHostname = null;
 };
 
-const createTransporter = () => {
-  const user = getEmailUser();
-  const pass = getEmailPass();
+/** Resolve Gmail SMTP to IPv4 only (Render cannot reach IPv6). */
+const resolveSmtpIpv4 = async () => {
+  const hostname = getSmtpHostname();
+  if (resolvedSmtpIpv4 && resolvedSmtpHostname === hostname) {
+    return { hostname, ipv4: resolvedSmtpIpv4 };
+  }
+
+  const addresses = await dns.resolve4(hostname);
+  if (!addresses?.length) {
+    throw new Error(`No IPv4 address found for ${hostname}`);
+  }
+
+  resolvedSmtpHostname = hostname;
+  resolvedSmtpIpv4 = addresses[0];
+  console.log(`SMTP: ${hostname} → ${resolvedSmtpIpv4} (IPv4 only)`);
+  return { hostname, ipv4: resolvedSmtpIpv4 };
+};
+
+const createTransporter = async () => {
+  const { hostname, ipv4 } = await resolveSmtpIpv4();
 
   return nodemailer.createTransport({
-    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+    host: ipv4,
     port: Number(process.env.EMAIL_PORT) || 587,
     secure: false,
     requireTLS: true,
-    auth: { user, pass },
-    lookup: lookupIpv4,
-    tls: { minVersion: 'TLSv1.2' },
+    auth: {
+      user: getEmailUser(),
+      pass: getEmailPass()
+    },
+    tls: {
+      servername: hostname,
+      minVersion: 'TLSv1.2'
+    },
     connectionTimeout: 20000,
     greetingTimeout: 20000,
     socketTimeout: 20000
   });
 };
 
-const getTransporter = () => {
+const getTransporter = async () => {
   if (!isEmailConfigured()) {
     throw new Error('EMAIL_USER and EMAIL_PASS are not set');
   }
   if (!transporter) {
-    transporter = createTransporter();
+    transporter = await createTransporter();
   }
   return transporter;
 };
@@ -53,7 +82,7 @@ const verifyEmailConnection = async () => {
   }
 
   resetTransporter();
-  const testTransport = createTransporter();
+  const testTransport = await createTransporter();
 
   try {
     await testTransport.verify();
@@ -62,17 +91,13 @@ const verifyEmailConnection = async () => {
     console.log('✅ Gmail SMTP verified for', maskEmail(getEmailUser()));
     return true;
   } catch (err) {
+    resetTransporter();
     lastSmtpVerify = {
       ok: false,
       error: err.message,
       checkedAt: new Date().toISOString()
     };
     console.error('❌ Gmail SMTP verify failed:', err.message);
-    if (/ENETUNREACH|2404:6800/i.test(err.message)) {
-      console.error(
-        '   → IPv6 unreachable on this host. Deploy latest code (forces IPv4 for SMTP).'
-      );
-    }
     if (/535|Invalid login|Authentication/i.test(err.message)) {
       console.error(
         '   → EMAIL_PASS must be a Gmail App Password (16 chars), not your normal password.'
@@ -85,6 +110,8 @@ const verifyEmailConnection = async () => {
 const getEmailHealth = () => ({
   configured: isEmailConfigured(),
   user: maskEmail(getEmailUser()),
+  smtpHost: getSmtpHostname(),
+  smtpIpv4: resolvedSmtpIpv4,
   smtpVerified: lastSmtpVerify.ok,
   smtpError: lastSmtpVerify.error,
   smtpCheckedAt: lastSmtpVerify.checkedAt,
@@ -92,7 +119,6 @@ const getEmailHealth = () => ({
     'Render does not read .env from your repo. Set EMAIL_USER and EMAIL_PASS in Render Dashboard → Environment, then redeploy.'
 });
 
-// Generate HTML OTP Email Template
 const generateOTPEmailHTML = (otp, userName, userType = 'student') => {
   const userTypeLabel = userType === 'parent' ? 'Parent' : 'Student';
 
@@ -149,7 +175,8 @@ const sendOTPEmail = async (to, otp, userName, userType = 'student') => {
   };
 
   try {
-    const info = await getTransporter().sendMail(mailOptions);
+    const transport = await getTransporter();
+    const info = await transport.sendMail(mailOptions);
     console.log(`✅ OTP email sent to ${to}`);
     console.log(`Message ID: ${info.messageId}`);
     return { success: true, messageId: info.messageId };
