@@ -9,8 +9,6 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: NODE_OPTIONS
-        value: --dns-result-order=ipv4first
       - key: PORT
         value: 10000
       - key: MONGODB_URI
@@ -27,6 +25,10 @@ services:
         sync: false
       - key: FRONTEND_URL
         sync: false
+      - key: EMAIL_HOST
+        value: smtp.gmail.com
+      - key: EMAIL_PORT
+        value: 587
       - key: EMAIL_USER
         sync: false
       - key: EMAIL_PASS

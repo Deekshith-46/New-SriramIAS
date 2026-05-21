@@ -146,9 +146,9 @@ exports.sendOtp = [
       }
     }
 
-    // Send OTP
+    let otp;
     try {
-      await sendOTP(user._id, mobile, email, otpType, user.name);
+      otp = await sendOTP(user._id, mobile, email, otpType, user.name);
     } catch (error) {
       if (error.statusCode === 503) {
         return res.status(503).json({ message: error.message });
@@ -156,11 +156,11 @@ exports.sendOtp = [
       return res.status(429).json({ message: error.message });
     }
 
-    // Return userId so client doesn't need to send email again
     res.json({
       success: true,
       message: 'OTP sent successfully',
-      userId: user._id.toString()
+      userId: user._id.toString(),
+      otp
     });
   } catch (error) {
     console.error(error);
@@ -286,11 +286,10 @@ exports.studentSignup = async (req, res) => {
       isActive: false  // Inactive until OTP verified
     });
 
-    // Send OTP for verification
+    let otp;
     try {
-      await sendOTP(user._id, mobile, email, 'student', user.name);
+      otp = await sendOTP(user._id, mobile, email, 'student', user.name);
     } catch (error) {
-      // If OTP fails, delete the user
       await User.deleteOne({ _id: user._id });
       if (error.statusCode === 503) {
         return res.status(503).json({ message: error.message });
@@ -301,7 +300,8 @@ exports.studentSignup = async (req, res) => {
     res.status(200).json({
       success: true,
       message: 'OTP sent successfully. Please verify to complete registration.',
-      userId: user._id.toString()
+      userId: user._id.toString(),
+      otp
     });
   } catch (error) {
     console.error(error);
@@ -447,9 +447,13 @@ exports.parentLoginRequest = async (req, res) => {
     const otpEmail = parentUser.email;
     const otpMobile = parentUser.mobile;
 
+    let otp;
     try {
-      await sendOTP(parentUser._id, otpMobile, otpEmail, 'parent', parentUser.name);
+      otp = await sendOTP(parentUser._id, otpMobile, otpEmail, 'parent', parentUser.name);
     } catch (error) {
+      if (error.statusCode === 503) {
+        return res.status(503).json({ message: error.message });
+      }
       return res.status(429).json({ message: error.message });
     }
 
@@ -457,7 +461,8 @@ exports.parentLoginRequest = async (req, res) => {
       success: true,
       message: 'OTP sent successfully',
       sentTo: otpEmail ? 'email' : 'mobile',
-      userId: parentUser._id.toString()
+      userId: parentUser._id.toString(),
+      otp
     });
   } catch (error) {
     console.error(error);
