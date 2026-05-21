@@ -51,6 +51,7 @@ const lectureQuizAttemptRoutes = require('./routes/lectureQuizAttemptRoutes');
 const lectureAnswerRoutes = require('./routes/lectureAnswerRoutes');
 const courseProgressRoutes = require('./routes/courseProgressRoutes');
 const lmsTestRoutes = require('./routes/lmsTestRoutes');
+const lmsBookmarkRoutes = require('./routes/lmsBookmarkRoutes');
 
 
 const app = express();
@@ -172,6 +173,9 @@ app.use('/api/course-progress', courseProgressRoutes);
 
 // My Courses — Tests (Weekly / Daily / Monthly)
 app.use('/api/tests', lmsTestRoutes);
+
+// My Courses — Bookmarks (recordings + tests)
+app.use('/api/bookmarks', lmsBookmarkRoutes);
 
 // Announcement routes
 app.use('/api/announcements', announcementRoutes);

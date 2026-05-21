@@ -1,0 +1,76 @@
+{
+  "info": {
+    "name": "LMS Bookmarks",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "studentToken", "value": "" },
+    { "key": "lectureId", "value": "" },
+    { "key": "testId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Toggle recording bookmark",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{studentToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"bookmarkType\": \"recording\",\n  \"referenceId\": \"{{lectureId}}\"\n}"
+        },
+        "url": "{{baseUrl}}/api/bookmarks/toggle"
+      }
+    },
+    {
+      "name": "Toggle test bookmark",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{studentToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"bookmarkType\": \"test\",\n  \"referenceId\": \"{{testId}}\"\n}"
+        },
+        "url": "{{baseUrl}}/api/bookmarks/toggle"
+      }
+    },
+    {
+      "name": "Bookmark status",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+        "url": "{{baseUrl}}/api/bookmarks/status?bookmarkType=test&referenceId={{testId}}"
+      }
+    },
+    {
+      "name": "All bookmarks",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+        "url": "{{baseUrl}}/api/bookmarks"
+      }
+    },
+    {
+      "name": "Recording bookmarks",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+        "url": "{{baseUrl}}/api/bookmarks/recordings"
+      }
+    },
+    {
+      "name": "Test bookmarks",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+        "url": "{{baseUrl}}/api/bookmarks/tests"
+      }
+    }
+  ]
+}
