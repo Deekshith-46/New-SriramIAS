@@ -1,0 +1,239 @@
+{
+  "info": {
+    "name": "Sriram IAS - LMS Tests v2",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "studentToken", "value": "" },
+    { "key": "adminToken", "value": "" },
+    { "key": "courseId", "value": "" },
+    { "key": "categoryId", "value": "" },
+    { "key": "testId", "value": "" },
+    { "key": "questionId", "value": "" },
+    { "key": "attemptId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "GET Categories",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/tests/categories" }
+        },
+        {
+          "name": "POST Category (admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Weekly Test\",\n  \"slug\": \"weekly\"\n}"
+            },
+            "url": "{{baseUrl}}/api/tests/categories"
+          }
+        },
+        {
+          "name": "PUT Category (admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Weekly Tests\"\n}"
+            },
+            "url": "{{baseUrl}}/api/tests/categories/{{categoryId}}"
+          }
+        },
+        {
+          "name": "DELETE Category (admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/tests/categories/{{categoryId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Tests",
+      "item": [
+        {
+          "name": "Create Test",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"courseId\": \"{{courseId}}\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"title\": \"Geography Prelims Test 1\",\n  \"durationInMinutes\": 60,\n  \"passMarks\": 40,\n  \"negativeMarkPerWrongAnswer\": 0.33,\n  \"maxAttempts\": 1,\n  \"shuffleQuestions\": false,\n  \"shuffleOptions\": false\n}"
+            },
+            "url": "{{baseUrl}}/api/tests"
+          }
+        },
+        {
+          "name": "Update Test",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"Updated title\"\n}" },
+            "url": "{{baseUrl}}/api/tests/{{testId}}"
+          }
+        },
+        {
+          "name": "Publish Test",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/tests/{{testId}}/publish"
+          }
+        },
+        {
+          "name": "Delete Test (soft)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/tests/{{testId}}"
+          }
+        },
+        {
+          "name": "List Tests Admin",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/tests/course/{{courseId}}/category/{{categoryId}}/admin"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Questions",
+      "item": [
+        {
+          "name": "Add Question",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"testId\": \"{{testId}}\",\n  \"question\": \"Capital of India?\",\n  \"options\": [\"Delhi\", \"Mumbai\", \"Hyderabad\", \"Pune\"],\n  \"correctAnswer\": 0,\n  \"explanation\": \"Delhi is the capital\",\n  \"marks\": 2,\n  \"negativeMarks\": 0.33\n}"
+            },
+            "url": "{{baseUrl}}/api/tests/questions"
+          }
+        },
+        {
+          "name": "Add Questions (bulk)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"testId\": \"{{testId}}\",\n  \"questions\": [\n    {\n      \"question\": \"Capital of India?\",\n      \"options\": [\"Delhi\", \"Mumbai\", \"Hyderabad\", \"Pune\"],\n      \"correctAnswer\": 0,\n      \"explanation\": \"Delhi is the capital\",\n      \"marks\": 2\n    },\n    {\n      \"question\": \"Largest state by area?\",\n      \"options\": [\"Rajasthan\", \"Maharashtra\", \"UP\", \"MP\"],\n      \"correctAnswer\": 0,\n      \"marks\": 2\n    }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/tests/questions/bulk"
+          }
+        },
+        {
+          "name": "Update Question",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"Capital of India (updated)?\",\n  \"marks\": 2\n}"
+            },
+            "url": "{{baseUrl}}/api/tests/questions/{{questionId}}"
+          }
+        },
+        {
+          "name": "List Questions",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/tests/questions/test/{{testId}}"
+          }
+        },
+        {
+          "name": "Delete Question",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/tests/questions/{{questionId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Student",
+      "item": [
+        {
+          "name": "List Tests",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": "{{baseUrl}}/api/tests/course/{{courseId}}/category/{{categoryId}}"
+          }
+        },
+        {
+          "name": "Start Test",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": "{{baseUrl}}/api/tests/{{testId}}/start"
+          }
+        },
+        {
+          "name": "Submit Test",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{studentToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": [\n    { \"questionId\": \"{{questionId}}\", \"selectedOption\": 0 }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/tests/{{testId}}/submit"
+          }
+        },
+        {
+          "name": "Get Result",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": "{{baseUrl}}/api/tests/attempts/{{attemptId}}"
+          }
+        },
+        {
+          "name": "My Attempts (paginated)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": "{{baseUrl}}/api/tests/attempts/me/list?page=1&limit=20"
+          }
+        }
+      ]
+    }
+  ]
+}

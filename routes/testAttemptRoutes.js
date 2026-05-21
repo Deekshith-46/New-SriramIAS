@@ -8,9 +8,13 @@ const {
   getTopPerformers,
   getMyAttempts
 } = require('../controllers/testAttemptController');
+const { getAttemptResult } = require('../controllers/lmsTestAttemptController');
 
 // Public routes
 router.get('/top-performers/:paperId', getTopPerformers);
+
+// LMS course test result (My Courses → Tests)
+router.get('/:attemptId', protect, getAttemptResult);
 
 // Protected routes (Student)
 router.post(
