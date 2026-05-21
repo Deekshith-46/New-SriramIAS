@@ -21,7 +21,9 @@ const uploadToCloudinary = async (file, folder = 'courses', resourceType = 'auto
           resolve({
             url: result.secure_url,
             public_id: result.public_id,
-            format: result.format
+            format: result.format,
+            duration: result.duration ? Math.round(result.duration) : 0,
+            bytes: result.bytes
           });
         }
       }

@@ -1,0 +1,378 @@
+{
+  "info": {
+    "_postman_id": "recorded-lectures-sriram-ias",
+    "name": "Recorded Lectures LMS - Sriram IAS",
+    "description": "My Courses → Recordings API Collection\n\n**Base URL:** http://localhost:5000\n\n**Auth:** Bearer JWT (`adminToken` or `studentToken`)\n\n**Modules:**\n- Course Subjects (admin CRUD + student list)\n- Recorded Lectures (upload, quiz, cheat sheet)\n- Lecture Notes / Progress / Quiz / Mains Answer\n- Course Progress (overall % + continue watching)\n\n**Setup:**\n1. Set `studentToken` after OTP login\n2. Set `adminToken` for admin routes\n3. Set `courseId`, `subjectId`, `lectureId` from responses",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000", "type": "string" },
+    { "key": "adminToken", "value": "YOUR_ADMIN_JWT_TOKEN", "type": "string" },
+    { "key": "studentToken", "value": "YOUR_STUDENT_JWT_TOKEN", "type": "string" },
+    { "key": "courseId", "value": "YOUR_COURSE_ID", "type": "string" },
+    { "key": "subjectId", "value": "YOUR_SUBJECT_ID", "type": "string" },
+    { "key": "lectureId", "value": "YOUR_LECTURE_ID", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "🔐 Auth (prerequisite)",
+      "item": [
+        {
+          "name": "Send OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student@example.com\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/send-otp"
+          }
+        },
+        {
+          "name": "Verify OTP (get token)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student@example.com\",\n  \"otp\": \"123456\",\n  \"userId\": \"USER_ID_FROM_SEND_OTP\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/verify-otp"
+          }
+        },
+        {
+          "name": "My Enrollments",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": "{{baseUrl}}/api/payments/course/my-enrollments"
+          }
+        }
+      ]
+    },
+    {
+      "name": "👨‍🎓 Student APIs",
+      "item": [
+        {
+          "name": "Get Subjects (course)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": "{{baseUrl}}/api/course-subjects/course/{{courseId}}"
+          }
+        },
+        {
+          "name": "Get Subjects Grouped (recommended)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": "{{baseUrl}}/api/course-subjects/course/{{courseId}}/grouped"
+          }
+        },
+        {
+          "name": "Get Lectures by Subject (paginated)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/recorded-lectures/subject/{{subjectId}}?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "recorded-lectures", "subject", "{{subjectId}}"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Lecture by ID (player)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": "{{baseUrl}}/api/recorded-lectures/{{lectureId}}"
+          }
+        },
+        {
+          "name": "Get Course Progress",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": "{{baseUrl}}/api/course-progress/{{courseId}}"
+          }
+        },
+        {
+          "name": "Update Last Opened (continue watching)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{studentToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"courseId\": \"{{courseId}}\",\n  \"lectureId\": \"{{lectureId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/course-progress/last-opened"
+          }
+        },
+        {
+          "name": "Save Note",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{studentToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lectureId\": \"{{lectureId}}\",\n  \"noteText\": \"My lecture notes here...\"\n}"
+            },
+            "url": "{{baseUrl}}/api/lecture-notes"
+          }
+        },
+        {
+          "name": "Get Note",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": "{{baseUrl}}/api/lecture-notes/{{lectureId}}"
+          }
+        },
+        {
+          "name": "Update Lecture Progress",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{studentToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lectureId\": \"{{lectureId}}\",\n  \"watchedDuration\": 530\n}"
+            },
+            "url": "{{baseUrl}}/api/lecture-progress"
+          }
+        },
+        {
+          "name": "Get Lecture Progress",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": "{{baseUrl}}/api/lecture-progress/{{lectureId}}"
+          }
+        },
+        {
+          "name": "Submit Quiz Attempt",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{studentToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lectureId\": \"{{lectureId}}\",\n  \"answers\": [\n    { \"questionIndex\": 0, \"selectedOption\": 1 }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/lecture-quiz-attempts"
+          }
+        },
+        {
+          "name": "Get Quiz Attempts",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": "{{baseUrl}}/api/lecture-quiz-attempts/{{lectureId}}"
+          }
+        },
+        {
+          "name": "Save Mains Answer",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{studentToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lectureId\": \"{{lectureId}}\",\n  \"answerText\": \"My mains answer draft...\"\n}"
+            },
+            "url": "{{baseUrl}}/api/lecture-answers"
+          }
+        },
+        {
+          "name": "Get Mains Answer",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": "{{baseUrl}}/api/lecture-answers/{{lectureId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "👨‍💼 Admin APIs",
+      "item": [
+        {
+          "name": "Create Subject",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"courseId\": \"{{courseId}}\",\n  \"title\": \"Geography\"\n}"
+            },
+            "url": "{{baseUrl}}/api/course-subjects"
+          }
+        },
+        {
+          "name": "Reorder Subjects",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"courseId\": \"{{courseId}}\",\n  \"items\": [\n    { \"id\": \"{{subjectId}}\", \"order\": 0 }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/course-subjects/reorder"
+          }
+        },
+        {
+          "name": "Get Subjects (admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/course-subjects/admin/course/{{courseId}}?includeDeleted=false",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "course-subjects", "admin", "course", "{{courseId}}"],
+              "query": [{ "key": "includeDeleted", "value": "false" }]
+            }
+          }
+        },
+        {
+          "name": "Update Subject",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Geography Updated\"\n}"
+            },
+            "url": "{{baseUrl}}/api/course-subjects/{{subjectId}}"
+          }
+        },
+        {
+          "name": "Delete Subject (soft)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/course-subjects/{{subjectId}}"
+          }
+        },
+        {
+          "name": "Create Recorded Lecture (multipart)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "courseId", "value": "{{courseId}}", "type": "text" },
+                { "key": "subjectId", "value": "{{subjectId}}", "type": "text" },
+                { "key": "lectureTitle", "value": "Introduction to Geography", "type": "text" },
+                { "key": "lectureDescription", "value": "Basics of Indian geography", "type": "text" },
+                { "key": "isPublished", "value": "true", "type": "text" },
+                {
+                  "key": "topicQuiz",
+                  "value": "[{\"question\":\"Which is the largest ocean?\",\"options\":[\"Atlantic\",\"Pacific\",\"Indian\",\"Arctic\"],\"correctAnswer\":1,\"explanation\":\"Pacific is largest.\"}]",
+                  "type": "text"
+                },
+                {
+                  "key": "cheatSheet",
+                  "value": "{\"title\":\"Geo Cheat Sheet\",\"paragraph\":\"Key facts summary\"}",
+                  "type": "text"
+                },
+                {
+                  "key": "mainsQuestion",
+                  "value": "{\"question\":\"Discuss the monsoon system of India.\"}",
+                  "type": "text"
+                },
+                { "key": "thumbnail", "type": "file", "description": "Optional image" },
+                { "key": "video", "type": "file", "description": "MP4 video (max 200MB)" },
+                { "key": "cheatSheetPdf", "type": "file", "description": "Optional PDF" }
+              ]
+            },
+            "url": "{{baseUrl}}/api/recorded-lectures"
+          }
+        },
+        {
+          "name": "Reorder Lectures",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subjectId\": \"{{subjectId}}\",\n  \"items\": [\n    { \"id\": \"{{lectureId}}\", \"order\": 0 }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/recorded-lectures/reorder"
+          }
+        },
+        {
+          "name": "Get Lectures by Subject (admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/recorded-lectures/admin/subject/{{subjectId}}"
+          }
+        },
+        {
+          "name": "Get Lecture by ID (admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/recorded-lectures/{{lectureId}}"
+          }
+        },
+        {
+          "name": "Update Recorded Lecture",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "lectureTitle", "value": "Updated Lecture Title", "type": "text" },
+                { "key": "isPublished", "value": "true", "type": "text" },
+                { "key": "thumbnail", "type": "file", "description": "Optional" },
+                { "key": "video", "type": "file", "description": "Optional" }
+              ]
+            },
+            "url": "{{baseUrl}}/api/recorded-lectures/{{lectureId}}"
+          }
+        },
+        {
+          "name": "Delete Lecture (permanent)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/recorded-lectures/{{lectureId}}"
+          }
+        }
+      ]
+    }
+  ]
+}

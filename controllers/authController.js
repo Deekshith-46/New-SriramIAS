@@ -4,6 +4,7 @@ const Parent = require('../models/Parent');
 const generateToken = require('../utils/generateToken');
 const { sendOTP, verifyOTP } = require('../utils/otpService');
 const { validate, validations } = require('../middleware/validation');
+const { assertStudentGmail, normalizeEmail } = require('../utils/studentEmail');
 
 // @desc    Super Admin Login
 // @route   POST /api/auth/login-super-admin
@@ -108,21 +109,17 @@ exports.login = [
 // @desc    Send OTP
 // @route   POST /api/auth/send-otp
 // @access  Public
-exports.sendOtp = async (req, res) => {
+exports.sendOtp = [
+  validate(validations.sendOtp),
+  async (req, res) => {
   try {
-    const { mobile, email } = req.body;
-
-    // Validate input - must provide either email or mobile
-    if (!email && !mobile) {
-      return res.status(400).json({ 
-        message: 'Email or mobile is required' 
-      });
-    }
+    const { mobile, email: rawEmail } = req.body;
+    const email = rawEmail ? normalizeEmail(rawEmail) : null;
 
     // Find user with STRICT query (not $or)
     let user;
     if (email) {
-      user = await User.findOne({ email: email.toLowerCase().trim() });
+      user = await User.findOne({ email });
     } else if (mobile) {
       user = await User.findOne({ mobile: mobile.trim() });
     }
@@ -141,10 +138,21 @@ exports.sendOtp = async (req, res) => {
     // Determine OTP type based on user role
     const otpType = user.role === 'parent' ? 'parent' : 'student';
 
+    if (email && otpType === 'student') {
+      try {
+        assertStudentGmail(email);
+      } catch (err) {
+        return res.status(err.statusCode || 400).json({ message: err.message });
+      }
+    }
+
     // Send OTP
     try {
       await sendOTP(user._id, mobile, email, otpType, user.name);
     } catch (error) {
+      if (error.statusCode === 503) {
+        return res.status(503).json({ message: error.message });
+      }
       return res.status(429).json({ message: error.message });
     }
 
@@ -158,34 +166,24 @@ exports.sendOtp = async (req, res) => {
     console.error(error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
-};
+}];
 
 // @desc    Verify OTP and Login
 // @route   POST /api/auth/verify-otp
 // @access  Public
-exports.verifyOtp = async (req, res) => {
+exports.verifyOtp = [
+  validate(validations.verifyOtp),
+  async (req, res) => {
   try {
-    const { mobile, email, userId, otp } = req.body;
-
-    // Validate input - must provide email, mobile, or userId
-    if (!email && !mobile && !userId) {
-      return res.status(400).json({ 
-        message: 'Email, mobile, or userId is required' 
-      });
-    }
-
-    if (!otp) {
-      return res.status(400).json({ 
-        message: 'OTP is required' 
-      });
-    }
+    const { mobile, email: rawEmail, userId, otp } = req.body;
+    const email = rawEmail ? normalizeEmail(rawEmail) : null;
 
     // Find user by email, mobile, or userId (strict query - backend finds user internally)
     let user;
     if (userId) {
       user = await User.findById(userId);
     } else if (email) {
-      user = await User.findOne({ email: email.toLowerCase().trim() });
+      user = await User.findOne({ email });
     } else if (mobile) {
       user = await User.findOne({ mobile: mobile.trim() });
     }
@@ -203,6 +201,14 @@ exports.verifyOtp = async (req, res) => {
 
     // Determine OTP type based on user role
     const otpType = user.role === 'parent' ? 'parent' : 'student';
+
+    if (email && otpType === 'student') {
+      try {
+        assertStudentGmail(email);
+      } catch (err) {
+        return res.status(err.statusCode || 400).json({ message: err.message });
+      }
+    }
 
     // Verify OTP using user's internal ID
     const verification = await verifyOTP(user._id, otp, otpType);
@@ -229,18 +235,27 @@ exports.verifyOtp = async (req, res) => {
     console.error(error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
-};
+}];
 
 // @desc    Student Signup - Send OTP
 // @route   POST /api/auth/student-signup
 // @access  Public
 exports.studentSignup = async (req, res) => {
   try {
-    const { name, mobile, email } = req.body;
+    const { name, mobile, email: rawEmail } = req.body;
+    let email = null;
+
+    if (rawEmail) {
+      try {
+        email = assertStudentGmail(rawEmail);
+      } catch (err) {
+        return res.status(err.statusCode || 400).json({ message: err.message });
+      }
+    }
 
     // Check if an ACTIVE user already exists
     const activeUser = await User.findOne({ 
-      $or: [{ mobile }, { email }],
+      $or: [{ mobile }, ...(email ? [{ email }] : [])],
       isActive: true
     });
 
@@ -252,7 +267,7 @@ exports.studentSignup = async (req, res) => {
 
     // Check if an INACTIVE user exists (OTP sent but not verified)
     const inactiveUser = await User.findOne({ 
-      $or: [{ mobile }, { email }],
+      $or: [{ mobile }, ...(email ? [{ email }] : [])],
       isActive: false
     });
 
@@ -277,6 +292,9 @@ exports.studentSignup = async (req, res) => {
     } catch (error) {
       // If OTP fails, delete the user
       await User.deleteOne({ _id: user._id });
+      if (error.statusCode === 503) {
+        return res.status(503).json({ message: error.message });
+      }
       return res.status(429).json({ message: error.message });
     }
 

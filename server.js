@@ -1,8 +1,13 @@
 const app = require('./app');
 const { getTransporter } = require('./utils/emailService');
+const { isEmailConfigured } = require('./utils/emailConfig');
 
-if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+if (isEmailConfigured()) {
   getTransporter();
+} else {
+  console.warn(
+    '⚠️  EMAIL_USER / EMAIL_PASS not set — OTP emails will fail until you add them in Render → Environment'
+  );
 }
 
 const PORT = process.env.PORT || 5000;

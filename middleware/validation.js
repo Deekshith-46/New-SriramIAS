@@ -1,4 +1,18 @@
 const Joi = require('joi');
+const { isGmailAddress, normalizeEmail } = require('../utils/studentEmail');
+
+const studentGmailEmail = Joi.string()
+  .email()
+  .custom((value, helpers) => {
+    const normalized = normalizeEmail(value);
+    if (!isGmailAddress(normalized)) {
+      return helpers.error('any.invalid');
+    }
+    return normalized;
+  })
+  .messages({
+    'any.invalid': 'Student email must be a Gmail address (e.g. name@gmail.com)'
+  });
 
 // Validation schemas
 const validations = {
@@ -14,7 +28,7 @@ const validations = {
     password: Joi.string().min(6).required()
   }),
 
-  // Send OTP
+  // Send OTP (Gmail enforced for student login in controller when role is student)
   sendOtp: Joi.object({
     mobile: Joi.string()
       .pattern(/^[6-9]\d{9}$/)
@@ -38,12 +52,12 @@ const validations = {
     'object.missing': 'Either mobile, email, or userId is required'
   }),
 
-  // Student Signup
+  // Student Signup (email must be @gmail.com when provided)
   studentSignup: Joi.object({
     name: Joi.string().min(2).max(100).required(),
     mobile: Joi.string().pattern(/^[6-9]\d{9}$/)
       .messages({ 'string.pattern.base': 'Invalid Indian mobile number' }),
-    email: Joi.string().email()
+    email: studentGmailEmail
   }).or('mobile', 'email').messages({
     'object.missing': 'Either mobile or email is required'
   }),

@@ -25,5 +25,9 @@ services:
         sync: false
       - key: FRONTEND_URL
         sync: false
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASS
+        sync: false
     healthCheckPath: /api/health
     autoDeploy: true

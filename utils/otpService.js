@@ -1,22 +1,23 @@
 const OTP = require('../models/OTP');
 const { sendOTPEmail } = require('./emailService');
+const { assertEmailConfigured } = require('./emailConfig');
 
 const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-const dispatchOTPEmail = (email, otp, userName, type, mobile) => {
-  sendOTPEmail(email, otp, userName, type)
-    .then(() => {
-      console.log('✅ OTP email sent successfully');
+const EMAIL_SEND_TIMEOUT_MS = 25000;
+
+const sendOTPEmailWithTimeout = (email, otp, userName, type) =>
+  Promise.race([
+    sendOTPEmail(email, otp, userName, type),
+    new Promise((_, reject) => {
+      setTimeout(
+        () => reject(new Error('OTP email send timed out. Please try again.')),
+        EMAIL_SEND_TIMEOUT_MS
+      );
     })
-    .catch((error) => {
-      console.error('❌ Failed to send OTP email:', error.message);
-      if (process.env.NODE_ENV !== 'production') {
-        console.log(`\n🔐 OTP (${type}) for ${mobile || email}: ${otp}\n`);
-      }
-    });
-};
+  ]);
 
 // Persists OTP in DB, returns quickly; email is sent in the background.
 const sendOTP = async (userId, mobile, email, type = 'student', userName = null) => {
@@ -46,8 +47,22 @@ const sendOTP = async (userId, mobile, email, type = 'student', userName = null)
   });
 
   if (email) {
-    console.log('Sending email to:', email);
-    dispatchOTPEmail(email, otp, userName || 'User', type, mobile);
+    assertEmailConfigured();
+    console.log('Sending OTP email to:', email);
+    try {
+      await sendOTPEmailWithTimeout(email, otp, userName || 'User', type);
+    } catch (error) {
+      console.error('❌ Failed to send OTP email:', error.message);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`\n🔐 OTP (${type}) for ${mobile || email}: ${otp}\n`);
+      }
+      const err = new Error(
+        'Could not send OTP email. Check server email configuration (EMAIL_USER / EMAIL_PASS on Render).'
+      );
+      err.statusCode = 503;
+      err.cause = error;
+      throw err;
+    }
   } else if (process.env.NODE_ENV !== 'production') {
     console.log(`\n🔐 OTP (${type}) for ${mobile || email}: ${otp}\n`);
   }

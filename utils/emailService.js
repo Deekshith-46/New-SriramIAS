@@ -1,8 +1,13 @@
 const nodemailer = require('nodemailer');
+const { isEmailConfigured } = require('./emailConfig');
 
 let transporter;
 
 const getTransporter = () => {
+  if (!isEmailConfigured()) {
+    throw new Error('EMAIL_USER and EMAIL_PASS are not set');
+  }
+
   if (!transporter) {
     transporter = nodemailer.createTransport({
       service: 'gmail',
@@ -19,6 +24,11 @@ const getTransporter = () => {
       console.log('✅ Email transporter ready (pooled)');
     }).catch((err) => {
       console.error('❌ Email transporter verify failed:', err.message);
+      if (err.message && err.message.includes('Invalid login')) {
+        console.error(
+          '   → Use a Gmail App Password (Google Account → Security → 2-Step Verification → App passwords), not your normal Gmail password.'
+        );
+      }
     });
   }
   return transporter;

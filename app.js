@@ -43,6 +43,13 @@ const testQuestionRoutes = require('./routes/testQuestionRoutes');
 const testAttemptRoutes = require('./routes/testAttemptRoutes');
 const homePageRoutes = require('./routes/homePageRoutes');
 const homeVideoRoutes = require('./routes/homeVideoRoutes');
+const courseSubjectRoutes = require('./routes/courseSubjectRoutes');
+const recordedLectureRoutes = require('./routes/recordedLectureRoutes');
+const lectureNoteRoutes = require('./routes/lectureNoteRoutes');
+const lectureProgressRoutes = require('./routes/lectureProgressRoutes');
+const lectureQuizAttemptRoutes = require('./routes/lectureQuizAttemptRoutes');
+const lectureAnswerRoutes = require('./routes/lectureAnswerRoutes');
+const courseProgressRoutes = require('./routes/courseProgressRoutes');
 
 
 const app = express();
@@ -85,9 +92,28 @@ const apiLimiter = rateLimit({
   legacyHeaders: false
 });
 
+// Rate limiting for lecture tracking (prevent progress/notes spam)
+const lectureProgressLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  message: { success: false, message: 'Too many progress updates. Please slow down.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+const lectureNotesLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  message: { success: false, message: 'Too many note updates. Please slow down.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
 // Apply rate limiters
 app.use('/api/auth/send-otp', otpLimiter);
 app.use('/api/auth/verify-otp', otpLimiter);
+app.use('/api/lecture-progress', lectureProgressLimiter);
+app.use('/api/lecture-notes', lectureNotesLimiter);
 app.use('/api/', apiLimiter);
 
 // Routes
@@ -134,6 +160,15 @@ app.use('/api/orders', orderRoutes);
 // Live Class routes
 app.use('/api/live-classes', liveClassRoutes);
 
+// My Courses — recorded lectures LMS
+app.use('/api/course-subjects', courseSubjectRoutes);
+app.use('/api/recorded-lectures', recordedLectureRoutes);
+app.use('/api/lecture-notes', lectureNoteRoutes);
+app.use('/api/lecture-progress', lectureProgressRoutes);
+app.use('/api/lecture-quiz-attempts', lectureQuizAttemptRoutes);
+app.use('/api/lecture-answers', lectureAnswerRoutes);
+app.use('/api/course-progress', courseProgressRoutes);
+
 // Announcement routes
 app.use('/api/announcements', announcementRoutes);
 
@@ -159,13 +194,27 @@ app.use('/api/home-videos', homeVideoRoutes);
 
 
 
-// Health check endpoint
+const { isEmailConfigured } = require('./utils/emailConfig');
+
+const healthPayload = () => ({
+  status: 'OK',
+  message: 'Sriram IAS Backend is running',
+  timestamp: new Date().toISOString(),
+  email: {
+    configured: isEmailConfigured(),
+    hint: isEmailConfigured()
+      ? null
+      : 'Set EMAIL_USER and EMAIL_PASS (Gmail App Password) in Render Environment'
+  }
+});
+
+// Health check endpoints (Render uses /api/health)
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    message: 'Sriram IAS Backend is running',
-    timestamp: new Date().toISOString()
-  });
+  res.json(healthPayload());
+});
+
+app.get('/api/health', (req, res) => {
+  res.json(healthPayload());
 });
 
 // Root endpoint
