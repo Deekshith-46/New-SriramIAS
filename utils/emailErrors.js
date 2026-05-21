@@ -16,6 +16,10 @@ const getPublicEmailErrorMessage = (error) => {
     );
   }
 
+  if (/ENETUNREACH|2404:6800|EHOSTUNREACH/i.test(parts)) {
+    return 'SMTP could not connect (IPv6 blocked on server). Redeploy the latest backend — it forces IPv4 for Gmail.';
+  }
+
   if (/timed out|ETIMEDOUT|ECONNECTION|ESOCKET|ETIMEOUT/i.test(parts)) {
     return 'SMTP connection timed out from the server. Redeploy and try again; check Render logs for details.';
   }

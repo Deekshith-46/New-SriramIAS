@@ -1,3 +1,6 @@
+const { preferIpv4Dns } = require('./utils/dnsIpv4');
+preferIpv4Dns();
+
 const app = require('./app');
 const { verifyEmailConnection } = require('./utils/emailService');
 const { isEmailConfigured } = require('./utils/emailConfig');

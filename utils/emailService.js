@@ -5,6 +5,7 @@ const {
   getEmailPass,
   maskEmail
 } = require('./emailConfig');
+const { lookupIpv4 } = require('./dnsIpv4');
 
 let transporter = null;
 let lastSmtpVerify = { ok: null, error: null, checkedAt: null };
@@ -23,6 +24,7 @@ const createTransporter = () => {
     secure: false,
     requireTLS: true,
     auth: { user, pass },
+    lookup: lookupIpv4,
     tls: { minVersion: 'TLSv1.2' },
     connectionTimeout: 20000,
     greetingTimeout: 20000,
@@ -66,6 +68,11 @@ const verifyEmailConnection = async () => {
       checkedAt: new Date().toISOString()
     };
     console.error('❌ Gmail SMTP verify failed:', err.message);
+    if (/ENETUNREACH|2404:6800/i.test(err.message)) {
+      console.error(
+        '   → IPv6 unreachable on this host. Deploy latest code (forces IPv4 for SMTP).'
+      );
+    }
     if (/535|Invalid login|Authentication/i.test(err.message)) {
       console.error(
         '   → EMAIL_PASS must be a Gmail App Password (16 chars), not your normal password.'
