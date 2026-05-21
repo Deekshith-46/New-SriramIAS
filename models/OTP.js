@@ -33,7 +33,7 @@ const otpSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-// Index for faster queries
 otpSchema.index({ userId: 1, type: 1 });
+otpSchema.index({ userId: 1, createdAt: -1 });
 
 module.exports = mongoose.model('OTP', otpSchema);

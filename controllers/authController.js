@@ -143,7 +143,7 @@ exports.sendOtp = async (req, res) => {
 
     // Send OTP
     try {
-      await sendOTP(user._id, mobile, email, otpType);
+      await sendOTP(user._id, mobile, email, otpType, user.name);
     } catch (error) {
       return res.status(429).json({ message: error.message });
     }
@@ -273,7 +273,7 @@ exports.studentSignup = async (req, res) => {
 
     // Send OTP for verification
     try {
-      await sendOTP(user._id, mobile, email, 'student');
+      await sendOTP(user._id, mobile, email, 'student', user.name);
     } catch (error) {
       // If OTP fails, delete the user
       await User.deleteOne({ _id: user._id });
@@ -430,7 +430,7 @@ exports.parentLoginRequest = async (req, res) => {
     const otpMobile = parentUser.mobile;
 
     try {
-      await sendOTP(parentUser._id, otpMobile, otpEmail, 'parent');
+      await sendOTP(parentUser._id, otpMobile, otpEmail, 'parent', parentUser.name);
     } catch (error) {
       return res.status(429).json({ message: error.message });
     }

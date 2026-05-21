@@ -1,14 +1,27 @@
 const nodemailer = require('nodemailer');
 
-// Create reusable transporter
-const createTransporter = () => {
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS // App Password (not regular password)
-    }
-  });
+let transporter;
+
+const getTransporter = () => {
+  if (!transporter) {
+    transporter = nodemailer.createTransport({
+      service: 'gmail',
+      pool: true,
+      maxConnections: 1,
+      maxMessages: 100,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      }
+    });
+
+    transporter.verify().then(() => {
+      console.log('✅ Email transporter ready (pooled)');
+    }).catch((err) => {
+      console.error('❌ Email transporter verify failed:', err.message);
+    });
+  }
+  return transporter;
 };
 
 // Generate HTML OTP Email Template
@@ -247,18 +260,14 @@ const generateOTPEmailHTML = (otp, userName, userType = 'student') => {
   `;
 };
 
-// Send OTP Email
+// Send OTP Email (non-blocking when called without awaiting from otpService)
 const sendOTPEmail = async (to, otp, userName, userType = 'student') => {
-  try {
-    const transporter = createTransporter();
-    
-    const mailOptions = {
-      from: `"Sriram IAS" <${process.env.EMAIL_USER}>`,
-      to: to,
-      subject: `🔐 Your OTP Code - Sriram IAS`,
-      html: generateOTPEmailHTML(otp, userName, userType),
-      // Fallback to plain text for email clients that don't support HTML
-      text: `
+  const mailOptions = {
+    from: `"Sriram IAS" <${process.env.EMAIL_USER}>`,
+    to,
+    subject: '🔐 Your OTP Code - Sriram IAS',
+    html: generateOTPEmailHTML(otp, userName, userType),
+    text: `
 Sriram IAS - OTP Verification
 
 Hello ${userName || 'User'},
@@ -272,21 +281,17 @@ This code is valid for 5 minutes only.
 If you didn't request this OTP, please ignore this email.
 
 Contact: support@sriramias.com
-      `
-    };
-    
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`✅ OTP email sent to ${to}`);
-    console.log(`Message ID: ${info.messageId}`);
-    
-    return { success: true, messageId: info.messageId };
-  } catch (error) {
-    console.error('❌ Error sending OTP email:', error);
-    throw new Error('Failed to send OTP email');
-  }
+    `
+  };
+
+  const info = await getTransporter().sendMail(mailOptions);
+  console.log(`✅ OTP email sent to ${to}`);
+  console.log(`Message ID: ${info.messageId}`);
+  return { success: true, messageId: info.messageId };
 };
 
 module.exports = {
   sendOTPEmail,
-  generateOTPEmailHTML
+  generateOTPEmailHTML,
+  getTransporter
 };

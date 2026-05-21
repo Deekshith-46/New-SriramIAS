@@ -1,4 +1,9 @@
 const app = require('./app');
+const { getTransporter } = require('./utils/emailService');
+
+if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+  getTransporter();
+}
 
 const PORT = process.env.PORT || 5000;
 
