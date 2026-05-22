@@ -1,0 +1,229 @@
+{
+  "info": {
+    "name": "Answer Writing",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "adminToken", "value": "" },
+    { "key": "studentToken", "value": "" },
+    { "key": "courseId", "value": "" },
+    { "key": "subjectId", "value": "" },
+    { "key": "categoryId", "value": "" },
+    { "key": "questionId", "value": "" },
+    { "key": "submissionId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "GET Categories",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/answer-writing/categories" }
+        },
+        {
+          "name": "GET Category by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/answer-writing/categories/{{categoryId}}"
+          }
+        },
+        {
+          "name": "POST Category",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Daily\"\n}"
+            },
+            "url": "{{baseUrl}}/api/answer-writing/categories"
+          }
+        },
+        {
+          "name": "PUT Category",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Daily Answer Writing\"\n}"
+            },
+            "url": "{{baseUrl}}/api/answer-writing/categories/{{categoryId}}"
+          }
+        },
+        {
+          "name": "DELETE Category",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/answer-writing/categories/{{categoryId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Create Question",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "courseId", "value": "{{courseId}}" },
+                { "key": "subjectId", "value": "{{subjectId}}" },
+                { "key": "categoryId", "value": "{{categoryId}}" },
+                { "key": "title", "value": "Polity Daily 1" },
+                { "key": "question", "value": "Discuss the role of civil services in democracy." },
+                { "key": "questionPaperPdf", "type": "file", "src": [] }
+              ]
+            },
+            "url": "{{baseUrl}}/api/answer-writing/questions"
+          }
+        },
+        {
+          "name": "List Questions (admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/answer-writing/questions?courseId={{courseId}}&subjectId={{subjectId}}&categoryId={{categoryId}}"
+          }
+        },
+        {
+          "name": "PUT Question",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "title", "value": "Polity Daily 1 (updated)" },
+                { "key": "question", "value": "Updated question text." },
+                { "key": "isPublished", "value": "true" }
+              ]
+            },
+            "url": "{{baseUrl}}/api/answer-writing/questions/{{questionId}}"
+          }
+        },
+        {
+          "name": "DELETE Question (hard)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/answer-writing/questions/{{questionId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Student",
+      "item": [
+        {
+          "name": "Upcoming Questions",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": "{{baseUrl}}/api/answer-writing/questions?courseId={{courseId}}&status=upcoming"
+          }
+        },
+        {
+          "name": "Completed Questions",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": "{{baseUrl}}/api/answer-writing/questions?courseId={{courseId}}&status=completed"
+          }
+        },
+        {
+          "name": "Submit Text Answer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "questionId", "value": "{{questionId}}" },
+                { "key": "answerType", "value": "text" },
+                { "key": "answerText", "value": "My structured answer here..." }
+              ]
+            },
+            "url": "{{baseUrl}}/api/answer-writing/submissions"
+          }
+        },
+        {
+          "name": "My Submissions",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": "{{baseUrl}}/api/answer-writing/my-submissions"
+          }
+        },
+        {
+          "name": "Get Submission Result",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": "{{baseUrl}}/api/answer-writing/submissions/{{submissionId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Evaluator",
+      "item": [
+        {
+          "name": "Pending Submissions",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/answer-writing/evaluator/submissions?courseId={{courseId}}&status=submitted"
+          }
+        },
+        {
+          "name": "Evaluate Submission (text)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "evaluatedAnswerType", "value": "text" },
+                { "key": "evaluatedAnswerText", "value": "Model answer: Civil services ensure policy implementation..." },
+                { "key": "feedback", "value": "Good structure. Improve conclusion." },
+                { "key": "marks", "value": "7" }
+              ]
+            },
+            "url": "{{baseUrl}}/api/answer-writing/submissions/{{submissionId}}/evaluate"
+          }
+        },
+        {
+          "name": "Evaluate Submission (file)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "evaluatedAnswerType", "value": "file" },
+                { "key": "feedback", "value": "See annotated sheet." },
+                { "key": "marks", "value": "7" },
+                { "key": "evaluatedAnswerFile", "type": "file", "src": [] }
+              ]
+            },
+            "url": "{{baseUrl}}/api/answer-writing/submissions/{{submissionId}}/evaluate"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -31,7 +31,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Weekly Test\",\n  \"slug\": \"weekly\"\n}"
+              "raw": "{\n  \"title\": \"Weekly Test\"\n}"
             },
             "url": "{{baseUrl}}/api/tests/categories"
           }

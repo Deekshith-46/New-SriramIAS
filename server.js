@@ -4,6 +4,7 @@ preferIpv4Dns();
 const app = require('./app');
 const { getTransporter, isEmailConfigured } = require('./utils/emailService');
 const { seedLmsTestCategories } = require('./utils/lmsTestSeed');
+const { seedAnswerWritingCategories } = require('./utils/answerWritingSeed');
 
 if (isEmailConfigured()) {
   getTransporter().catch(() => {});
@@ -13,6 +14,10 @@ if (isEmailConfigured()) {
 
 seedLmsTestCategories().catch((err) => {
   console.error('LMS test category seed failed:', err.message);
+});
+
+seedAnswerWritingCategories().catch((err) => {
+  console.error('Answer writing category seed failed:', err.message);
 });
 
 const PORT = process.env.PORT || 5000;

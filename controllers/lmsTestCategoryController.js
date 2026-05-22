@@ -1,8 +1,9 @@
 const LmsTestCategory = require('../models/LmsTestCategory');
 const LmsTest = require('../models/LmsTest');
 const { NOT_DELETED } = require('../utils/lmsTestHelpers');
+const { PERIOD_SLUGS, slugFromCategoryTitle } = require('../utils/categorySlugFromTitle');
 
-const CORE_SLUGS = ['weekly', 'daily', 'monthly'];
+const CORE_SLUGS = PERIOD_SLUGS;
 
 exports.getCategories = async (req, res) => {
   try {
@@ -21,13 +22,21 @@ exports.getCategories = async (req, res) => {
 
 exports.createCategory = async (req, res) => {
   try {
-    const { title, slug } = req.body;
+    const { title } = req.body;
 
-    if (!title || !slug) {
-      return res.status(400).json({ success: false, message: 'title and slug are required' });
+    if (!title?.trim()) {
+      return res.status(400).json({ success: false, message: 'title is required' });
     }
 
-    const category = await LmsTestCategory.create({ title, slug: slug.toLowerCase() });
+    const nextSlug = slugFromCategoryTitle(title);
+    if (!nextSlug) {
+      return res.status(400).json({
+        success: false,
+        message: 'title must include daily, weekly, or monthly'
+      });
+    }
+
+    const category = await LmsTestCategory.create({ title: title.trim(), slug: nextSlug });
 
     res.status(201).json({
       success: true,
@@ -50,32 +59,34 @@ exports.updateCategory = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Category not found' });
     }
 
-    const { title, slug } = req.body;
-    if (title) category.title = title.trim();
-
-    if (slug !== undefined) {
-      const nextSlug = String(slug).toLowerCase();
-      if (!['weekly', 'daily', 'monthly'].includes(nextSlug)) {
-        return res.status(400).json({
-          success: false,
-          message: 'slug must be weekly, daily, or monthly'
-        });
-      }
-      if (category.slug !== nextSlug) {
-        const inUse = await LmsTest.countDocuments({
-          categoryId: category._id,
-          ...NOT_DELETED
-        });
-        if (inUse > 0) {
-          return res.status(400).json({
-            success: false,
-            message: 'Cannot change slug while tests use this category'
-          });
-        }
-        category.slug = nextSlug;
-      }
+    const { title } = req.body;
+    if (!title?.trim()) {
+      return res.status(400).json({ success: false, message: 'title is required' });
     }
 
+    const nextSlug = slugFromCategoryTitle(title);
+    if (!nextSlug) {
+      return res.status(400).json({
+        success: false,
+        message: 'title must include daily, weekly, or monthly'
+      });
+    }
+
+    if (category.slug !== nextSlug) {
+      const inUse = await LmsTest.countDocuments({
+        categoryId: category._id,
+        ...NOT_DELETED
+      });
+      if (inUse > 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot change category period while tests use this category'
+        });
+      }
+      category.slug = nextSlug;
+    }
+
+    category.title = title.trim();
     await category.save();
 
     res.json({

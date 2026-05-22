@@ -52,6 +52,8 @@ const lectureAnswerRoutes = require('./routes/lectureAnswerRoutes');
 const courseProgressRoutes = require('./routes/courseProgressRoutes');
 const lmsTestRoutes = require('./routes/lmsTestRoutes');
 const lmsBookmarkRoutes = require('./routes/lmsBookmarkRoutes');
+const attendanceRoutes = require('./routes/attendanceRoutes');
+const answerWritingRoutes = require('./routes/answerWritingRoutes');
 
 
 const app = express();
@@ -176,6 +178,12 @@ app.use('/api/tests', lmsTestRoutes);
 
 // My Courses — Bookmarks (recordings + tests)
 app.use('/api/bookmarks', lmsBookmarkRoutes);
+
+// Attendance (student check-in/out, multi-role view)
+app.use('/api/attendance', attendanceRoutes);
+
+// Answer writing (UPSC Mains)
+app.use('/api/answer-writing', answerWritingRoutes);
 
 // Announcement routes
 app.use('/api/announcements', announcementRoutes);
