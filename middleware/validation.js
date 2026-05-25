@@ -88,7 +88,118 @@ const validations = {
     email: Joi.string().email().required(),
     password: Joi.string().min(8).required()
       .messages({ 'string.min': 'Password must be at least 8 characters' }),
-    location: Joi.string().valid('Hyderabad', 'New Delhi', 'Pune').required()
+    centerId: Joi.string().hex().length(24),
+    location: Joi.string().valid('Hyderabad', 'New Delhi', 'Pune')
+  }).or('centerId', 'location'),
+
+  // Operational center management (admin panel)
+  manageCenterCreate: Joi.object({
+    centerName: Joi.string().min(2).max(150).required().trim(),
+    centerCode: Joi.string().min(2).max(20).required().trim(),
+    address: Joi.string().max(500).allow(''),
+    city: Joi.string().min(2).max(100).required().trim(),
+    state: Joi.string().min(2).max(100).required().trim(),
+    contactNumber: Joi.string().pattern(/^[6-9]\d{9}$/).allow('', null).optional(),
+    email: Joi.string().email().allow('', null).optional(),
+    status: Joi.string().valid('ACTIVE', 'DISABLED').optional(),
+    assignedAdmins: Joi.alternatives()
+      .try(
+        Joi.array().items(Joi.string().trim().min(1)),
+        Joi.string().trim().allow('')
+      )
+      .optional()
+      .allow(null, '')
+  }),
+
+  manageCenterUpdate: Joi.object({
+    centerName: Joi.string().min(2).max(150).trim(),
+    centerCode: Joi.string().min(2).max(20).trim(),
+    address: Joi.string().max(500).allow(''),
+    city: Joi.string().min(2).max(100).trim(),
+    state: Joi.string().min(2).max(100).trim(),
+    contactNumber: Joi.string().pattern(/^[6-9]\d{9}$/).allow('', null).optional(),
+    email: Joi.string().email().allow('', null).optional(),
+    status: Joi.string().valid('ACTIVE', 'DISABLED').optional(),
+    assignedAdmins: Joi.alternatives()
+      .try(
+        Joi.array().items(Joi.string().trim().min(1)),
+        Joi.string().trim().allow('')
+      )
+      .optional()
+      .allow(null, '')
+  }).min(1),
+
+  manageCenterStatus: Joi.object({
+    status: Joi.string().valid('ACTIVE', 'DISABLED').required()
+  }),
+
+  manageRoleCreate: Joi.object({
+    roleTitle: Joi.string().min(2).max(100).required().trim(),
+    roleCode: Joi.string().min(2).max(50).required().trim(),
+    status: Joi.string().valid('ACTIVE', 'INACTIVE').optional()
+  }),
+
+  manageRoleUpdate: Joi.object({
+    roleTitle: Joi.string().min(2).max(100).trim(),
+    roleCode: Joi.string().min(2).max(50).trim(),
+    status: Joi.string().valid('ACTIVE', 'INACTIVE')
+  }).min(1),
+
+  manageRoleStatus: Joi.object({
+    status: Joi.string().valid('ACTIVE', 'INACTIVE').required()
+  }),
+
+  manageAdminAccessCreate: Joi.object({
+    fullName: Joi.string().min(2).max(150).required().trim(),
+    officialEmail: Joi.string().email().required().trim(),
+    contactNumber: Joi.string().pattern(/^[6-9]\d{9}$/).required(),
+    employeeId: Joi.string().min(2).max(30).required().trim(),
+    roleId: Joi.string().hex().length(24).required(),
+    centerId: Joi.string().hex().length(24).required(),
+    password: Joi.string().min(6).required(),
+    confirmPassword: Joi.string().valid(Joi.ref('password')).required()
+      .messages({ 'any.only': 'Passwords do not match' }),
+    accountStatus: Joi.boolean().optional(),
+    twoFactorEnabled: Joi.boolean().optional(),
+    loginAlertEnabled: Joi.boolean().optional(),
+    sessionTimeout: Joi.string()
+      .valid('15_MINUTES', '30_MINUTES', '1_HOUR', '2_HOURS', '8_HOURS')
+      .optional()
+  }),
+
+  manageAdminAccessUpdate: Joi.object({
+    fullName: Joi.string().min(2).max(150).trim(),
+    officialEmail: Joi.string().email().trim(),
+    contactNumber: Joi.string().pattern(/^[6-9]\d{9}$/),
+    employeeId: Joi.string().min(2).max(30).trim(),
+    roleId: Joi.string().hex().length(24),
+    centerId: Joi.string().hex().length(24),
+    password: Joi.string().min(6),
+    confirmPassword: Joi.when('password', {
+      is: Joi.exist(),
+      then: Joi.string().valid(Joi.ref('password')).required()
+        .messages({ 'any.only': 'Passwords do not match' }),
+      otherwise: Joi.optional()
+    }),
+    accountStatus: Joi.boolean(),
+    twoFactorEnabled: Joi.boolean(),
+    loginAlertEnabled: Joi.boolean(),
+    sessionTimeout: Joi.string()
+      .valid('15_MINUTES', '30_MINUTES', '1_HOUR', '2_HOURS', '8_HOURS')
+  }).min(1),
+
+  manageAdminAccessStatus: Joi.object({
+    accountStatus: Joi.boolean().required()
+  }),
+
+  adminAccessLogin: Joi.object({
+    officialEmail: Joi.string().email().required().trim(),
+    password: Joi.string().required()
+  }),
+
+  adminAccessVerifyOtp: Joi.object({
+    adminAccessId: Joi.string().hex().length(24).required(),
+    otp: Joi.string().length(6).required()
   }),
 
   // Create Employee

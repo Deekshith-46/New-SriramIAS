@@ -1,0 +1,313 @@
+{
+  "info": {
+    "name": "Sriram IAS - Center Management",
+    "description": "Operational center CRUD at /api/admin/centers. Website CenterData remains at /api/centers.\n\nSetup:\n1. Set collection variable baseUrl (default http://localhost:5000)\n2. Run Auth → Login Super Admin and paste token into superAdminToken\n3. Run Create Center — copy _id from response into centerId\n4. Run other requests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "superAdminToken", "value": "" },
+    { "key": "centerId", "value": "" },
+    { "key": "centerCode", "value": "HYD01" }
+  ],
+  "item": [
+    {
+      "name": "0. Health",
+      "item": [
+        {
+          "name": "GET Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Auth (get token first)",
+      "item": [
+        {
+          "name": "Login Super Admin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@sriram.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login-super-admin",
+            "description": "Copy token from response → set superAdminToken variable"
+          }
+        },
+        {
+          "name": "Login Center Admin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"centeradmin@example.com\",\n  \"password\": \"yourPassword\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Center Management (Super Admin)",
+      "item": [
+        {
+          "name": "GET All Centers (paginated)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/centers?page=1&limit=10&status=ALL&search=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "centers"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "status", "value": "ALL", "description": "ALL | ACTIVE | DISABLED" },
+                { "key": "search", "value": "", "description": "center name, code, or city" },
+                { "key": "sortBy", "value": "createdAt", "disabled": true },
+                { "key": "sortOrder", "value": "desc", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Centers — ACTIVE only",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/centers?status=ACTIVE&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "centers"],
+              "query": [
+                { "key": "status", "value": "ACTIVE" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Centers — DISABLED only",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/centers?status=DISABLED",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "centers"],
+              "query": [{ "key": "status", "value": "DISABLED" }]
+            }
+          }
+        },
+        {
+          "name": "GET Centers — Search (hyd)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/centers?search=hyd&status=ALL",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "centers"],
+              "query": [
+                { "key": "search", "value": "hyd" },
+                { "key": "status", "value": "ALL" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Centers Dropdown",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": "{{baseUrl}}/api/admin/centers/dropdown",
+            "description": "Active centers only — for select inputs"
+          }
+        },
+        {
+          "name": "POST Create Center (minimal — no assignedAdmins)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{superAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"centerName\": \"Pune Branch\",\n  \"centerCode\": \"PUN01\",\n  \"city\": \"Pune\",\n  \"state\": \"Maharashtra\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/centers"
+          }
+        },
+        {
+          "name": "POST Create Center",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{superAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"centerName\": \"Hyderabad Main Center\",\n  \"centerCode\": \"HYD01\",\n  \"address\": \"Road No 12, Banjara Hills\",\n  \"city\": \"Hyderabad\",\n  \"state\": \"Telangana\",\n  \"contactNumber\": \"9876543210\",\n  \"email\": \"hyd@sriramias.com\",\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/centers",
+            "description": "Save data._id as centerId. assignedAdmins is optional (omit, [], null, or comma-separated string)."
+          }
+        },
+        {
+          "name": "GET Center By ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": "{{baseUrl}}/api/admin/centers/{{centerId}}"
+          }
+        },
+        {
+          "name": "PUT Update Center",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{superAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"centerName\": \"Hyderabad Main Center (Updated)\",\n  \"address\": \"Updated address line\",\n  \"contactNumber\": \"9876543211\",\n  \"assignedAdmins\": \"Ramesh Kumar, Priya Admin\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/centers/{{centerId}}"
+          }
+        },
+        {
+          "name": "PATCH Disable Center",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{superAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"DISABLED\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/centers/{{centerId}}/status"
+          }
+        },
+        {
+          "name": "PATCH Enable Center",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{superAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/centers/{{centerId}}/status"
+          }
+        },
+        {
+          "name": "DELETE Center (soft delete)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": "{{baseUrl}}/api/admin/centers/{{centerId}}",
+            "description": "Fails if active courses are linked to this center"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Create Center Admin User",
+      "item": [
+        {
+          "name": "POST Create Center Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{superAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Hyderabad Center Admin\",\n  \"email\": \"centeradmin.hyd@example.com\",\n  \"password\": \"SecurePass123\",\n  \"centerId\": \"{{centerId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/create-center-admin",
+            "description": "Requires existing centerId from Create Center"
+          }
+        },
+        {
+          "name": "POST Create Center Admin (legacy location)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{superAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Delhi Center Admin\",\n  \"email\": \"centeradmin.delhi@example.com\",\n  \"password\": \"SecurePass123\",\n  \"location\": \"New Delhi\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/create-center-admin",
+            "description": "Legacy: matches center by city/name instead of centerId"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Public (no auth)",
+      "item": [
+        {
+          "name": "GET Public Centers List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/centers",
+            "description": "Active operational centers for website dropdowns"
+          }
+        },
+        {
+          "name": "GET Public Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/categories"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Website CenterData (separate module)",
+      "item": [
+        {
+          "name": "GET All CenterData (website pages)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/centers",
+            "description": "Same path as public centers list — CenterData uses GET /api/centers/:id for page detail"
+          }
+        },
+        {
+          "name": "GET CenterData Page By Center ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/centers/{{centerId}}",
+            "description": "Gallery, faculty, success stories — NOT operational center CRUD"
+          }
+        }
+      ]
+    }
+  ]
+}

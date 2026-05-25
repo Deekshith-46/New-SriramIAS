@@ -1,8 +1,11 @@
 const AnswerWritingQuestion = require('../models/AnswerWritingQuestion');
 const AnswerWritingSubmission = require('../models/AnswerWritingSubmission');
 const AnswerWritingCategory = require('../models/AnswerWritingCategory');
+const CourseSubject = require('../models/CourseSubject');
 const {
   normalizeStatusFilter,
+  filterQuestionsByStatus,
+  STUDENT_STATUS_OPTIONS,
   resolveDisplayStatus,
   getRequestUserId,
   isEvaluator,
@@ -69,6 +72,61 @@ exports.createQuestion = async (req, res) => {
   }
 };
 
+exports.getStudentFilters = async (req, res) => {
+  try {
+    const { courseId } = req.query;
+
+    if (!courseId) {
+      return res.status(400).json({ success: false, message: 'courseId query parameter is required' });
+    }
+
+    const enrollment = await assertEnrollmentAccess(req, res, courseId);
+    if (!enrollment) return;
+
+    const publishedQuestions = await AnswerWritingQuestion.find({
+      courseId,
+      isPublished: true
+    })
+      .select('subjectId categoryId')
+      .lean();
+
+    const subjectIds = [...new Set(publishedQuestions.map((q) => String(q.subjectId)))];
+    const categoryIds = [...new Set(publishedQuestions.map((q) => String(q.categoryId)))];
+
+    const [subjects, categories] = await Promise.all([
+      subjectIds.length
+        ? CourseSubject.find({
+            _id: { $in: subjectIds },
+            courseId,
+            isActive: true,
+            isDeleted: false
+          })
+            .select('title')
+            .sort({ order: 1, createdAt: 1 })
+            .lean()
+        : [],
+      categoryIds.length
+        ? AnswerWritingCategory.find({ _id: { $in: categoryIds } })
+            .select('title slug')
+            .sort({ title: 1 })
+            .lean()
+        : []
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        subjects,
+        categories,
+        statuses: STUDENT_STATUS_OPTIONS
+      }
+    });
+  } catch (error) {
+    console.error('Get answer writing student filters error:', error);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+};
+
 exports.getQuestions = async (req, res) => {
   try {
     const { courseId, subjectId, categoryId, status } = req.query;
@@ -125,11 +183,23 @@ exports.getQuestions = async (req, res) => {
       };
     });
 
-    if (statusFilter) {
-      data = data.filter((row) => row.displayStatus === statusFilter);
+    if (!adminView) {
+      data = filterQuestionsByStatus(data, statusFilter);
+    } else if (statusFilter) {
+      data = filterQuestionsByStatus(data, statusFilter);
     }
 
-    res.json({ success: true, count: data.length, data });
+    res.json({
+      success: true,
+      count: data.length,
+      data,
+      filters: {
+        courseId,
+        subjectId: subjectId || null,
+        categoryId: categoryId || null,
+        status: statusFilter || null
+      }
+    });
   } catch (error) {
     console.error('Get answer writing questions error:', error);
     res.status(500).json({ success: false, message: 'Server error', error: error.message });

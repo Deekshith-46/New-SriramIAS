@@ -11,6 +11,13 @@ const resourceCategorySchema = new mongoose.Schema({
     public_id: String
   },
   description: String,
+  moduleType: {
+    type: String,
+    enum: ['CURRENT_AFFAIRS', 'FREE_RESOURCES'],
+    default: 'FREE_RESOURCES',
+    required: true,
+    index: true
+  },
   isActive: {
     type: Boolean,
     default: true

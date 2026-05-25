@@ -52,6 +52,21 @@ const resourceSchema = new mongoose.Schema({
     ref: 'Filter',
     default: null
   },
+  monthId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Filter',
+    default: null
+  },
+  currentAffairsTypeId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Filter',
+    default: null
+  },
+  resourceType: {
+    type: String,
+    enum: ['PDF', 'ARTICLE', 'MAGAZINE', 'INFOGRAPHIC', 'VIDEO'],
+    default: 'PDF'
+  },
   // Metadata
   fileSize: String,
   fileType: String,
@@ -77,5 +92,6 @@ const resourceSchema = new mongoose.Schema({
 // Indexes for faster queries (module-specific)
 resourceSchema.index({ categoryId: 1, subjectId: 1, classId: 1 }); // NCERT
 resourceSchema.index({ categoryId: 1, subCategoryId: 1, paperId: 1, yearId: 1 }); // PYQ
+resourceSchema.index({ categoryId: 1, yearId: 1, monthId: 1, currentAffairsTypeId: 1 }); // Current Affairs
 
 module.exports = mongoose.model('Resource', resourceSchema);

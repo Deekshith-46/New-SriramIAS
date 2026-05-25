@@ -1,0 +1,179 @@
+{
+  "info": {
+    "name": "Sriram IAS - Role Management (RBAC Phase 1)",
+    "description": "Dynamic roles at /api/admin/roles. Super Admin only.\n\nSetup:\n1. Set baseUrl\n2. Login Super Admin → superAdminToken\n3. GET roles (seeded SUPER_ADMIN, CENTER_ADMIN, EMPLOYEE on first server start)\n4. Create custom roles → save roleId",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "superAdminToken", "value": "" },
+    { "key": "roleId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Login Super Admin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@sriram.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login-super-admin"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Role Management",
+      "item": [
+        {
+          "name": "GET All Roles",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/roles?page=1&limit=10&status=ALL&search=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "roles"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "status", "value": "ALL" },
+                { "key": "search", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Roles — ACTIVE",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/roles?status=ACTIVE",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "roles"],
+              "query": [{ "key": "status", "value": "ACTIVE" }]
+            }
+          }
+        },
+        {
+          "name": "GET Roles — INACTIVE",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/roles?status=INACTIVE",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "roles"],
+              "query": [{ "key": "status", "value": "INACTIVE" }]
+            }
+          }
+        },
+        {
+          "name": "GET Roles — Search",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/roles?search=counsel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "roles"],
+              "query": [{ "key": "search", "value": "counsel" }]
+            }
+          }
+        },
+        {
+          "name": "GET Roles Dropdown",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": "{{baseUrl}}/api/admin/roles/dropdown"
+          }
+        },
+        {
+          "name": "POST Create Role",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{superAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roleTitle\": \"Counseling Admin\",\n  \"roleCode\": \"COUNSELING_ADMIN\",\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/roles",
+            "description": "Save data._id as roleId"
+          }
+        },
+        {
+          "name": "GET Role By ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": "{{baseUrl}}/api/admin/roles/{{roleId}}"
+          }
+        },
+        {
+          "name": "PUT Update Role",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{superAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roleTitle\": \"Senior Counseling Admin\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/roles/{{roleId}}"
+          }
+        },
+        {
+          "name": "PATCH Inactivate Role",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{superAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"INACTIVE\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/roles/{{roleId}}/status"
+          }
+        },
+        {
+          "name": "PATCH Activate Role",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{superAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/roles/{{roleId}}/status"
+          }
+        },
+        {
+          "name": "DELETE Role (hard)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": "{{baseUrl}}/api/admin/roles/{{roleId}}",
+            "description": "Permanently deletes the role. Seeded defaults are recreated on server restart if missing."
+          }
+        }
+      ]
+    }
+  ]
+}

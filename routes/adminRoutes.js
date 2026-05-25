@@ -5,15 +5,14 @@ const {
   createEmployee,
   getUsers,
   updateUserStatus,
-  getCenters,
-  createCenter,
-  updateCenter,
-  deleteCenter,
   getCategories,
   createCategory,
   updateCategory,
   deleteCategory
 } = require('../controllers/adminController');
+const centerManagementRoutes = require('./centerManagementRoutes');
+const roleRoutes = require('./roleRoutes');
+const adminAccessRoutes = require('./adminAccessRoutes');
 const { protect } = require('../middleware/authMiddleware');
 const { allowRoles, ROLES } = require('../middleware/roleMiddleware');
 
@@ -24,12 +23,11 @@ router.use(protect);
 // SUPER ADMIN ONLY ROUTES
 // ==========================================
 
-// Center Management
+// Center admin user + operational center CRUD (separate from website CenterData)
 router.post('/create-center-admin', allowRoles(ROLES.SUPER_ADMIN), createCenterAdmin);
-router.get('/centers', allowRoles(ROLES.SUPER_ADMIN), getCenters);
-router.post('/centers', allowRoles(ROLES.SUPER_ADMIN), createCenter);
-router.put('/centers/:id', allowRoles(ROLES.SUPER_ADMIN), updateCenter);
-router.delete('/centers/:id', allowRoles(ROLES.SUPER_ADMIN), deleteCenter);
+router.use('/centers', centerManagementRoutes);
+router.use('/roles', roleRoutes);
+router.use('/admin-access', adminAccessRoutes);
 
 // Category Management
 router.post('/categories', allowRoles(ROLES.SUPER_ADMIN), createCategory);

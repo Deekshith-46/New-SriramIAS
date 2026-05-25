@@ -9,9 +9,15 @@ const {
   verifyStudentSignup,
   parentLoginRequest
 } = require('../controllers/authController');
+const {
+  loginAdminAccess,
+  verifyAdminAccessOtp
+} = require('../controllers/adminAuthController');
 const { validate, validations } = require('../middleware/validation');
 
 router.post('/login-super-admin', loginSuperAdmin);
+router.post('/login-admin-access', loginAdminAccess);
+router.post('/login-admin-access/verify-otp', verifyAdminAccessOtp);
 router.post('/login', login);
 router.post('/send-otp', ...sendOtp);
 router.post('/verify-otp', ...verifyOtp);

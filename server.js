@@ -5,6 +5,7 @@ const app = require('./app');
 const { getTransporter, isEmailConfigured } = require('./utils/emailService');
 const { seedLmsTestCategories } = require('./utils/lmsTestSeed');
 const { seedAnswerWritingCategories } = require('./utils/answerWritingSeed');
+const { seedDefaultRoles } = require('./utils/roleSeed');
 
 if (isEmailConfigured()) {
   getTransporter().catch(() => {});
@@ -18,6 +19,10 @@ seedLmsTestCategories().catch((err) => {
 
 seedAnswerWritingCategories().catch((err) => {
   console.error('Answer writing category seed failed:', err.message);
+});
+
+seedDefaultRoles().catch((err) => {
+  console.error('Default roles seed failed:', err.message);
 });
 
 const PORT = process.env.PORT || 5000;

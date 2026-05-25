@@ -332,7 +332,15 @@ exports.getCourses = async (req, res) => {
 
     // Name-based center filter (optional)
     if (centerName) {
-      const centers = await Center.find({ name: new RegExp(centerName, 'i') });
+      const centers = await Center.find({
+        isDeleted: false,
+        $or: [
+          { centerName: new RegExp(centerName, 'i') },
+          { name: new RegExp(centerName, 'i') },
+          { city: new RegExp(centerName, 'i') },
+          { centerCode: new RegExp(centerName, 'i') }
+        ]
+      });
       if (centers.length > 0) {
         filter.center = { $in: centers.map(c => c._id) };
       } else {
@@ -414,7 +422,15 @@ exports.getCoursesForEnquiry = async (req, res) => {
 
     // Name-based center filter
     if (centerName) {
-      const centers = await Center.find({ name: new RegExp(centerName, 'i') });
+      const centers = await Center.find({
+        isDeleted: false,
+        $or: [
+          { centerName: new RegExp(centerName, 'i') },
+          { name: new RegExp(centerName, 'i') },
+          { city: new RegExp(centerName, 'i') },
+          { centerCode: new RegExp(centerName, 'i') }
+        ]
+      });
       if (centers.length > 0) {
         filter.center = { $in: centers.map(c => c._id) };
       } else {
@@ -835,7 +851,8 @@ exports.getCoursesGrouped = async (req, res) => {
     const groupedData = {};
 
     courses.forEach(course => {
-      const centerName = course.center?.name || 'Unknown';
+      const centerName =
+        course.center?.centerName || course.center?.name || 'Unknown';
       const categoryName = course.category?.name || 'Unknown';
 
       // Initialize center if not exists

@@ -16,6 +16,9 @@ exports.createResource = async (req, res) => {
       classId, 
       paperId, 
       yearId,
+      monthId,
+      typeId,
+      resourceType,
       fileSize,
       fileType
     } = req.body;
@@ -49,8 +52,16 @@ exports.createResource = async (req, res) => {
 
     // Validate filter combinations based on category
     const categoryName = category.name.toLowerCase();
-    
-    if (categoryName.includes('ncert')) {
+    const isCurrentAffairs = category.moduleType === 'CURRENT_AFFAIRS';
+
+    if (isCurrentAffairs) {
+      if (!yearId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Current affairs resources require yearId'
+        });
+      }
+    } else if (categoryName.includes('ncert')) {
       // NCERT should only have subjectId and classId
       if (paperId || yearId) {
         return res.status(400).json({
@@ -117,7 +128,10 @@ exports.createResource = async (req, res) => {
       subjectId: subjectId || null,  // For NCERT
       classId: classId || null,       // For NCERT
       paperId: paperId || null,       // For PYQ
-      yearId: yearId || null,         // For PYQ
+      yearId: yearId || null,         // For PYQ / Current Affairs
+      monthId: monthId || null,
+      currentAffairsTypeId: typeId || null,
+      resourceType: resourceType || 'PDF',
       fileUrl: {
         url: fileResult.url,
         public_id: fileResult.public_id
@@ -266,6 +280,10 @@ exports.updateResource = async (req, res) => {
       classId: req.body.classId !== undefined ? req.body.classId : resource.classId,
       paperId: req.body.paperId !== undefined ? req.body.paperId : resource.paperId,
       yearId: req.body.yearId !== undefined ? req.body.yearId : resource.yearId,
+      monthId: req.body.monthId !== undefined ? req.body.monthId : resource.monthId,
+      currentAffairsTypeId:
+        req.body.typeId !== undefined ? req.body.typeId : resource.currentAffairsTypeId,
+      resourceType: req.body.resourceType || resource.resourceType,
       fileSize: req.body.fileSize || resource.fileSize,
       fileType: req.body.fileType || resource.fileType,
       isActive: req.body.isActive !== undefined ? req.body.isActive : resource.isActive

@@ -11,39 +11,48 @@ exports.createCenterAdmin = [
   validate(validations.createCenterAdmin),
   async (req, res) => {
     try {
-      const { name, email, password, location } = req.body;
+      const { name, email, password, centerId, location } = req.body;
 
-      // Check if user already exists
       const existingUser = await User.findOne({ email });
-
       if (existingUser) {
-        return res.status(400).json({ 
-          message: 'User already exists with this email' 
+        return res.status(400).json({
+          success: false,
+          message: 'User already exists with this email'
         });
       }
 
-      // Create center admin user
+      let center = null;
+      if (centerId) {
+        center = await Center.findOne({ _id: centerId, isDeleted: false });
+      } else if (location) {
+        center = await Center.findOne({
+          isDeleted: false,
+          $or: [{ city: location }, { centerName: location }, { name: location }]
+        });
+      }
+
+      if (!center) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid centerId is required (or legacy location matching an existing center)'
+        });
+      }
+
       const user = await User.create({
         name,
         email,
         password,
         role: 'center_admin',
-        location,
+        center: center._id,
+        location: center.city || location,
         isActive: true
       });
 
-      // Create or update center record
-      let center = await Center.findOne({ location });
-
-      if (center) {
-        center.adminId = user._id;
-        await center.save();
-      } else {
-        await Center.create({
-          location,
-          adminId: user._id
-        });
-      }
+      center.centerAdmin = user._id;
+      const admins = Array.isArray(center.assignedAdmins) ? [...center.assignedAdmins] : [];
+      if (!admins.includes(name)) admins.push(name);
+      center.assignedAdmins = admins;
+      await center.save();
 
       res.status(201).json({
         success: true,
@@ -53,6 +62,8 @@ exports.createCenterAdmin = [
           name: user.name,
           email: user.email,
           role: user.role,
+          centerId: center._id,
+          centerName: center.centerName || center.name,
           location: user.location
         }
       });
@@ -221,149 +232,6 @@ exports.updateUserStatus = [
     }
   }
 ];
-
-// @desc    Get Centers
-// @route   GET /api/admin/centers
-// @access  Super Admin
-exports.getCenters = async (req, res) => {
-  try {
-    const centers = await Center.find().populate('centerAdmin', 'name email').sort({ createdAt: -1 });
-
-    res.json({
-      success: true,
-      centers
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
-
-// @desc    Create Center
-// @route   POST /api/admin/centers
-// @access  Super Admin
-exports.createCenter = async (req, res) => {
-  try {
-    const { name } = req.body;
-
-    // Validate required fields
-    if (!name) {
-      return res.status(400).json({ 
-        message: 'Center name is required' 
-      });
-    }
-
-    // Check if center already exists
-    const existingCenter = await Center.findOne({ name });
-    if (existingCenter) {
-      return res.status(400).json({ 
-        message: 'Center already exists with this name' 
-      });
-    }
-
-    // Create center
-    const center = await Center.create({
-      name
-    });
-
-    res.status(201).json({
-      success: true,
-      message: 'Center created successfully',
-      center
-    });
-  } catch (error) {
-    console.error(error);
-    if (error.code === 11000) {
-      return res.status(400).json({ 
-        message: 'Center already exists with this name' 
-      });
-    }
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
-
-// @desc    Update Center
-// @route   PUT /api/admin/centers/:id
-// @access  Super Admin
-exports.updateCenter = async (req, res) => {
-  try {
-    const { name } = req.body;
-    const centerId = req.params.id;
-
-    // Validate required fields
-    if (!name) {
-      return res.status(400).json({ 
-        message: 'Center name is required' 
-      });
-    }
-
-    // Check if center exists
-    const center = await Center.findById(centerId);
-    if (!center) {
-      return res.status(404).json({ 
-        message: 'Center not found' 
-      });
-    }
-
-    // Check if name already exists (but not the current center)
-    const existingCenter = await Center.findOne({ name, _id: { $ne: centerId } });
-    if (existingCenter) {
-      return res.status(400).json({ 
-        message: 'Another center already exists with this name' 
-      });
-    }
-
-    // Update center
-    center.name = name;
-    await center.save();
-
-    res.json({
-      success: true,
-      message: 'Center updated successfully',
-      center
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
-
-// @desc    Delete Center
-// @route   DELETE /api/admin/centers/:id
-// @access  Super Admin
-exports.deleteCenter = async (req, res) => {
-  try {
-    const centerId = req.params.id;
-
-    // Check if center exists
-    const center = await Center.findById(centerId);
-    if (!center) {
-      return res.status(404).json({ 
-        message: 'Center not found' 
-      });
-    }
-
-    // Check if center has courses
-    const Course = require('../models/Course');
-    const courseCount = await Course.countDocuments({ center: centerId });
-    if (courseCount > 0) {
-      return res.status(400).json({ 
-        message: `Cannot delete center. It has ${courseCount} course(s) associated with it. Delete the courses first.` 
-      });
-    }
-
-    // Delete center
-    await Center.findByIdAndDelete(centerId);
-
-    res.json({
-      success: true,
-      message: 'Center deleted successfully'
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
 
 // @desc    Get Categories
 // @route   GET /api/admin/categories

@@ -11,6 +11,7 @@ const {
 } = require('../controllers/answerWritingCategoryController');
 const {
   createQuestion,
+  getStudentFilters,
   getQuestions,
   getQuestionById,
   updateQuestion,
@@ -38,6 +39,7 @@ router.get('/categories/:id', protect, admin, getCategoryById);
 router.put('/categories/:id', protect, admin, updateCategory);
 router.delete('/categories/:id', protect, admin, deleteCategory);
 
+router.get('/student/filters', protect, studentOnly, getStudentFilters);
 router.post('/questions', protect, admin, questionUpload, createQuestion);
 router.get('/questions', protect, getQuestions);
 router.put('/questions/:id', protect, admin, questionUpload, updateQuestion);

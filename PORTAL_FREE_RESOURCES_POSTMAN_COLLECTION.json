@@ -1,0 +1,157 @@
+{
+  "info": {
+    "name": "Portal — Current Affairs & Free Resources",
+    "description": "UI-aligned portal APIs (2 tabs). CMS admin remains at /api/resources/*",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "studentToken", "value": "" },
+    { "key": "typeId", "value": "", "description": "Free Resources tab: categoryId (NCERT, PYQ, etc.)" },
+    { "key": "subjectId", "value": "" },
+    { "key": "classId", "value": "" },
+    { "key": "subCategoryId", "value": "" },
+    { "key": "paperId", "value": "" },
+    { "key": "yearId", "value": "" },
+    { "key": "monthId", "value": "" },
+    { "key": "caTypeId", "value": "" },
+    { "key": "resourceId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Current Affairs Tab",
+      "item": [
+        {
+          "name": "GET Filters (years, months, types)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/portal/current-affairs/filters" }
+        },
+        {
+          "name": "GET Resources",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/portal/current-affairs/resources?yearId={{yearId}}&monthId={{monthId}}&typeId={{caTypeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "portal", "current-affairs", "resources"],
+              "query": [
+                { "key": "yearId", "value": "{{yearId}}" },
+                { "key": "monthId", "value": "{{monthId}}" },
+                { "key": "typeId", "value": "{{caTypeId}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Resources (by label: year & month)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/portal/current-affairs/resources?year=2026&month=April&type=Daily Current Affairs",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "portal", "current-affairs", "resources"],
+              "query": [
+                { "key": "year", "value": "2026" },
+                { "key": "month", "value": "April" },
+                { "key": "type", "value": "Daily Current Affairs" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET By ID",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/portal/current-affairs/{{resourceId}}" }
+        },
+        {
+          "name": "GET View PDF",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}", "disabled": true }],
+            "url": "{{baseUrl}}/api/portal/current-affairs/{{resourceId}}/view"
+          }
+        },
+        {
+          "name": "GET Download PDF",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}", "disabled": true }],
+            "url": "{{baseUrl}}/api/portal/current-affairs/{{resourceId}}/download"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Free Resources Tab",
+      "item": [
+        {
+          "name": "GET Filters (types = categories)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/portal/free-resources/filters" }
+        },
+        {
+          "name": "GET Dynamic Filters (after type selected)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/portal/free-resources/dynamic-filters?typeId={{typeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "portal", "free-resources", "dynamic-filters"],
+              "query": [{ "key": "typeId", "value": "{{typeId}}" }]
+            }
+          }
+        },
+        {
+          "name": "GET Resources — NCERT",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/portal/free-resources/resources?typeId={{typeId}}&subjectId={{subjectId}}&classId={{classId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "portal", "free-resources", "resources"],
+              "query": [
+                { "key": "typeId", "value": "{{typeId}}" },
+                { "key": "subjectId", "value": "{{subjectId}}" },
+                { "key": "classId", "value": "{{classId}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Resources — PYQ",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/portal/free-resources/resources?typeId={{typeId}}&subCategoryId={{subCategoryId}}&paperId={{paperId}}&yearId={{yearId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "portal", "free-resources", "resources"],
+              "query": [
+                { "key": "typeId", "value": "{{typeId}}" },
+                { "key": "subCategoryId", "value": "{{subCategoryId}}" },
+                { "key": "paperId", "value": "{{paperId}}" },
+                { "key": "yearId", "value": "{{yearId}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET By ID",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/portal/free-resources/{{resourceId}}" }
+        },
+        {
+          "name": "GET View PDF",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}", "disabled": true }],
+            "url": "{{baseUrl}}/api/portal/free-resources/{{resourceId}}/view"
+          }
+        },
+        {
+          "name": "GET Download PDF",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}", "disabled": true }],
+            "url": "{{baseUrl}}/api/portal/free-resources/{{resourceId}}/download"
+          }
+        }
+      ]
+    }
+  ]
+}

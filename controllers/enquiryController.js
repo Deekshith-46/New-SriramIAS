@@ -73,7 +73,14 @@ exports.createEnquiry = async (req, res) => {
     } else if (centerName) {
       // If frontend sends center name, validate it matches
       const Center = require('../models/Center');
-      const centerDoc = await Center.findOne({ name: new RegExp(centerName, 'i') });
+      const centerDoc = await Center.findOne({
+        isDeleted: false,
+        $or: [
+          { centerName: new RegExp(centerName, 'i') },
+          { name: new RegExp(centerName, 'i') },
+          { city: new RegExp(centerName, 'i') }
+        ]
+      });
       if (centerDoc && centerDoc._id.toString() !== courseDoc.center.toString()) {
         return res.status(400).json({
           success: false,

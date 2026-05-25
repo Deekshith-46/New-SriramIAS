@@ -1,0 +1,181 @@
+{
+  "info": {
+    "name": "Sriram IAS - Admin Access Management",
+    "description": "Dynamic admin users: Role + Center + security.\n\nSetup:\n1. Login Super Admin → superAdminToken\n2. GET roles/dropdown + centers/dropdown for IDs\n3. POST admin-access → adminAccessId\n4. Login admin: login-admin-access (+ verify-otp if 2FA)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "superAdminToken", "value": "" },
+    { "key": "adminAccessToken", "value": "" },
+    { "key": "roleId", "value": "" },
+    { "key": "centerId", "value": "" },
+    { "key": "adminAccessId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Login Super Admin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@sriram.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login-super-admin"
+          }
+        },
+        {
+          "name": "Login Admin Access",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"officialEmail\": \"contentadmin@sriramias.com\",\n  \"password\": \"SecurePass123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login-admin-access",
+            "description": "If requiresOtp, use Verify OTP request next"
+          }
+        },
+        {
+          "name": "Verify Admin Access OTP (2FA)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"adminAccessId\": \"{{adminAccessId}}\",\n  \"otp\": \"123456\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login-admin-access/verify-otp"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Dropdowns",
+      "item": [
+        {
+          "name": "GET Roles Dropdown",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": "{{baseUrl}}/api/admin/roles/dropdown"
+          }
+        },
+        {
+          "name": "GET Centers Dropdown",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": "{{baseUrl}}/api/admin/centers/dropdown"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Admin Access CRUD",
+      "item": [
+        {
+          "name": "GET All Admin Users",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/admin-access?page=1&limit=10&status=ACTIVE",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "admin-access"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "status", "value": "ACTIVE" },
+                { "key": "search", "value": "content" },
+                { "key": "roleId", "value": "{{roleId}}", "disabled": true },
+                { "key": "centerId", "value": "{{centerId}}", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST Create Admin User",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{superAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Content Admin\",\n  \"officialEmail\": \"contentadmin@sriramias.com\",\n  \"contactNumber\": \"9876543210\",\n  \"employeeId\": \"EMP-CONTENT-01\",\n  \"roleId\": \"{{roleId}}\",\n  \"centerId\": \"{{centerId}}\",\n  \"password\": \"SecurePass123\",\n  \"confirmPassword\": \"SecurePass123\",\n  \"accountStatus\": true,\n  \"twoFactorEnabled\": false,\n  \"loginAlertEnabled\": true,\n  \"sessionTimeout\": \"1_HOUR\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/admin-access"
+          }
+        },
+        {
+          "name": "GET Admin User By ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": "{{baseUrl}}/api/admin/admin-access/{{adminAccessId}}"
+          }
+        },
+        {
+          "name": "PUT Update Admin User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{superAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Senior Content Admin\",\n  \"loginAlertEnabled\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/admin-access/{{adminAccessId}}"
+          }
+        },
+        {
+          "name": "PATCH Disable Account",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{superAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountStatus\": false\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/admin-access/{{adminAccessId}}/status"
+          }
+        },
+        {
+          "name": "PATCH Enable Account",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{superAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountStatus\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/admin-access/{{adminAccessId}}/status"
+          }
+        },
+        {
+          "name": "DELETE Admin User (hard)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": "{{baseUrl}}/api/admin/admin-access/{{adminAccessId}}"
+          }
+        }
+      ]
+    }
+  ]
+}

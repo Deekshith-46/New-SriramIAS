@@ -4,7 +4,7 @@ const filterSchema = new mongoose.Schema({
   type: {
     type: String,
     required: true,
-    enum: ['SUBJECT', 'CLASS', 'PAPER', 'YEAR']
+    enum: ['SUBJECT', 'CLASS', 'PAPER', 'YEAR', 'MONTH', 'CURRENT_AFFAIRS_TYPE']
   },
   value: {
     type: String,

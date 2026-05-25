@@ -331,7 +331,7 @@ exports.verifyPayment = async (req, res) => {
             title: course.title,
             slug: course.slug,
             totalFees: actualPrice,
-            centerName: course.center.name,
+            centerName: course.center?.centerName || course.center?.name || '',
             categoryName: course.category?.name || ''
          },
          enrolledAt: enrolledAt,

@@ -56,7 +56,16 @@ const getEmployeeCenterIds = async (employeeUserId) => {
   const employee = await Employee.findOne({ userId: employeeUserId }).lean();
   if (!employee?.center) return [];
 
-  const centers = await Center.find({ name: employee.center }).select('_id').lean();
+  const centers = await Center.find({
+    isDeleted: false,
+    $or: [
+      { centerName: employee.center },
+      { name: employee.center },
+      { city: employee.center }
+    ]
+  })
+    .select('_id')
+    .lean();
   return centers.map((c) => c._id.toString());
 };
 

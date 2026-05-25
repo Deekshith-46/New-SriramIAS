@@ -51,9 +51,13 @@ const lectureQuizAttemptRoutes = require('./routes/lectureQuizAttemptRoutes');
 const lectureAnswerRoutes = require('./routes/lectureAnswerRoutes');
 const courseProgressRoutes = require('./routes/courseProgressRoutes');
 const lmsTestRoutes = require('./routes/lmsTestRoutes');
+const testExamRoutes = require('./routes/testExamRoutes');
+const testResultRoutes = require('./routes/testResultRoutes');
 const lmsBookmarkRoutes = require('./routes/lmsBookmarkRoutes');
 const attendanceRoutes = require('./routes/attendanceRoutes');
 const answerWritingRoutes = require('./routes/answerWritingRoutes');
+const portalFreeResourceRoutes = require('./routes/portalFreeResourceRoutes');
+const portalCurrentAffairsRoutes = require('./routes/portalCurrentAffairsRoutes');
 
 
 const app = express();
@@ -137,6 +141,10 @@ app.use('/api/resources/files', resourceFileRoutes); // Resources (PDFs, Study M
 app.use('/api/resources/mock-tests', mockTestRoutes); // Mock Tests
 app.use('/api/resources/questions', questionRoutes); // Questions
 
+// Portal UI — two tabs (CMS unchanged at /api/resources/*)
+app.use('/api/portal/current-affairs', portalCurrentAffairsRoutes);
+app.use('/api/portal/free-resources', portalFreeResourceRoutes);
+
 // Blog routes
 app.use('/api/blog', blogRoutes);
 
@@ -175,6 +183,10 @@ app.use('/api/course-progress', courseProgressRoutes);
 
 // My Courses — Tests (Weekly / Daily / Monthly)
 app.use('/api/tests', lmsTestRoutes);
+
+// Test Series — course-linked exams (NCERT-style test series courses)
+app.use('/api/test-exams', testExamRoutes);
+app.use('/api/test-results', testResultRoutes);
 
 // My Courses — Bookmarks (recordings + tests)
 app.use('/api/bookmarks', lmsBookmarkRoutes);

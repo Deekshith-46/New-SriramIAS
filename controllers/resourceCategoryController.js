@@ -10,7 +10,7 @@ const { paginate, buildPaginationResponse } = require('../middleware/resourceMid
 
 exports.createCategory = async (req, res) => {
   try {
-    const { name, description } = req.body;
+    const { name, description, moduleType } = req.body;
 
     let thumbnailData = {};
     if (req.file) {
@@ -24,6 +24,7 @@ exports.createCategory = async (req, res) => {
     const category = new ResourceCategory({
       name,
       description,
+      moduleType: moduleType || 'FREE_RESOURCES',
       thumbnail: thumbnailData,
       createdBy: req.user._id,
       centerId: req.user.center || null
@@ -101,7 +102,7 @@ exports.getCategoryById = async (req, res) => {
 
 exports.updateCategory = async (req, res) => {
   try {
-    const { name, description, isActive } = req.body;
+    const { name, description, isActive, moduleType } = req.body;
     const category = await ResourceCategory.findById(req.params.id);
 
     if (!category) {
@@ -122,6 +123,7 @@ exports.updateCategory = async (req, res) => {
 
     category.name = name || category.name;
     category.description = description || category.description;
+    if (moduleType) category.moduleType = moduleType;
     category.thumbnail = thumbnailData;
     category.isActive = isActive !== undefined ? isActive : category.isActive;
     // Update centerId if admin changes (Super Admin only)

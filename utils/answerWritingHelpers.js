@@ -14,10 +14,25 @@ const EVALUATOR_ROLES = ['super_admin', 'center_admin', 'employee'];
 const normalizeStatusFilter = (status) => {
   if (!status) return null;
   const s = String(status).toLowerCase();
-  if (s === 'completed') return 'evaluated';
-  if (['upcoming', 'submitted', 'evaluated'].includes(s)) return s;
+  if (['upcoming', 'completed', 'submitted', 'evaluated'].includes(s)) return s;
   return null;
 };
+
+const filterQuestionsByStatus = (rows, statusFilter) => {
+  if (!statusFilter) return rows;
+  if (statusFilter === 'upcoming') {
+    return rows.filter((row) => row.displayStatus === 'upcoming');
+  }
+  if (statusFilter === 'completed') {
+    return rows.filter((row) => ['submitted', 'evaluated'].includes(row.displayStatus));
+  }
+  return rows.filter((row) => row.displayStatus === statusFilter);
+};
+
+const STUDENT_STATUS_OPTIONS = [
+  { value: 'upcoming', label: 'Upcoming' },
+  { value: 'completed', label: 'Completed' }
+];
 
 const resolveDisplayStatus = (submission) => {
   if (!submission) return 'upcoming';
@@ -59,6 +74,8 @@ const uploadAnswerFile = async (file, folder, uploadToCloudinary) => {
 module.exports = {
   EVALUATOR_ROLES,
   normalizeStatusFilter,
+  filterQuestionsByStatus,
+  STUDENT_STATUS_OPTIONS,
   resolveDisplayStatus,
   getRequestUserId,
   isEvaluator,

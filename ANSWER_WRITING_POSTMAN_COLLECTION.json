@@ -129,6 +129,22 @@
       "name": "Student",
       "item": [
         {
+          "name": "Get Filters (subjects, categories, statuses)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": "{{baseUrl}}/api/answer-writing/student/filters?courseId={{courseId}}"
+          }
+        },
+        {
+          "name": "List Questions (all filters)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": "{{baseUrl}}/api/answer-writing/questions?courseId={{courseId}}&subjectId={{subjectId}}&categoryId={{categoryId}}&status=upcoming"
+          }
+        },
+        {
           "name": "Upcoming Questions",
           "request": {
             "method": "GET",

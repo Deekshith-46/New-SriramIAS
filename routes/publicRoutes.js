@@ -10,14 +10,24 @@ const Category = require('../models/Category');
 // Get all centers
 router.get('/centers', async (req, res) => {
   try {
-    const centers = await Center.find({})
-      .sort({ name: 1 })
-      .select('name');
-    
+    const centers = await Center.find({
+      isDeleted: false,
+      status: 'ACTIVE'
+    })
+      .sort({ centerName: 1 })
+      .select('centerName centerCode city state name');
+
     res.json({
       success: true,
       count: centers.length,
-      centers
+      centers: centers.map((c) => ({
+        _id: c._id,
+        name: c.centerName || c.name,
+        centerName: c.centerName || c.name,
+        centerCode: c.centerCode,
+        city: c.city,
+        state: c.state
+      }))
     });
   } catch (error) {
     console.error('Get Centers Error:', error);

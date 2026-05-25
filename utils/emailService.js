@@ -62,7 +62,12 @@ const getTransporter = async () => {
 };
 
 const generateOTPEmailHTML = (otp, userName, userType = 'student') => {
-  const userTypeLabel = userType === 'parent' ? 'Parent' : 'Student';
+  const labels = {
+    parent: 'Parent',
+    admin_access: 'Admin',
+    password_reset: 'Account'
+  };
+  const userTypeLabel = labels[userType] || 'Student';
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -92,8 +97,22 @@ const sendOTPEmail = async (to, otp, userName, userType = 'student') => {
   return info;
 };
 
+const sendEmail = async ({ to, subject, html, text }) => {
+  const transport = await getTransporter();
+  const info = await transport.sendMail({
+    from: `"Sriram IAS" <${getEmailUser()}>`,
+    to,
+    subject,
+    html,
+    text: text || subject
+  });
+  console.log(`✅ Email sent to ${to}`, info.messageId);
+  return info;
+};
+
 module.exports = {
   sendOTPEmail,
+  sendEmail,
   getTransporter,
   isEmailConfigured,
   resetTransporter
