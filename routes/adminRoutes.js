@@ -13,6 +13,7 @@ const {
 const centerManagementRoutes = require('./centerManagementRoutes');
 const roleRoutes = require('./roleRoutes');
 const adminAccessRoutes = require('./adminAccessRoutes');
+const permissionRoutes = require('./permissionRoutes');
 const { protect } = require('../middleware/authMiddleware');
 const { allowRoles, ROLES } = require('../middleware/roleMiddleware');
 
@@ -28,6 +29,7 @@ router.post('/create-center-admin', allowRoles(ROLES.SUPER_ADMIN), createCenterA
 router.use('/centers', centerManagementRoutes);
 router.use('/roles', roleRoutes);
 router.use('/admin-access', adminAccessRoutes);
+router.use('/permissions', permissionRoutes);
 
 // Category Management
 router.post('/categories', allowRoles(ROLES.SUPER_ADMIN), createCategory);

@@ -4,6 +4,10 @@ const {
   buildRoleListQuery,
   findRoleById
 } = require('../utils/roleHelpers');
+const {
+  createPermissionMatrixForRole,
+  deletePermissionMatrixForRole
+} = require('../utils/permissionHelpers');
 
 const pickUpdatableFields = (body) => {
   const payload = {};
@@ -40,9 +44,11 @@ exports.createRole = async (req, res) => {
       createdBy: req.user._id
     });
 
+    await createPermissionMatrixForRole(role._id);
+
     res.status(201).json({
       success: true,
-      message: 'Role created successfully',
+      message: 'Role created successfully. Permission matrix generated.',
       data: formatRoleForAdmin(role)
     });
   } catch (error) {
@@ -194,11 +200,12 @@ exports.deleteRole = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Role not found' });
     }
 
+    await deletePermissionMatrixForRole(role._id);
     await Role.findByIdAndDelete(role._id);
 
     res.json({
       success: true,
-      message: 'Role deleted successfully'
+      message: 'Role and permission matrix deleted successfully'
     });
   } catch (error) {
     console.error('Delete role error:', error);

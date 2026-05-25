@@ -1,0 +1,113 @@
+{
+  "info": {
+    "name": "Sriram IAS - Permission Matrix (RBAC)",
+    "description": "Enterprise RBAC permission engine.\n\n1. Login Super Admin\n2. GET permissions — pick permissionId from modules[]._id\n3. PATCH toggle / enable-all / restrict-all",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "superAdminToken", "value": "" },
+    { "key": "roleId", "value": "" },
+    { "key": "permissionId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Login Super Admin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@sriram.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login-super-admin"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Permission Matrix",
+      "item": [
+        {
+          "name": "GET Module Config",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": "{{baseUrl}}/api/admin/permissions/modules"
+          }
+        },
+        {
+          "name": "GET Full Matrix",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/permissions?search=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "permissions"],
+              "query": [{ "key": "search", "value": "" }]
+            }
+          }
+        },
+        {
+          "name": "GET Matrix By Role",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": "{{baseUrl}}/api/admin/permissions/role/{{roleId}}"
+          }
+        },
+        {
+          "name": "GET My Access (logged-in admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": "{{baseUrl}}/api/admin/permissions/my-access"
+          }
+        },
+        {
+          "name": "PATCH Toggle Feature",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{superAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"featureKey\": \"STUDENT_MANAGEMENT\",\n  \"allowed\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/permissions/{{permissionId}}"
+          }
+        },
+        {
+          "name": "PATCH Enable All (module)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": "{{baseUrl}}/api/admin/permissions/{{permissionId}}/enable-all"
+          }
+        },
+        {
+          "name": "PATCH Restrict All (module)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": "{{baseUrl}}/api/admin/permissions/{{permissionId}}/restrict-all"
+          }
+        },
+        {
+          "name": "PATCH Reset (module)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": "{{baseUrl}}/api/admin/permissions/{{permissionId}}/reset"
+          }
+        }
+      ]
+    }
+  ]
+}

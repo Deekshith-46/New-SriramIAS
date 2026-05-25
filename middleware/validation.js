@@ -52,14 +52,15 @@ const validations = {
     'object.missing': 'Either mobile, email, or userId is required'
   }),
 
-  // Student Signup (email must be @gmail.com when provided)
+  // Student Signup — full name, Gmail, mobile, center (all required)
   studentSignup: Joi.object({
-    name: Joi.string().min(2).max(100).required(),
-    mobile: Joi.string().pattern(/^[6-9]\d{9}$/)
+    name: Joi.string().min(2).max(100).required().trim(),
+    mobile: Joi.string()
+      .pattern(/^[6-9]\d{9}$/)
+      .required()
       .messages({ 'string.pattern.base': 'Invalid Indian mobile number' }),
-    email: studentGmailEmail
-  }).or('mobile', 'email').messages({
-    'object.missing': 'Either mobile or email is required'
+    email: studentGmailEmail.required(),
+    centerId: Joi.string().hex().length(24).required()
   }),
 
   // Verify Student Signup OTP
@@ -200,6 +201,11 @@ const validations = {
   adminAccessVerifyOtp: Joi.object({
     adminAccessId: Joi.string().hex().length(24).required(),
     otp: Joi.string().length(6).required()
+  }),
+
+  updateFeaturePermission: Joi.object({
+    featureKey: Joi.string().min(2).max(80).required().trim(),
+    allowed: Joi.boolean().required()
   }),
 
   // Create Employee

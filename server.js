@@ -6,6 +6,7 @@ const { getTransporter, isEmailConfigured } = require('./utils/emailService');
 const { seedLmsTestCategories } = require('./utils/lmsTestSeed');
 const { seedAnswerWritingCategories } = require('./utils/answerWritingSeed');
 const { seedDefaultRoles } = require('./utils/roleSeed');
+const { syncPermissionMatrixForAllRoles } = require('./utils/permissionHelpers');
 
 if (isEmailConfigured()) {
   getTransporter().catch(() => {});
@@ -21,9 +22,11 @@ seedAnswerWritingCategories().catch((err) => {
   console.error('Answer writing category seed failed:', err.message);
 });
 
-seedDefaultRoles().catch((err) => {
-  console.error('Default roles seed failed:', err.message);
-});
+seedDefaultRoles()
+  .then(() => syncPermissionMatrixForAllRoles())
+  .catch((err) => {
+    console.error('Default roles / permission matrix seed failed:', err.message);
+  });
 
 const PORT = process.env.PORT || 5000;
 

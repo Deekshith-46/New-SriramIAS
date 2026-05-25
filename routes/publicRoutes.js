@@ -7,7 +7,35 @@ const Category = require('../models/Category');
 // PUBLIC ROUTES (No authentication needed)
 // ==========================================
 
-// Get all centers
+// Active centers for student signup dropdown (public, minimal fields)
+router.get('/centers/signup', async (req, res) => {
+  try {
+    const centers = await Center.find({
+      isDeleted: false,
+      status: 'ACTIVE'
+    })
+      .sort({ centerName: 1 })
+      .select('centerName name');
+
+    res.json({
+      success: true,
+      count: centers.length,
+      data: centers.map((c) => ({
+        _id: c._id,
+        centerName: c.centerName || c.name
+      }))
+    });
+  } catch (error) {
+    console.error('Get signup centers error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching centers',
+      error: error.message
+    });
+  }
+});
+
+// Get all centers (includes city/state for display pages)
 router.get('/centers', async (req, res) => {
   try {
     const centers = await Center.find({

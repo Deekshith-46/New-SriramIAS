@@ -3,6 +3,7 @@
  * Run from server.js on startup (optional).
  */
 const Role = require('../models/Role');
+const { createPermissionMatrixForRole } = require('./permissionHelpers');
 
 const DEFAULT_ROLES = [
   { roleTitle: 'Super Admin', roleCode: 'SUPER_ADMIN', status: 'ACTIVE' },
@@ -14,8 +15,11 @@ const seedDefaultRoles = async () => {
   for (const row of DEFAULT_ROLES) {
     const exists = await Role.findOne({ roleCode: row.roleCode });
     if (!exists) {
-      await Role.create(row);
+      const role = await Role.create(row);
+      await createPermissionMatrixForRole(role._id);
       console.log(`✓ Role seeded: ${row.roleCode}`);
+    } else {
+      await createPermissionMatrixForRole(exists._id);
     }
   }
 };

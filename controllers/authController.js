@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Student = require('../models/Student');
 const Parent = require('../models/Parent');
+const Center = require('../models/Center');
 const generateToken = require('../utils/generateToken');
 const { sendOTP, verifyOTP } = require('../utils/otpService');
 const { validate, validations } = require('../middleware/validation');
@@ -242,15 +243,26 @@ exports.verifyOtp = [
 // @access  Public
 exports.studentSignup = async (req, res) => {
   try {
-    const { name, mobile, email: rawEmail } = req.body;
-    let email = null;
+    const { name, mobile, email: rawEmail, centerId } = req.body;
+    let email;
 
-    if (rawEmail) {
-      try {
-        email = assertStudentGmail(rawEmail);
-      } catch (err) {
-        return res.status(err.statusCode || 400).json({ message: err.message });
-      }
+    try {
+      email = assertStudentGmail(rawEmail);
+    } catch (err) {
+      return res.status(err.statusCode || 400).json({ message: err.message });
+    }
+
+    const center = await Center.findOne({
+      _id: centerId,
+      isDeleted: false,
+      status: 'ACTIVE'
+    });
+
+    if (!center) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or inactive center. Please select a valid center.'
+      });
     }
 
     // Check if an ACTIVE user already exists
@@ -279,11 +291,12 @@ exports.studentSignup = async (req, res) => {
 
     // Create new temporary user (inactive until OTP verification)
     const user = await User.create({
-      name,
+      name: name.trim(),
       mobile,
       email,
+      center: center._id,
       role: 'student',
-      isActive: false  // Inactive until OTP verified
+      isActive: false
     });
 
     let otp;
@@ -301,18 +314,47 @@ exports.studentSignup = async (req, res) => {
       success: true,
       message: 'OTP sent successfully. Please verify to complete registration.',
       userId: user._id.toString(),
+      center: {
+        _id: center._id,
+        centerName: center.centerName || center.name
+      },
       otp
     });
   } catch (error) {
     console.error(error);
-    // Handle duplicate key error
     if (error.code === 11000) {
-      return res.status(400).json({ 
-        message: 'User already exists with this mobile or email' 
+      return res.status(400).json({
+        message: 'User already exists with this mobile or email'
       });
     }
     res.status(500).json({ message: 'Server error', error: error.message });
   }
+};
+
+const formatStudentAuthUser = async (user) => {
+  const doc = user?.toObject ? user.toObject() : { ...user };
+  let center = null;
+
+  if (doc.center) {
+    const c = await Center.findById(doc.center).select('centerName centerCode name').lean();
+    if (c) {
+      center = {
+        _id: c._id,
+        centerName: c.centerName || c.name,
+        centerCode: c.centerCode
+      };
+    }
+  }
+
+  return {
+    id: doc._id,
+    name: doc.name,
+    email: doc.email,
+    mobile: doc.mobile,
+    role: doc.role,
+    isActive: doc.isActive,
+    center
+  };
 };
 
 // @desc    Verify Student OTP and Complete Signup
@@ -354,14 +396,7 @@ exports.verifyStudentSignup = async (req, res) => {
         success: true,
         message: 'Already verified. Login successful.',
         token: token,
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          mobile: user.mobile,
-          role: user.role,
-          isActive: user.isActive
-        }
+        user: await formatStudentAuthUser(user)
       });
     }
 
@@ -388,13 +423,7 @@ exports.verifyStudentSignup = async (req, res) => {
       success: true,
       message: 'Student registration completed successfully',
       token: token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        mobile: user.mobile,
-        role: user.role
-      }
+      user: await formatStudentAuthUser(user)
     });
   } catch (error) {
     console.error(error);

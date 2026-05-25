@@ -60,6 +60,9 @@ exports.getStudentDetails = async (req, res) => {
       });
     }
 
+    const userWithCenter = await User.findById(user._id)
+      .populate('center', 'centerName centerCode name');
+
     // Get complete student profile
     const student = await Student.findOne({ userId: user._id });
 
@@ -102,14 +105,22 @@ exports.getStudentDetails = async (req, res) => {
       student: {
         // User account details
         user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          mobile: user.mobile,
-          role: user.role,
-          isActive: user.isActive,
-          createdAt: user.createdAt,
-          updatedAt: user.updatedAt
+          id: userWithCenter._id,
+          name: userWithCenter.name,
+          email: userWithCenter.email,
+          mobile: userWithCenter.mobile,
+          role: userWithCenter.role,
+          isActive: userWithCenter.isActive,
+          center: userWithCenter.center
+            ? {
+                _id: userWithCenter.center._id,
+                centerName:
+                  userWithCenter.center.centerName || userWithCenter.center.name,
+                centerCode: userWithCenter.center.centerCode
+              }
+            : null,
+          createdAt: userWithCenter.createdAt,
+          updatedAt: userWithCenter.updatedAt
         },
         // Student profile details
         profile: {
