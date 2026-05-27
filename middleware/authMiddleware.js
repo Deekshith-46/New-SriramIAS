@@ -3,14 +3,24 @@ const User = require('../models/User');
 const AdminAccess = require('../models/AdminAccess');
 
 const protect = async (req, res, next) => {
-  let token;
+  const authHeader = req.headers.authorization;
 
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith('Bearer')
-  ) {
-    try {
-      token = req.headers.authorization.split(' ')[1];
+  if (!authHeader || !/^Bearer\s+/i.test(authHeader)) {
+    return res.status(401).json({
+      success: false,
+      message: 'Not authorized, no token'
+    });
+  }
+
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+  if (!token) {
+    return res.status(401).json({
+      success: false,
+      message: 'Not authorized, no token'
+    });
+  }
+
+  try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
       if (decoded.authType === 'admin_access') {
@@ -44,12 +54,12 @@ const protect = async (req, res, next) => {
 
       req.authType = 'user';
       next();
-    } catch (error) {
-      console.error(error);
-      return res.status(401).json({ message: 'Not authorized, token failed' });
-    }
-  } else {
-    res.status(401).json({ message: 'Not authorized, no token' });
+  } catch (error) {
+    console.error(error);
+    return res.status(401).json({
+      success: false,
+      message: 'Not authorized, token failed'
+    });
   }
 };
 

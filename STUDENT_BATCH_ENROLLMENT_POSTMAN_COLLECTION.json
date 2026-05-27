@@ -1,0 +1,134 @@
+{
+  "info": {
+    "name": "Student Batch Enrollment ERP",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "BASE_URL", "value": "http://localhost:5000" },
+    { "key": "SuperAdminToken", "value": "" },
+    { "key": "batchId", "value": "" },
+    { "key": "courseId", "value": "" },
+    { "key": "enrollmentId", "value": "" },
+    { "key": "toBatchId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login Super Admin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{BASE_URL}}/api/auth/login-super-admin",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"your-password\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Batch Enrollments",
+      "item": [
+        {
+          "name": "Add Student (Create Enrollment)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }
+            ],
+            "url": "{{BASE_URL}}/api/batch-enrollments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentName\": \"Vikram Singh\",\n  \"email\": \"vikram@example.com\",\n  \"mobileNumber\": \"9876543210\",\n  \"courseId\": \"{{courseId}}\",\n  \"batchId\": \"{{batchId}}\",\n  \"paymentStatus\": \"PENDING\",\n  \"attendancePercentage\": 0,\n  \"courseProgressPercentage\": 0\n}"
+            }
+          }
+        },
+        {
+          "name": "List Students By Batch",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/api/batch-enrollments/by-batch/{{batchId}}?paymentStatus=&status=ACTIVE&search=&page=1&limit=20",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "batch-enrollments", "by-batch", "{{batchId}}"],
+              "query": [
+                { "key": "paymentStatus", "value": "" },
+                { "key": "status", "value": "ACTIVE" },
+                { "key": "search", "value": "" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Enrollment By Id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/batch-enrollments/{{enrollmentId}}"
+          }
+        },
+        {
+          "name": "Update Enrollment",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }
+            ],
+            "url": "{{BASE_URL}}/api/batch-enrollments/{{enrollmentId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentStatus\": \"PARTIAL\",\n  \"attendancePercentage\": 72,\n  \"courseProgressPercentage\": 45\n}"
+            }
+          }
+        },
+        {
+          "name": "Move Student To Batch",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }
+            ],
+            "url": "{{BASE_URL}}/api/batch-enrollments/{{enrollmentId}}/move",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"toBatchId\": \"{{toBatchId}}\",\n  \"transferReason\": \"Promoted to next batch\",\n  \"transferAttendanceRecords\": true,\n  \"transferFeeRecords\": true,\n  \"transferTestRecords\": false\n}"
+            }
+          }
+        },
+        {
+          "name": "Batch Transfer History",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/batch-enrollments/batch/{{batchId}}/transfers"
+          }
+        },
+        {
+          "name": "Batch Audit History",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/batch-enrollments/batch/{{batchId}}/audit"
+          }
+        },
+        {
+          "name": "Soft Delete Enrollment",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/batch-enrollments/{{enrollmentId}}"
+          }
+        }
+      ]
+    }
+  ]
+}

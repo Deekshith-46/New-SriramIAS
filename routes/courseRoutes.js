@@ -2,10 +2,12 @@ const express = require('express');
 const router = express.Router();
 const courseUpload = require('../middleware/courseUpload');
 const { protect } = require('../middleware/authMiddleware');
+const { requireSuperAdmin } = require('../middleware/requireSuperAdmin');
 const { allowRoles } = require('../middleware/roleMiddleware');
 const {
   createCourse,
   getCourses,
+  getCoursesDropdown,
   getCoursesForEnquiry,
   getCourseById,
   getCourseBySlug,
@@ -17,6 +19,7 @@ const {
 
 const adminRoles = allowRoles('super_admin', 'center_admin');
 
+router.get('/dropdown', protect, requireSuperAdmin, getCoursesDropdown);
 router.get('/', getCourses);
 router.get('/enquiry', getCoursesForEnquiry);
 router.get('/grouped', getCoursesGrouped);

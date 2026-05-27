@@ -1,0 +1,601 @@
+{
+  "info": {
+    "name": "Sriram IAS - Batch Faculty & Enrollment (Complete)",
+    "description": "Super Admin only. Run「0. Auth → Login Super Admin」first — token saves to {{SuperAdminToken}}. Collection uses Bearer auth. Folder「Z. Auth checks」proves 401 without token. Course dropdown also requires Super Admin token.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{SuperAdminToken}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "BASE_URL", "value": "http://localhost:5000" },
+    { "key": "SuperAdminToken", "value": "" },
+    { "key": "subjectId", "value": "" },
+    { "key": "topicIdsJson", "value": "[]" },
+    { "key": "teacherId", "value": "" },
+    { "key": "categoriesJson", "value": "[\"LIVE_CLASS\",\"TEST\"]" },
+    { "key": "facultySubjectId", "value": "" },
+    { "key": "courseId", "value": "" },
+    { "key": "batchId", "value": "" },
+    { "key": "toBatchId", "value": "" },
+    { "key": "enrollmentId", "value": "" },
+    { "key": "studentId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. Auth",
+      "item": [
+        {
+          "name": "Login Super Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "const token = j.token || j.data?.token;",
+                  "if (token) {",
+                  "  pm.collectionVariables.set('SuperAdminToken', token);",
+                  "  console.log('SuperAdminToken saved');",
+                  "} else {",
+                  "  console.warn('No token in response — check SUPER_ADMIN_EMAIL/PASSWORD in .env');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{BASE_URL}}/api/auth/login-super-admin",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@sriram.com\",\n  \"password\": \"admin123\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Faculty Subject",
+      "item": [
+        {
+          "name": "GET Create Form (subjects + categories)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/faculty-subjects/create-form"
+          }
+        },
+        {
+          "name": "GET Create Form (topics + teachers by subject)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/faculty-subjects/create-form?subjectId={{subjectId}}"
+          }
+        },
+        {
+          "name": "POST Create FacultySubject",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?._id) pm.collectionVariables.set('facultySubjectId', j.data._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{BASE_URL}}/api/faculty-subjects",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subjectName\": \"Indian Polity – Live & Test\",\n  \"subjectId\": \"{{subjectId}}\",\n  \"topicIds\": {{topicIdsJson}},\n  \"teacherId\": \"{{teacherId}}\",\n  \"categories\": {{categoriesJson}},\n  \"status\": \"ACTIVE\"\n}"
+            }
+          }
+        },
+        {
+          "name": "GET List (search + filter)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/api/faculty-subjects?search=&status=ACTIVE&category=&page=1&limit=20",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "faculty-subjects"],
+              "query": [
+                { "key": "search", "value": "" },
+                { "key": "status", "value": "ACTIVE" },
+                { "key": "category", "value": "" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Dropdown (facultySubjectId + subjectName + teacherName)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/api/faculty-subjects/dropdown?search=&status=ACTIVE",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "faculty-subjects", "dropdown"],
+              "query": [
+                { "key": "search", "value": "" },
+                { "key": "status", "value": "ACTIVE" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Summary By Id (lightweight)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/faculty-subjects/summary/{{facultySubjectId}}"
+          }
+        },
+        {
+          "name": "GET By Id (full detail)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/faculty-subjects/{{facultySubjectId}}"
+          }
+        },
+        {
+          "name": "PUT Update FacultySubject",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{BASE_URL}}/api/faculty-subjects/{{facultySubjectId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subjectName\": \"Indian Polity – Updated\",\n  \"categories\": [\"LIVE_CLASS\", \"RECORDING\", \"TEST\", \"PDF\"]\n}"
+            }
+          }
+        },
+        {
+          "name": "PATCH Change Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{BASE_URL}}/api/faculty-subjects/status/{{facultySubjectId}}",
+            "body": { "mode": "raw", "raw": "{ \"status\": \"INACTIVE\" }" }
+          }
+        },
+        {
+          "name": "DELETE FacultySubject",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/faculty-subjects/{{facultySubjectId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Course Dropdown",
+      "item": [
+        {
+          "name": "GET Courses Dropdown (courseId + courseName)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?.[0]?._id) pm.collectionVariables.set('courseId', j.data[0]._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/api/courses/dropdown?search=&status=ACTIVE&page=1&limit=100",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "courses", "dropdown"],
+              "query": [
+                { "key": "search", "value": "" },
+                { "key": "status", "value": "ACTIVE" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "100" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Batch",
+      "item": [
+        {
+          "name": "POST Create Batch (JSON)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?._id) pm.collectionVariables.set('batchId', j.data._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{BASE_URL}}/api/batches",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"batchName\": \"Mains GS Foundation Batch 1\",\n  \"courseId\": \"{{courseId}}\",\n  \"commencementDate\": \"2026-06-01\",\n  \"durationInMonths\": 12,\n  \"batchStartDate\": \"2026-06-10\",\n  \"batchEndDate\": \"2027-05-31\",\n  \"fees\": {\n    \"currency\": \"INR\",\n    \"onlineAmount\": 19999,\n    \"offlineAmount\": 24999,\n    \"discountAmount\": 2000,\n    \"onlineBulletPoints\": [\"Daily mentorship\", \"Live lectures\", \"Weekly tests\", \"Doubt sessions\", \"Study planner\"],\n    \"offlineBulletPoints\": [\"Classroom sessions\", \"Printed notes\", \"Doubt support\", \"Library access\", \"Mock interviews\"]\n  },\n  \"facultySubjects\": [\"{{facultySubjectId}}\"],\n  \"status\": \"UPCOMING\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST Create Batch (multipart + banner)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "batchName", "value": "Mains GS Batch With Banner", "type": "text" },
+                { "key": "courseId", "value": "{{courseId}}", "type": "text" },
+                { "key": "commencementDate", "value": "2026-06-01", "type": "text", "description": "Date of commencement (YYYY-MM-DD)" },
+                { "key": "durationInMonths", "value": "12", "type": "text" },
+                { "key": "batchStartDate", "value": "2026-06-10", "type": "text", "description": "Must be >= commencementDate" },
+                { "key": "batchEndDate", "value": "2027-05-31", "type": "text", "description": "Must be > batchStartDate" },
+                { "key": "facultySubjects", "value": "[\"{{facultySubjectId}}\"]", "type": "text" },
+                { "key": "feesJson", "value": "{\"currency\":\"INR\",\"onlineAmount\":19999,\"offlineAmount\":24999,\"discountAmount\":2000,\"onlineBulletPoints\":[\"Daily mentorship\",\"Live lectures\",\"Weekly tests\"],\"offlineBulletPoints\":[\"Classroom sessions\",\"Printed notes\",\"Doubt support\"]}", "type": "text" },
+                { "key": "status", "value": "UPCOMING", "type": "text" },
+                { "key": "bannerImage", "type": "file", "src": [], "description": "Optional banner image" }
+              ]
+            },
+            "url": "{{BASE_URL}}/api/batches"
+          }
+        },
+        {
+          "name": "GET List (search batchName + filter status)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/api/batches?search=&status=UPCOMING&courseId=&page=1&limit=20",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "batches"],
+              "query": [
+                { "key": "search", "value": "", "description": "batchName or batchId" },
+                { "key": "status", "value": "UPCOMING" },
+                { "key": "courseId", "value": "" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Dropdown",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/batches/dropdown?excludeBatchId={{batchId}}"
+          }
+        },
+        {
+          "name": "GET By Id (view)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/batches/{{batchId}}"
+          }
+        },
+        {
+          "name": "GET Quick View",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/batches/{{batchId}}/quick-view"
+          }
+        },
+        {
+          "name": "PUT Update Batch",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{BASE_URL}}/api/batches/{{batchId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"batchName\": \"Mains GS Foundation Batch 1 - Updated\",\n  \"durationInMonths\": 14\n}"
+            }
+          }
+        },
+        {
+          "name": "PATCH Change Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{BASE_URL}}/api/batches/status/{{batchId}}",
+            "body": { "mode": "raw", "raw": "{ \"status\": \"ACTIVE\" }" }
+          }
+        },
+        {
+          "name": "POST Duplicate Batch (default: students copied)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?._id) pm.collectionVariables.set('toBatchId', j.data._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{BASE_URL}}/api/batches/{{batchId}}/duplicate",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"batchName\": \"Mains GS Foundation Batch 2 (Copy)\",\n  \"status\": \"UPCOMING\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST Duplicate Batch (skip students: includeStudents=false)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{BASE_URL}}/api/batches/{{batchId}}/duplicate",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"batchName\": \"Mains GS Batch - No Students\",\n  \"includeStudents\": false\n}"
+            }
+          }
+        },
+        {
+          "name": "DELETE Batch",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/batches/{{batchId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Batch Students (Enrollment)",
+      "item": [
+        {
+          "name": "POST Add Student to Batch",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?._id) pm.collectionVariables.set('enrollmentId', j.data._id);",
+                  "if (j?.data?.student?._id) pm.collectionVariables.set('studentId', j.data.student._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{BASE_URL}}/api/batch-enrollments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentName\": \"Vikram Singh\",\n  \"email\": \"vikram@example.com\",\n  \"mobileNumber\": \"9876543210\",\n  \"batchId\": \"{{batchId}}\",\n  \"paymentStatus\": \"PENDING\",\n  \"attendancePercentage\": 0,\n  \"courseProgressPercentage\": 0\n}"
+            }
+          }
+        },
+        {
+          "name": "GET List Students (search + payment + status filter)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/api/batch-enrollments/by-batch/{{batchId}}?search=&paymentStatus=&status=ACTIVE&page=1&limit=20",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "batch-enrollments", "by-batch", "{{batchId}}"],
+              "query": [
+                { "key": "search", "value": "", "description": "student name" },
+                { "key": "paymentStatus", "value": "" },
+                { "key": "status", "value": "ACTIVE" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Enrollment By Id (view)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/batch-enrollments/{{enrollmentId}}"
+          }
+        },
+        {
+          "name": "PUT Edit Student/Enrollment",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{BASE_URL}}/api/batch-enrollments/{{enrollmentId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentName\": \"Vikram Singh Updated\",\n  \"paymentStatus\": \"PARTIAL\",\n  \"attendancePercentage\": 72,\n  \"courseProgressPercentage\": 40\n}"
+            }
+          }
+        },
+        {
+          "name": "PATCH Enrollment Status (active/inactive)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{BASE_URL}}/api/batch-enrollments/status/{{enrollmentId}}",
+            "body": { "mode": "raw", "raw": "{ \"status\": \"INACTIVE\" }" }
+          }
+        },
+        {
+          "name": "GET Move Student Form (current batch + targets)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/batch-enrollments/{{enrollmentId}}/move-form"
+          }
+        },
+        {
+          "name": "POST Move Student to Next Batch",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{BASE_URL}}/api/batch-enrollments/{{enrollmentId}}/move",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"toBatchId\": \"{{toBatchId}}\",\n  \"transferReason\": \"Promoted to next batch\",\n  \"effectiveTransferDate\": \"2026-05-27\",\n  \"transferAttendanceRecords\": true,\n  \"transferFeeRecords\": true,\n  \"transferTestRecords\": false\n}"
+            }
+          }
+        },
+        {
+          "name": "GET Transfer History",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/batch-enrollments/batch/{{batchId}}/transfers"
+          }
+        },
+        {
+          "name": "GET Batch Audit History",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/batch-enrollments/batch/{{batchId}}/audit"
+          }
+        },
+        {
+          "name": "GET Student Full History",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/batch-enrollments/student/{{studentId}}/history"
+          }
+        },
+        {
+          "name": "DELETE Enrollment (soft)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/batch-enrollments/{{enrollmentId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Z. Auth checks (must use no token)",
+      "description": "Each request sets Auth = No Auth. Expect HTTP 401 and success:false. If you get 200, server not restarted or wrong URL.",
+      "item": [
+        {
+          "name": "[NO TOKEN] Faculty dropdown → expect 401",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{BASE_URL}}/api/faculty-subjects/dropdown"
+          }
+        },
+        {
+          "name": "[NO TOKEN] Batches list → expect 401",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{BASE_URL}}/api/batches"
+          }
+        },
+        {
+          "name": "[NO TOKEN] Batch enrollments → expect 401",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{BASE_URL}}/api/batch-enrollments/by-batch/{{batchId}}"
+          }
+        },
+        {
+          "name": "[NO TOKEN] Courses dropdown → expect 401",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{BASE_URL}}/api/courses/dropdown"
+          }
+        },
+        {
+          "name": "[WITH TOKEN] Faculty dropdown → expect 200",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/faculty-subjects/dropdown"
+          }
+        }
+      ]
+    }
+  ]
+}

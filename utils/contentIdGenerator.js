@@ -23,6 +23,15 @@ const generateTopicId = () => generateSequentialId(require('../models/Topic'), '
 const generateTeacherId = () => generateSequentialId(require('../models/Teacher'), 'teacherId', 'TCH');
 const generateClassroomId = () =>
   generateSequentialId(require('../models/Classroom'), 'classroomId', 'CLS');
+const generateFacultySubjectId = () =>
+  generateSequentialId(require('../models/FacultySubject'), 'facultySubjectId', 'FSU');
+const generateBatchId = () => generateSequentialId(require('../models/Batch'), 'batchId', 'BAT');
+const generateAcademicStudentId = () =>
+  generateSequentialId(require('../models/AcademicStudent'), 'studentId', 'STU');
+const generateBatchEnrollmentId = () =>
+  generateSequentialId(require('../models/BatchEnrollment'), 'enrollmentId', 'ENR');
+const generateBatchTransferId = () =>
+  generateSequentialId(require('../models/BatchTransfer'), 'transferId', 'BTR');
 
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
@@ -31,5 +40,10 @@ module.exports = {
   generateTopicId,
   generateTeacherId,
   generateClassroomId,
+  generateFacultySubjectId,
+  generateBatchId,
+  generateAcademicStudentId,
+  generateBatchEnrollmentId,
+  generateBatchTransferId,
   isValidObjectId
 };

@@ -282,6 +282,89 @@ exports.updateCourseStatus = async (req, res) => {
 
 // @desc    Get all courses (with filters)
 // @route   GET /api/courses
+/** Lightweight list for dropdowns: _id, courseId, courseName only */
+exports.getCoursesDropdown = async (req, res) => {
+  try {
+    const {
+      search = '',
+      status = 'ACTIVE',
+      centerId,
+      center,
+      programId,
+      program,
+      excludeCourseId,
+      page = 1,
+      limit = 100
+    } = req.query;
+
+    const filter = { ...NOT_DELETED };
+
+    if (status && ['ACTIVE', 'INACTIVE'].includes(String(status).toUpperCase())) {
+      const upper = String(status).toUpperCase();
+      filter.status = upper;
+      filter.isActive = upper === 'ACTIVE';
+    } else {
+      filter.status = 'ACTIVE';
+      filter.isActive = true;
+    }
+
+    const resolvedCenter = centerId || center;
+    if (resolvedCenter && isValidObjectId(resolvedCenter)) {
+      filter.center = resolvedCenter;
+    }
+
+    const resolvedProgram = programId || program;
+    if (resolvedProgram && isValidObjectId(resolvedProgram)) {
+      filter.program = resolvedProgram;
+    }
+
+    if (excludeCourseId && isValidObjectId(excludeCourseId)) {
+      filter._id = { $ne: excludeCourseId };
+    }
+
+    const trimmed = String(search).trim();
+    if (trimmed) {
+      const regex = new RegExp(escapeRegex(trimmed), 'i');
+      filter.$or = [{ courseName: regex }, { courseId: regex }];
+    }
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(200, Math.max(1, parseInt(limit, 10) || 100));
+    const skip = (pageNum - 1) * limitNum;
+
+    const [rows, total] = await Promise.all([
+      Course.find(filter)
+        .select('_id courseId courseName title')
+        .sort({ courseName: 1, title: 1 })
+        .skip(skip)
+        .limit(limitNum)
+        .lean(),
+      Course.countDocuments(filter)
+    ]);
+
+    res.json({
+      success: true,
+      count: rows.length,
+      total,
+      page: pageNum,
+      limit: limitNum,
+      totalPages: Math.ceil(total / limitNum) || 0,
+      data: rows.map((c) => ({
+        _id: c._id,
+        courseId: c.courseId || '',
+        courseName: (c.courseName || c.title || '').trim()
+      }))
+    });
+  } catch (error) {
+    console.error('Get courses dropdown error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching courses dropdown',
+      error: error.message
+    });
+  }
+};
+
 exports.getCourses = async (req, res) => {
   try {
     const {

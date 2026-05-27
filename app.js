@@ -66,9 +66,13 @@ const topicRoutes = require('./routes/topicRoutes');
 const teacherRoutes = require('./routes/teacherRoutes');
 const cityRoutes = require('./routes/cityRoutes');
 const classroomRoutes = require('./routes/classroomRoutes');
+const facultySubjectRoutes = require('./routes/facultySubjectRoutes');
+const batchRoutes = require('./routes/batchRoutes');
+const batchEnrollmentRoutes = require('./routes/batchEnrollmentRoutes');
 const { getCentersDropdown } = require('./controllers/centerManagementController');
 const { protect } = require('./middleware/authMiddleware');
 const { requireSuperAdmin } = require('./middleware/requireSuperAdmin');
+const { superAdminAuth } = require('./middleware/superAdminAuth');
 
 const app = express();
 
@@ -148,6 +152,9 @@ app.use('/api/topics', topicRoutes);
 app.use('/api/teachers', teacherRoutes);
 app.use('/api/cities', cityRoutes);
 app.use('/api/classrooms', classroomRoutes);
+app.use('/api/faculty-subjects', ...superAdminAuth, facultySubjectRoutes);
+app.use('/api/batches', ...superAdminAuth, batchRoutes);
+app.use('/api/batch-enrollments', ...superAdminAuth, batchEnrollmentRoutes);
 app.get('/api/centers/dropdown', protect, requireSuperAdmin, getCentersDropdown);
 app.use('/api/sub-categories', academicSubCategoryRoutes);
 
