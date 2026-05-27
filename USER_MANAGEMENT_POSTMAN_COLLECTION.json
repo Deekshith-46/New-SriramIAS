@@ -1,0 +1,374 @@
+{
+  "info": {
+    "name": "Sriram IAS - Unified User Management",
+    "description": "Final user management: Students (User+Student) + AdminAccess.\n\nSetup:\n1. Login Super Admin (saves superAdminToken)\n2. GET User Roles + GET User Centers — set roleId / centerId from dropdown value\n3. GET /api/admin/users with role, center, search, status filters\n\nFilters:\n- role=ALL | STUDENT | <Role._id>\n- center=ALL | <Center._id> (or centerId=)\n- status=ACTIVE | INACTIVE\n- userType=USER | ADMIN | ALL",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "superAdminToken", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "userType", "value": "STUDENT" },
+    { "key": "recordType", "value": "USER" },
+    { "key": "roleId", "value": "" },
+    { "key": "centerId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Login Super Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.token) {",
+                  "  pm.collectionVariables.set('superAdminToken', json.token);",
+                  "  console.log('superAdminToken saved');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@sriram.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login-super-admin"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Dropdowns",
+      "item": [
+        {
+          "name": "GET User Roles (list filter — includes ALL)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": "{{baseUrl}}/api/admin/user-roles"
+          }
+        },
+        {
+          "name": "GET User Create Roles (create form — no ALL)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": "{{baseUrl}}/api/admin/user-create-roles"
+          }
+        },
+        {
+          "name": "GET User Centers (ALL + centers — list filter)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": "{{baseUrl}}/api/admin/user-centers"
+          }
+        },
+        {
+          "name": "GET Centers Dropdown (center management)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": "{{baseUrl}}/api/admin/centers/dropdown"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Unified Users — List",
+      "item": [
+        {
+          "name": "GET Unified Users (ALL)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users?page=1&limit=10&search=&role=ALL&center=ALL&status=&userType=ALL&sortBy=createdAt&sortOrder=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "" },
+                { "key": "role", "value": "ALL" },
+                { "key": "center", "value": "ALL" },
+                { "key": "status", "value": "" },
+                { "key": "userType", "value": "ALL" },
+                { "key": "sortBy", "value": "createdAt" },
+                { "key": "sortOrder", "value": "desc" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Unified Users (role=STUDENT)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users?role=STUDENT&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users"],
+              "query": [
+                { "key": "role", "value": "STUDENT" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Unified Users (filter by center)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users?center={{centerId}}&role=ALL&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users"],
+              "query": [
+                { "key": "center", "value": "{{centerId}}" },
+                { "key": "role", "value": "ALL" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Unified Users (role + center + status)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users?role=STUDENT&center={{centerId}}&status=ACTIVE&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users"],
+              "query": [
+                { "key": "role", "value": "STUDENT" },
+                { "key": "center", "value": "{{centerId}}" },
+                { "key": "status", "value": "ACTIVE" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Unified Users (role=Dynamic RoleId)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users?role={{roleId}}&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users"],
+              "query": [
+                { "key": "role", "value": "{{roleId}}" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Unified Users (userType=ADMIN only)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users?userType=ADMIN&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users"],
+              "query": [
+                { "key": "userType", "value": "ADMIN" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Unified Users (search + ACTIVE)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users?search=rahul&status=ACTIVE&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users"],
+              "query": [
+                { "key": "search", "value": "rahul" },
+                { "key": "status", "value": "ACTIVE" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Unified Users — Create",
+      "item": [
+        {
+          "name": "POST Create Student",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data._id) {",
+                  "  pm.collectionVariables.set('userId', json.data._id);",
+                  "  pm.collectionVariables.set('userType', 'STUDENT');",
+                  "  pm.collectionVariables.set('recordType', 'USER');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{superAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userType\": \"STUDENT\",\n  \"fullName\": \"Arjun Mehta\",\n  \"email\": \"arjun.test@gmail.com\",\n  \"mobile\": \"9876543210\",\n  \"parentName\": \"Rajesh Mehta\",\n  \"parentEmail\": \"parent.test@gmail.com\",\n  \"parentMobile\": \"9876543211\",\n  \"centerId\": \"{{centerId}}\",\n  \"status\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/users"
+          }
+        },
+        {
+          "name": "POST Create Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data._id) {",
+                  "  pm.collectionVariables.set('userId', json.data._id);",
+                  "  if (json.summary && json.summary.userType) {",
+                  "    pm.collectionVariables.set('userType', json.summary.userType);",
+                  "  }",
+                  "  pm.collectionVariables.set('recordType', 'ADMIN');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{superAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userType\": \"{{roleId}}\",\n  \"fullName\": \"Test Content Admin\",\n  \"officialEmail\": \"content.admin.test@sriramias.com\",\n  \"contactNumber\": \"9876543222\",\n  \"employeeId\": \"EMPTEST01\",\n  \"centerId\": \"{{centerId}}\",\n  \"password\": \"123456\",\n  \"confirmPassword\": \"123456\",\n  \"accountStatus\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/users"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Unified Users — View / Edit",
+      "item": [
+        {
+          "name": "GET Update Fields (USER / Student)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/update-fields?type=USER",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users", "update-fields"],
+              "query": [{ "key": "type", "value": "USER" }]
+            }
+          }
+        },
+        {
+          "name": "GET Update Fields (ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/update-fields?type=ADMIN",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users", "update-fields"],
+              "query": [{ "key": "type", "value": "ADMIN" }]
+            }
+          }
+        },
+        {
+          "name": "GET User By ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/{{userId}}?type={{recordType}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users", "{{userId}}"],
+              "query": [{ "key": "type", "value": "{{recordType}}" }]
+            }
+          }
+        },
+        {
+          "name": "PUT Update Student (type=USER)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{superAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Arjun Mehta Updated\",\n  \"isActive\": true,\n  \"parentName\": \"Rajesh Mehta\",\n  \"parentEmail\": \"parent.test@gmail.com\",\n  \"parentMobile\": \"9876543211\",\n  \"centerId\": \"{{centerId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/{{userId}}?type=USER",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users", "{{userId}}"],
+              "query": [{ "key": "type", "value": "USER" }]
+            }
+          }
+        },
+        {
+          "name": "PUT Update Admin (type=ADMIN)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{superAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Content Admin Updated\",\n  \"accountStatus\": true,\n  \"roleId\": \"{{roleId}}\",\n  \"centerId\": \"{{centerId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/{{userId}}?type=ADMIN",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users", "{{userId}}"],
+              "query": [{ "key": "type", "value": "ADMIN" }]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

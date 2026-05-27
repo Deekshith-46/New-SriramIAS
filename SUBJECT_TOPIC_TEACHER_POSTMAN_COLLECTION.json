@@ -1,0 +1,380 @@
+{
+  "info": {
+    "name": "Sriram IAS - Subject Topic Teacher",
+    "description": "Global content masters: Subject → Topic, Teacher → subjects[]\n\n1. Run Auth folder first.\n2. Create subjects, then topics, then teachers.\n\nUses {{BASE_URL}} for all requests.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "BASE_URL", "value": "http://localhost:5000" },
+    { "key": "token", "value": "" },
+    { "key": "subjectId", "value": "" },
+    { "key": "topicId", "value": "" },
+    { "key": "teacherId", "value": "" },
+    { "key": "centerId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Login Super Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.token) pm.collectionVariables.set('token', j.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@sriram.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/auth/login-super-admin"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Subjects",
+      "item": [
+        {
+          "name": "POST Create Subject",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.data?._id) pm.collectionVariables.set('subjectId', j.data._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subjectName\": \"Indian Polity\",\n  \"description\": \"Constitution and governance for UPSC\",\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/subjects"
+          }
+        },
+        {
+          "name": "GET Subjects List",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/api/subjects?page=1&limit=10&search=&status=ACTIVE",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "subjects"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "" },
+                { "key": "status", "value": "ACTIVE" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Subjects Dropdown",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.data?.[0]?._id) pm.collectionVariables.set('subjectId', j.data[0]._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{BASE_URL}}/api/subjects/dropdown"
+          }
+        },
+        {
+          "name": "GET Subject By Id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{BASE_URL}}/api/subjects/{{subjectId}}"
+          }
+        },
+        {
+          "name": "PUT Update Subject",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subjectName\": \"Indian Polity & Governance\",\n  \"description\": \"Updated description\",\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/subjects/{{subjectId}}"
+          }
+        },
+        {
+          "name": "PATCH Subject Status INACTIVE",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"INACTIVE\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/subjects/status/{{subjectId}}"
+          }
+        },
+        {
+          "name": "PATCH Subject Status ACTIVE",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/subjects/status/{{subjectId}}"
+          }
+        },
+        {
+          "name": "DELETE Subject",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{BASE_URL}}/api/subjects/{{subjectId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Topics",
+      "item": [
+        {
+          "name": "POST Create Topic",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.data?._id) pm.collectionVariables.set('topicId', j.data._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subjectId\": \"{{subjectId}}\",\n  \"topicName\": \"Fundamental Rights\",\n  \"description\": \"Articles 12-35\",\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/topics"
+          }
+        },
+        {
+          "name": "GET Topics List",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/api/topics?page=1&limit=10&search=&subject={{subjectId}}&status=ACTIVE",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "topics"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "" },
+                { "key": "subject", "value": "{{subjectId}}" },
+                { "key": "status", "value": "ACTIVE" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Topics By Subject",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{BASE_URL}}/api/topics/by-subject/{{subjectId}}"
+          }
+        },
+        {
+          "name": "GET Topic By Id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{BASE_URL}}/api/topics/{{topicId}}"
+          }
+        },
+        {
+          "name": "PUT Update Topic",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"topicName\": \"Directive Principles (DPSP)\",\n  \"description\": \"Articles 36-51\",\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/topics/{{topicId}}"
+          }
+        },
+        {
+          "name": "PATCH Topic Status INACTIVE",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"INACTIVE\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/topics/status/{{topicId}}"
+          }
+        },
+        {
+          "name": "DELETE Topic",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{BASE_URL}}/api/topics/{{topicId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Teachers",
+      "item": [
+        {
+          "name": "POST Create Teacher",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.data?._id) pm.collectionVariables.set('teacherId', j.data._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"centerId\": \"{{centerId}}\",\n  \"teacherName\": \"Dr Rajesh Kumar\",\n  \"subjects\": [\"{{subjectId}}\"],\n  \"description\": \"Senior UPSC faculty\",\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/teachers"
+          }
+        },
+        {
+          "name": "GET Teachers List",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/api/teachers?page=1&limit=10&search=&centerId={{centerId}}&subject={{subjectId}}&status=ACTIVE",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "teachers"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "" },
+                { "key": "centerId", "value": "{{centerId}}" },
+                { "key": "subject", "value": "{{subjectId}}" },
+                { "key": "status", "value": "ACTIVE" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Teacher By Id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{BASE_URL}}/api/teachers/{{teacherId}}"
+          }
+        },
+        {
+          "name": "PUT Update Teacher",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"centerId\": \"{{centerId}}\",\n  \"teacherName\": \"Dr Rajesh Kumar\",\n  \"subjects\": [\"{{subjectId}}\"],\n  \"description\": \"Updated bio\",\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/teachers/{{teacherId}}"
+          }
+        },
+        {
+          "name": "PATCH Teacher Status INACTIVE",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"INACTIVE\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/teachers/status/{{teacherId}}"
+          }
+        },
+        {
+          "name": "DELETE Teacher",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{BASE_URL}}/api/teachers/{{teacherId}}"
+          }
+        }
+      ]
+    }
+  ]
+}

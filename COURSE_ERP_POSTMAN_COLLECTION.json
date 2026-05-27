@@ -1,0 +1,279 @@
+{
+  "info": {
+    "name": "Sriram IAS - Course CMS Form-Data",
+    "description": "Create/Update course with keyFeatures, featureCards, helpSections as separate multipart fields.\n\nRun folder 2 (dropdowns) first, then POST or PUT with files.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "token", "value": "" },
+    { "key": "centerId", "value": "" },
+    { "key": "programId", "value": "" },
+    { "key": "categoryId", "value": "" },
+    { "key": "subCategoryId", "value": "" },
+    { "key": "courseId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Login Super Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.token) pm.collectionVariables.set('token', j.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@sriram.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login-super-admin"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Cascading Dropdowns",
+      "item": [
+        {
+          "name": "GET Centers Dropdown",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.data?.[0]?._id) pm.collectionVariables.set('centerId', j.data[0]._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/admin/centers/dropdown"
+          }
+        },
+        {
+          "name": "GET Programs By Center",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.data?.[0]?._id) pm.collectionVariables.set('programId', j.data[0]._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/programs/by-center/{{centerId}}"
+          }
+        },
+        {
+          "name": "GET Categories Filter",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.data?.[0]?._id) pm.collectionVariables.set('categoryId', j.data[0]._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/categories/filter?centerId={{centerId}}&programId={{programId}}"
+          }
+        },
+        {
+          "name": "GET SubCategories Filter",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.data?.[0]?._id) pm.collectionVariables.set('subCategoryId', j.data[0]._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/sub-categories/filter?centerId={{centerId}}&programId={{programId}}&categoryId={{categoryId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Course CMS",
+      "item": [
+        {
+          "name": "GET Courses List (search + filters)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses?page=1&limit=10&search=&centerId={{centerId}}&programId={{programId}}&status=ACTIVE",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "courses"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "" },
+                { "key": "centerId", "value": "{{centerId}}" },
+                { "key": "programId", "value": "{{programId}}" },
+                { "key": "status", "value": "ACTIVE" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST Create Course (CMS form-data)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.course?._id) pm.collectionVariables.set('courseId', j.course._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "courseName", "value": "GS Foundation Batch 2026", "type": "text" },
+                { "key": "centerId", "value": "{{centerId}}", "type": "text" },
+                { "key": "programId", "value": "{{programId}}", "type": "text" },
+                { "key": "categoryId", "value": "{{categoryId}}", "type": "text" },
+                { "key": "subCategoryId", "value": "{{subCategoryId}}", "type": "text" },
+                { "key": "courseOverview", "value": "Complete foundation program for UPSC aspirants.", "type": "text" },
+                { "key": "status", "value": "ACTIVE", "type": "text" },
+                {
+                  "key": "keyFeatures",
+                  "value": "[{\"points\":[\"Daily tests\",\"Mentor support\",\"Study material\",\"Doubt sessions\",\"Revision\"]},{\"points\":[\"Answer writing\"]}]",
+                  "type": "text"
+                },
+                { "key": "keyFeatureImage_0", "type": "file", "src": [] },
+                { "key": "keyFeatureImage_1", "type": "file", "src": [] },
+                { "key": "whyChooseTitle", "value": "Why Choose This Course?", "type": "text" },
+                {
+                  "key": "whyChooseSubtitle",
+                  "value": "Discover how this course can help you achieve your goals.",
+                  "type": "text"
+                },
+                {
+                  "key": "featureCards",
+                  "value": "[{\"featureTitle\":\"Expert Faculty\",\"displayOrder\":1,\"featureDescription\":\"Experienced mentors with deep subject knowledge.\",\"highlightOnWebsite\":true},{\"featureTitle\":\"Structured Plan\",\"displayOrder\":2,\"featureDescription\":\"Step-by-step curriculum.\",\"highlightOnWebsite\":false}]",
+                  "type": "text"
+                },
+                { "key": "featureCardIcon_0", "type": "file", "src": [] },
+                { "key": "featureCardIcon_1", "type": "file", "src": [] },
+                { "key": "helpSections", "value": "[{\"displayOrder\":1},{\"displayOrder\":2}]", "type": "text" },
+                { "key": "helpSectionVideo_0", "type": "file", "src": [] },
+                { "key": "helpSectionImage1_0", "type": "file", "src": [] },
+                { "key": "helpSectionImage2_0", "type": "file", "src": [] }
+              ]
+            },
+            "url": "{{baseUrl}}/api/courses"
+          }
+        },
+        {
+          "name": "PUT Update Course (CMS form-data)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "courseOverview", "value": "Updated overview text.", "type": "text" },
+                { "key": "status", "value": "ACTIVE", "type": "text" },
+                {
+                  "key": "keyFeatures",
+                  "value": "[{\"points\":[\"Updated point 1\",\"Updated point 2\"]}]",
+                  "type": "text"
+                },
+                { "key": "keyFeatureImage_0", "type": "file", "src": [] }
+              ]
+            },
+            "url": "{{baseUrl}}/api/courses/{{courseId}}"
+          }
+        },
+        {
+          "name": "PATCH Course Status INACTIVE",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"INACTIVE\"\n}"
+            },
+            "url": "{{baseUrl}}/api/courses/status/{{courseId}}"
+          }
+        },
+        {
+          "name": "PATCH Course Status ACTIVE",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": "{{baseUrl}}/api/courses/status/{{courseId}}"
+          }
+        },
+        {
+          "name": "GET Course By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/courses/{{courseId}}"
+          }
+        },
+        {
+          "name": "DELETE Course",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/courses/{{courseId}}"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,161 +1,197 @@
 const mongoose = require('mongoose');
 
-const courseSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  
-  slug: {
-    type: String,
-    unique: true,
-    sparse: true, // Allows null values but ensures uniqueness when present
-    trim: true
-  },
-  
-  center: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Center',
-    required: true
-  },
-  
-  category: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Category',
-    required: true
-  },
-  
-  description: String,
-  
-  batchStartDate: {
-    type: Date,
-    default: null
-  },
-  batchEndDate: {
-    type: Date,
-    default: null
-  },
-  duration: String, // "1 Year", "2 Years", "6 Months"
-  accessValidityInDays: {
-    type: Number,
-    default: null
-  },
-  recordedContentValidityInDays: {
-    type: Number,
-    default: null
-  },
-  
-  // Fees with auto-calculated pricing
-  fees: {
-    online: {
-      actualPrice: { type: Number, default: 0 },
-      discountPercent: { type: Number, default: 0 },
-      discountedPrice: { type: Number, default: 0 },
-      hasDiscount: { type: Boolean, default: false },
-      offerText: { type: String, default: '' }
+const courseSchema = new mongoose.Schema(
+  {
+    courseId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true
     },
-    offline: {
-      actualPrice: { type: Number, default: 0 },
-      discountPercent: { type: Number, default: 0 },
-      discountedPrice: { type: Number, default: 0 },
-      hasDiscount: { type: Boolean, default: false },
-      offerText: { type: String, default: '' }
-    },
-    description: String
-  },
-  
-  modes: [{
-    type: String,
-    enum: ['online', 'offline', 'hybrid']
-  }],
-  
-  // Media (Cloudinary URLs)
-  bannerImage: {
-    url: { type: String, required: true },
-    public_id: { type: String, required: true }
-  },
-  highlightImage: {
-    url: String,
-    public_id: String
-  },
-  sectionImage: {
-    url: String,
-    public_id: String
-  },
-  
-  galleryImages: [{
-    url: String,
-    public_id: String
-  }],
-  
-  promoVideo: {
-    url: String,
-    public_id: String
-  },
-  
-  // Content Sections
-  keyHighlights: {
-    keyTitle: String,
-    keyHighlightTexts: [String]
-  },
-  
-  whyChoose: {
-    whyChooseTitle: String,
-    whyChooseItems: [{
-      whyChooseText: String,
-      whyChooseContent: String
-    }]
-  },
-  
-  howItHelps: {
-    howItHelpsTitle: String,
-    howItHelpsTexts: [String]
-  },
-  
-  // Extra Fields (Flexible content for category-specific data)
-  extraFields: {
-    type: mongoose.Schema.Types.Mixed,
-    default: {}
-  },
-  
-  // Additional Info
-  brochure: {
-    url: String,
-    public_id: String
-  },
-  features: [String],
-  
-  // Metadata
-  isActive: {
-    type: Boolean,
-    default: true
-  },
-  isFeatured: {
-    type: Boolean,
-    default: false
-  },
-  
-  createdBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  }
-  
-}, { timestamps: true });
 
-// Generate slug from title before saving
-courseSchema.pre('save', async function() {
+    courseName: {
+      type: String,
+      trim: true
+    },
+
+    title: {
+      type: String,
+      trim: true
+    },
+
+    slug: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true
+    },
+
+    center: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Center',
+      default: null
+    },
+
+    /** @deprecated Legacy global category — old records only */
+    category: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Category',
+      default: null
+    },
+
+    program: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Program',
+      default: null
+    },
+    academicCategory: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'AcademicCategory',
+      default: null
+    },
+    academicSubCategory: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'AcademicSubCategory',
+      default: null
+    },
+
+    courseOverview: {
+      type: String,
+      default: ''
+    },
+
+    keyFeatures: [
+      {
+        _id: false,
+        image: { type: String, default: '' },
+        points: [{ type: String, trim: true }]
+      }
+    ],
+
+    whyChooseSection: {
+      title: { type: String, default: '' },
+      subtitle: { type: String, default: '' },
+      featureCards: [
+        {
+          _id: false,
+          image: { type: String, default: '' },
+          featureTitle: { type: String, default: '' },
+          displayOrder: { type: Number, default: 0 },
+          featureDescription: { type: String, default: '' },
+          highlightOnWebsite: { type: Boolean, default: false }
+        }
+      ]
+    },
+
+    helpSections: [
+      {
+        _id: false,
+        displayOrder: { type: Number, default: 0 },
+        video: { type: String, default: '' },
+        image1: { type: String, default: '' },
+        image2: { type: String, default: '' }
+      }
+    ],
+
+    status: {
+      type: String,
+      enum: ['ACTIVE', 'INACTIVE'],
+      default: 'ACTIVE'
+    },
+
+    extraFields: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {}
+    },
+
+    isActive: {
+      type: Boolean,
+      default: true
+    },
+    isFeatured: {
+      type: Boolean,
+      default: false
+    },
+
+    isDeleted: {
+      type: Boolean,
+      default: false,
+      index: true
+    },
+    deletedAt: {
+      type: Date,
+      default: null
+    },
+
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    }
+  },
+  {
+    timestamps: true,
+    toJSON: {
+      virtuals: true,
+      transform(_doc, ret) {
+        delete ret.__v;
+        const legacyKeys = [
+          'description',
+          'batchStartDate',
+          'batchEndDate',
+          'duration',
+          'accessValidityInDays',
+          'recordedContentValidityInDays',
+          'fees',
+          'modes',
+          'bannerImage',
+          'highlightImage',
+          'sectionImage',
+          'galleryImages',
+          'promoVideo',
+          'brochure',
+          'keyHighlights',
+          'whyChoose',
+          'howItHelps',
+          'features'
+        ];
+        for (const key of legacyKeys) {
+          delete ret[key];
+        }
+        return ret;
+      }
+    },
+    toObject: { virtuals: true }
+  }
+);
+
+courseSchema.pre('save', async function syncCourseDerivedFields() {
+  const displayName = this.courseName || this.title;
+  if (displayName) {
+    this.courseName = displayName;
+    this.title = displayName;
+  }
+
+  if (this.status) {
+    this.isActive = this.status === 'ACTIVE';
+  }
+
   if (this.title && !this.slug) {
-    this.slug = this.title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '') + '-' + Date.now();
+    this.slug =
+      this.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '') +
+      '-' +
+      Date.now();
   }
 });
 
-// Index for faster queries
 courseSchema.index({ center: 1, category: 1 });
-courseSchema.index({ isActive: 1 });
+courseSchema.index({ center: 1, program: 1, academicCategory: 1, academicSubCategory: 1 });
+courseSchema.index({ isActive: 1, status: 1 });
+courseSchema.index({ isDeleted: 1, status: 1 });
+courseSchema.index({ courseName: 1 });
+courseSchema.index({ title: 1 });
 
 module.exports = mongoose.model('Course', courseSchema);

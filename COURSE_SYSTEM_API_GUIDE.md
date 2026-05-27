@@ -10,9 +10,11 @@
 
     1. [Model Schema](#model-schema)
     2. [API Endpoints](#api-endpoints)
-    3. [Step-by-Step API Testing](#step-by-step-api-testing)
-    4. [Public vs Admin Routes](#public-vs-admin-routes)
-    5. [Frontend Integration](#frontend-integration)
+    3. [Academic ERP — Cascading Dropdowns & Course Hierarchy](#academic-erp--cascading-dropdowns--course-hierarchy)
+    4. [Complete Source Code — Course Creation](#complete-source-code--course-creation)
+    5. [Step-by-Step API Testing](#step-by-step-api-testing)
+    6. [Public vs Admin Routes](#public-vs-admin-routes)
+    7. [Frontend Integration](#frontend-integration)
 
     ---
 
@@ -145,6 +147,677 @@
 
     ---
 
+    ## Academic ERP — Cascading Dropdowns & Course Hierarchy
+
+    Courses are linked to the academic hierarchy (see also `PROGRAM_CATEGORY_SUBCATEGORY_API_GUIDE.md`):
+
+    ```text
+    Center → Program → Category → SubCategory → Course
+    ```
+
+    ### Dropdown APIs (call in order)
+
+    | Step | User selects | API |
+    |------|--------------|-----|
+    | 1 | Center | (center list / `GET /api/admin/centers/dropdown`) |
+    | 2 | Program | `GET /api/programs/by-center/:centerId` |
+    | 3 | Category | `GET /api/categories/filter?centerId=&programId=` |
+    | 4 | SubCategory | `GET /api/sub-categories/filter?centerId=&programId=&categoryId=` |
+
+    ### Frontend handlers (Formik example)
+
+    ```javascript
+    const handleCenterChange = async (centerId) => {
+      formik.setFieldValue('centerId', centerId);
+      formik.setFieldValue('programId', '');
+      formik.setFieldValue('categoryId', '');
+      formik.setFieldValue('subCategoryId', '');
+      const { data } = await axios.get(`/api/programs/by-center/${centerId}`, { headers: auth });
+      setPrograms(data.data);
+      setCategories([]);
+      setSubCategories([]);
+    };
+
+    const handleProgramChange = async (programId) => {
+      formik.setFieldValue('programId', programId);
+      formik.setFieldValue('categoryId', '');
+      formik.setFieldValue('subCategoryId', '');
+      const { data } = await axios.get('/api/categories/filter', {
+        headers: auth,
+        params: { centerId: formik.values.centerId, programId }
+      });
+      setCategories(data.data);
+      setSubCategories([]);
+    };
+
+    const handleCategoryChange = async (categoryId) => {
+      formik.setFieldValue('categoryId', categoryId);
+      formik.setFieldValue('subCategoryId', '');
+      const { data } = await axios.get('/api/sub-categories/filter', {
+        headers: auth,
+        params: {
+          centerId: formik.values.centerId,
+          programId: formik.values.programId,
+          categoryId
+        }
+      });
+      setSubCategories(data.data);
+    };
+    ```
+
+    ### Required fields on `POST /api/courses`
+
+    | Field | Type | Notes |
+    |-------|------|-------|
+    | `courseName` | string | Or legacy `title` (both synced) |
+    | `centerId` | ObjectId | Or `center` |
+    | `programId` | ObjectId | Or `program` |
+    | `categoryId` | ObjectId | Academic category → `academicCategory` in DB |
+    | `subCategoryId` | ObjectId | → `academicSubCategory` in DB |
+    | `banner` | file | Required (multipart) |
+
+    ### Backend hierarchy validation (before save)
+
+    ```javascript
+    // utils/courseHierarchyValidation.js
+    // 1. Program must include centerId in program.centers[]
+    // 2. Category must match centerId + programId
+    // 3. SubCategory must match centerId + programId + categoryId
+    ```
+
+    ### New Course schema fields (ERP + CMS)
+
+    ```javascript
+    courseId: 'CRS001',              // auto-generated
+    courseName: String,              // synced with title
+    program: ObjectId → Program,
+    academicCategory: ObjectId → AcademicCategory,
+    academicSubCategory: ObjectId → AcademicSubCategory,
+    courseOverview: String,
+    keyFeatures: [{ image: String, points: [String] }],   // Cloudinary URLs
+    whyChooseSection: {
+      title, subtitle,
+      featureCards: [{ image, featureTitle, displayOrder, featureDescription, highlightOnWebsite }]
+    },
+    helpSections: [{ video, image1, image2 }],
+    status: 'ACTIVE' | 'INACTIVE',   // syncs isActive
+    ```
+
+    Legacy fields (`keyHighlights`, `whyChoose`, `howItHelps`, `fees`, `bannerImage`, etc.) still supported.
+
+    ### List / search (`GET /api/courses`)
+
+    | Query | Description |
+    |-------|-------------|
+    | `search` | `courseName`, `title`, or `courseId` (contains, case-insensitive) |
+    | `centerId` or `center` | Filter by center |
+    | `programId` | Filter by program |
+    | `categoryId` | Filter by academic category |
+    | `subCategoryId` | Filter by subcategory |
+    | `status` | `ACTIVE` \| `INACTIVE` |
+    | `isActive` | Legacy boolean (`true` / `false`) |
+
+    ### Delete
+
+    `DELETE /api/courses/:id` — **hard delete** (removes DB row + Cloudinary assets). Super Admin only.
+
+    ### Related files added/updated
+
+    | File | Purpose |
+    |------|---------|
+    | `utils/courseHierarchyValidation.js` | Chain validation |
+    | `utils/courseIdGenerator.js` | `CRS001` ids |
+    | `utils/coursePayloadHelpers.js` | Body parsing + populate paths |
+    | `models/Course.js` | ERP + CMS fields |
+    | `controllers/courseController.js` | Create/update/list with hierarchy |
+
+    Postman: **`COURSE_ERP_POSTMAN_COLLECTION.json`**
+
+    ---
+
+    ## Complete Source Code — Course Creation
+
+    **Endpoint:** `POST /api/courses`  
+    **Auth:** Super Admin or Center Admin JWT  
+    **Content-Type:** `multipart/form-data` (required for banner + optional media)
+
+    ### File structure
+
+    ```txt
+    app.js                          → app.use('/api/courses', courseRoutes)
+    models/Course.js                → Course schema + slug pre-save
+    routes/courseRoutes.js          → POST / with protect + upload.fields
+    controllers/courseController.js → createCourse
+    middleware/upload.js            → multer memory storage
+    utils/uploadToCloudinary.js     → Cloudinary upload_stream
+    config/cloudinary.js            → Cloudinary env config
+    ```
+
+    ### `app.js` (route mount)
+
+    ```javascript
+    const courseRoutes = require('./routes/courseRoutes');
+    // ...
+    app.use('/api/courses', courseRoutes);
+    ```
+
+    ### `config/cloudinary.js`
+
+    ```javascript
+    const cloudinary = require('cloudinary').v2;
+
+    cloudinary.config({
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET
+    });
+
+    module.exports = cloudinary;
+    ```
+
+    ### `utils/uploadToCloudinary.js`
+
+    ```javascript
+    const cloudinary = require('../config/cloudinary');
+
+    const uploadToCloudinary = async (file, folder = 'courses', resourceType = 'auto', format = null) => {
+      return new Promise((resolve, reject) => {
+        const uploadOptions = {
+          folder: folder,
+          resource_type: resourceType
+        };
+
+        if (format) {
+          uploadOptions.format = format;
+        }
+
+        cloudinary.uploader.upload_stream(
+          uploadOptions,
+          (error, result) => {
+            if (error) {
+              reject(error);
+            } else {
+              resolve({
+                url: result.secure_url,
+                public_id: result.public_id,
+                format: result.format,
+                duration: result.duration ? Math.round(result.duration) : 0,
+                bytes: result.bytes
+              });
+            }
+          }
+        ).end(file.buffer);
+      });
+    };
+
+    module.exports = uploadToCloudinary;
+    ```
+
+    ### `middleware/upload.js`
+
+    ```javascript
+    const multer = require('multer');
+
+    const storage = multer.memoryStorage();
+
+    const fileFilter = (req, file, cb) => {
+      const allowedTypes = [
+        'image/jpeg',
+        'image/png',
+        'image/webp',
+        'image/avif',
+        'image/gif',
+        'video/mp4',
+        'application/pdf'
+      ];
+
+      if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Invalid file type. Only JPEG, PNG, WebP, AVIF, GIF, MP4, and PDF allowed.'), false);
+      }
+    };
+
+    const upload = multer({
+      storage,
+      fileFilter,
+      limits: {
+        fileSize: 10 * 1024 * 1024
+      }
+    });
+
+    module.exports = upload;
+    ```
+
+    ### `models/Course.js` (complete)
+
+    ```javascript
+    const mongoose = require('mongoose');
+
+    const courseSchema = new mongoose.Schema({
+      title: {
+        type: String,
+        required: true,
+        trim: true
+      },
+
+      slug: {
+        type: String,
+        unique: true,
+        sparse: true,
+        trim: true
+      },
+
+      center: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Center',
+        required: true
+      },
+
+      category: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Category',
+        required: true
+      },
+
+      description: String,
+
+      batchStartDate: { type: Date, default: null },
+      batchEndDate: { type: Date, default: null },
+      duration: String,
+      accessValidityInDays: { type: Number, default: null },
+      recordedContentValidityInDays: { type: Number, default: null },
+
+      fees: {
+        online: {
+          actualPrice: { type: Number, default: 0 },
+          discountPercent: { type: Number, default: 0 },
+          discountedPrice: { type: Number, default: 0 },
+          hasDiscount: { type: Boolean, default: false },
+          offerText: { type: String, default: '' }
+        },
+        offline: {
+          actualPrice: { type: Number, default: 0 },
+          discountPercent: { type: Number, default: 0 },
+          discountedPrice: { type: Number, default: 0 },
+          hasDiscount: { type: Boolean, default: false },
+          offerText: { type: String, default: '' }
+        },
+        description: String
+      },
+
+      modes: [{
+        type: String,
+        enum: ['online', 'offline', 'hybrid']
+      }],
+
+      bannerImage: {
+        url: { type: String, required: true },
+        public_id: { type: String, required: true }
+      },
+      highlightImage: { url: String, public_id: String },
+      sectionImage: { url: String, public_id: String },
+      galleryImages: [{ url: String, public_id: String }],
+      promoVideo: { url: String, public_id: String },
+      brochure: { url: String, public_id: String },
+
+      keyHighlights: {
+        keyTitle: String,
+        keyHighlightTexts: [String]
+      },
+
+      whyChoose: {
+        whyChooseTitle: String,
+        whyChooseItems: [{
+          whyChooseText: String,
+          whyChooseContent: String
+        }]
+      },
+
+      howItHelps: {
+        howItHelpsTitle: String,
+        howItHelpsTexts: [String]
+      },
+
+      extraFields: {
+        type: mongoose.Schema.Types.Mixed,
+        default: {}
+      },
+
+      features: [String],
+
+      isActive: { type: Boolean, default: true },
+      isFeatured: { type: Boolean, default: false },
+
+      createdBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+      }
+
+    }, { timestamps: true });
+
+    courseSchema.pre('save', async function() {
+      if (this.title && !this.slug) {
+        this.slug = this.title
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-|-$)/g, '') + '-' + Date.now();
+      }
+    });
+
+    courseSchema.index({ center: 1, category: 1 });
+    courseSchema.index({ isActive: 1 });
+
+    module.exports = mongoose.model('Course', courseSchema);
+    ```
+
+    ### `routes/courseRoutes.js` (create route)
+
+    ```javascript
+    const express = require('express');
+    const router = express.Router();
+    const upload = require('../middleware/upload');
+    const { protect } = require('../middleware/authMiddleware');
+    const { allowRoles } = require('../middleware/roleMiddleware');
+    const { createCourse } = require('../controllers/courseController');
+
+    router.post(
+      '/',
+      protect,
+      allowRoles('super_admin', 'center_admin'),
+      upload.fields([
+        { name: 'banner', maxCount: 1 },
+        { name: 'highlight', maxCount: 1 },
+        { name: 'section', maxCount: 1 },
+        { name: 'gallery', maxCount: 5 },
+        { name: 'video', maxCount: 1 },
+        { name: 'brochure', maxCount: 1 }
+      ]),
+      createCourse
+    );
+
+    module.exports = router;
+    ```
+
+    ### `controllers/courseController.js` — `createCourse` (complete)
+
+    ```javascript
+    const Course = require('../models/Course');
+    const Center = require('../models/Center');
+    const Category = require('../models/Category');
+    const uploadToCloudinary = require('../utils/uploadToCloudinary');
+
+    // @desc    Create new course
+    // @route   POST /api/courses
+    // @access  Private (Super Admin, Center Admin)
+    exports.createCourse = async (req, res) => {
+      try {
+        const user = req.user;
+        const {
+          title,
+          center,
+          category,
+          description,
+          startDate,
+          duration,
+          batchStartDate,
+          batchEndDate,
+          accessValidityInDays,
+          recordedContentValidityInDays,
+          onlineActualPrice,
+          onlineDiscountPercent,
+          onlineOfferText,
+          offlineActualPrice,
+          offlineDiscountPercent,
+          offlineOfferText,
+          feesDescription,
+          modes
+        } = req.body;
+
+        if (!title || !center || !category) {
+          return res.status(400).json({
+            message: 'Required fields missing: title, center, and category are required'
+          });
+        }
+
+        let parsedStartDate = null;
+        if (startDate) {
+          const dateObj = new Date(startDate);
+          parsedStartDate = !isNaN(dateObj.getTime()) ? dateObj : startDate;
+        }
+
+        const centerDoc = await Center.findById(center);
+        if (!centerDoc) {
+          return res.status(404).json({ message: 'Center not found' });
+        }
+
+        if (user.role === 'center_admin') {
+          if (!centerDoc.centerAdmin || !centerDoc.centerAdmin.equals(user._id)) {
+            return res.status(403).json({
+              message: 'Access denied. You are not the admin of this center.'
+            });
+          }
+        }
+
+        const files = req.files;
+        if (!files || !files.banner) {
+          return res.status(400).json({ message: 'Banner image is required' });
+        }
+
+        const uploadPromises = [];
+        uploadPromises.push(
+          uploadToCloudinary(files.banner[0], 'courses/banners').then((result) => ({
+            type: 'banner',
+            result
+          }))
+        );
+        if (files.highlight) {
+          uploadPromises.push(
+            uploadToCloudinary(files.highlight[0], 'courses/highlights').then((result) => ({
+              type: 'highlight',
+              result
+            }))
+          );
+        }
+        if (files.section) {
+          uploadPromises.push(
+            uploadToCloudinary(files.section[0], 'courses/sections').then((result) => ({
+              type: 'section',
+              result
+            }))
+          );
+        }
+        if (files.gallery) {
+          files.gallery.forEach((file) => {
+            uploadPromises.push(
+              uploadToCloudinary(file, 'courses/gallery').then((result) => ({
+                type: 'gallery',
+                result
+              }))
+            );
+          });
+        }
+        if (files.video) {
+          uploadPromises.push(
+            uploadToCloudinary(files.video[0], 'courses/videos').then((result) => ({
+              type: 'video',
+              result
+            }))
+          );
+        }
+        if (files.brochure) {
+          uploadPromises.push(
+            uploadToCloudinary(files.brochure[0], 'courses/brochures', 'raw', 'pdf').then(
+              (result) => ({ type: 'brochure', result })
+            )
+          );
+        }
+
+        const uploadResults = await Promise.all(uploadPromises);
+
+        let bannerImage = null;
+        let highlightImage = null;
+        let sectionImage = null;
+        let galleryImages = [];
+        let promoVideo = null;
+        let brochure = null;
+
+        for (const upload of uploadResults) {
+          switch (upload.type) {
+            case 'banner':
+              bannerImage = { url: upload.result.url, public_id: upload.result.public_id };
+              break;
+            case 'highlight':
+              highlightImage = { url: upload.result.url, public_id: upload.result.public_id };
+              break;
+            case 'section':
+              sectionImage = { url: upload.result.url, public_id: upload.result.public_id };
+              break;
+            case 'gallery':
+              galleryImages.push({ url: upload.result.url, public_id: upload.result.public_id });
+              break;
+            case 'video':
+              promoVideo = { url: upload.result.url, public_id: upload.result.public_id };
+              break;
+            case 'brochure':
+              brochure = { url: upload.result.url, public_id: upload.result.public_id };
+              break;
+          }
+        }
+
+        const parseJsonField = (value) => {
+          if (!value) return {};
+          try {
+            return typeof value === 'string' ? JSON.parse(value) : value;
+          } catch {
+            return {};
+          }
+        };
+
+        const parsedKeyHighlights = parseJsonField(req.body.keyHighlights);
+        const parsedWhyChoose = parseJsonField(req.body.whyChoose);
+        const parsedHowItHelps = parseJsonField(req.body.howItHelps);
+        const parsedExtraFields = parseJsonField(req.body.extraFields);
+
+        const onlineActual = parseFloat(onlineActualPrice) || 0;
+        const onlineDiscount = parseFloat(onlineDiscountPercent) || 0;
+        const onlineHasDiscount = onlineDiscount > 0;
+        const onlineDiscountedPrice = onlineHasDiscount
+          ? onlineActual - (onlineActual * onlineDiscount) / 100
+          : onlineActual;
+
+        const offlineActual = parseFloat(offlineActualPrice) || 0;
+        const offlineDiscount = parseFloat(offlineDiscountPercent) || 0;
+        const offlineHasDiscount = offlineDiscount > 0;
+        const offlineDiscountedPrice = offlineHasDiscount
+          ? offlineActual - (offlineActual * offlineDiscount) / 100
+          : offlineActual;
+
+        const course = await Course.create({
+          title,
+          center,
+          category,
+          description,
+          startDate: parsedStartDate,
+          duration,
+          batchStartDate: batchStartDate ? new Date(batchStartDate) : null,
+          batchEndDate: batchEndDate ? new Date(batchEndDate) : null,
+          accessValidityInDays: accessValidityInDays ? parseInt(accessValidityInDays, 10) : null,
+          recordedContentValidityInDays: recordedContentValidityInDays
+            ? parseInt(recordedContentValidityInDays, 10)
+            : null,
+          fees: {
+            online: {
+              actualPrice: onlineActual,
+              discountPercent: onlineDiscount,
+              discountedPrice: Math.round(onlineDiscountedPrice),
+              hasDiscount: onlineHasDiscount,
+              offerText: onlineOfferText || ''
+            },
+            offline: {
+              actualPrice: offlineActual,
+              discountPercent: offlineDiscount,
+              discountedPrice: Math.round(offlineDiscountedPrice),
+              hasDiscount: offlineHasDiscount,
+              offerText: offlineOfferText || ''
+            },
+            description: feesDescription || ''
+          },
+          modes: modes ? (typeof modes === 'string' ? JSON.parse(modes) : modes) : ['online', 'offline'],
+          bannerImage: { url: bannerImage.url, public_id: bannerImage.public_id },
+          highlightImage: highlightImage
+            ? { url: highlightImage.url, public_id: highlightImage.public_id }
+            : null,
+          sectionImage: sectionImage
+            ? { url: sectionImage.url, public_id: sectionImage.public_id }
+            : null,
+          galleryImages,
+          promoVideo,
+          brochure,
+          keyHighlights: parsedKeyHighlights,
+          whyChoose: parsedWhyChoose,
+          howItHelps: parsedHowItHelps,
+          extraFields: parsedExtraFields,
+          createdBy: user._id
+        });
+
+        const populatedCourse = await Course.findById(course._id)
+          .populate('center', 'name')
+          .populate('category', 'name');
+
+        res.status(201).json({
+          success: true,
+          message: 'Course created successfully',
+          course: populatedCourse
+        });
+      } catch (error) {
+        console.error('Create Course Error:', error);
+        res.status(500).json({
+          message: 'Error creating course',
+          error: error.message
+        });
+      }
+    };
+    ```
+
+    ### Create flow (summary)
+
+    ```txt
+    1. JWT protect + role check (super_admin | center_admin)
+    2. Validate title, center, category + banner file
+    3. Center admin: must own that center
+    4. Parallel Cloudinary uploads (banner required)
+    5. Parse JSON strings: keyHighlights, whyChoose, howItHelps, extraFields, modes
+    6. Auto-calculate online/offline discountedPrice + hasDiscount
+    7. Course.create() → slug auto-generated on save
+    8. Return populated course (center + category names)
+    ```
+
+    ### Required `.env` variables
+
+    ```env
+    CLOUDINARY_CLOUD_NAME=your_cloud_name
+    CLOUDINARY_API_KEY=your_api_key
+    CLOUDINARY_API_SECRET=your_api_secret
+    JWT_SECRET=your_jwt_secret
+    ```
+
+    ### Multipart field names (must match exactly)
+
+    | Form field | Required | Max |
+    |------------|----------|-----|
+    | `banner` | Yes | 1 |
+    | `highlight` | No | 1 |
+    | `section` | No | 1 |
+    | `gallery` | No | 5 |
+    | `video` | No | 1 |
+    | `brochure` | No | 1 (PDF) |
+
+    > **Note:** `startDate` is accepted in the controller body but is not in the Course schema — use `batchStartDate` / `batchEndDate` for stored dates. For full course CRUD source, see also `DOC_1_COURSE_ENROLLMENT_TEST_SERIES_COMPLETE.md`.
+
+    ---
+
     ## 🧪 Step-by-Step API Testing
 
     ### Prerequisites
@@ -251,7 +924,7 @@
     {
     "success": true,
     "message": "Course created successfully",
-    "data": {
+    "course": {
         "_id": "course_id_here",
         "title": "UPSC GS Foundation Course",
         "slug": "upsc-gs-foundation-course-1234567890",
@@ -974,6 +1647,231 @@
 
     ---
 
-    **Last Updated:** May 12, 2026  
-    **Version:** 1.0  
+    ---
+
+    ## Complete Source Code — Academic ERP Course Updates
+
+    ### `utils/courseHierarchyValidation.js`
+
+    ```javascript
+    const Program = require('../models/Program');
+    const AcademicCategory = require('../models/AcademicCategory');
+    const AcademicSubCategory = require('../models/AcademicSubCategory');
+    const { findActiveCenter } = require('./academicHierarchyHelpers');
+    const { isValidObjectId } = require('./courseIdGenerator');
+
+    const validateCourseHierarchy = async ({
+      centerId,
+      programId,
+      categoryId,
+      subCategoryId
+    }) => {
+      if (!isValidObjectId(centerId)) {
+        return { ok: false, status: 400, message: 'Invalid centerId' };
+      }
+      if (!isValidObjectId(programId)) {
+        return { ok: false, status: 400, message: 'Invalid programId' };
+      }
+      if (!isValidObjectId(categoryId)) {
+        return { ok: false, status: 400, message: 'Invalid categoryId' };
+      }
+      if (!isValidObjectId(subCategoryId)) {
+        return { ok: false, status: 400, message: 'Invalid subCategoryId' };
+      }
+
+      const center = await findActiveCenter(centerId);
+      if (!center) {
+        return { ok: false, status: 400, message: 'Invalid or inactive center' };
+      }
+
+      const program = await Program.findOne({ _id: programId, status: 'ACTIVE' }).lean();
+      if (!program) {
+        return { ok: false, status: 400, message: 'Invalid or inactive program' };
+      }
+
+      const programHasCenter = (program.centers || []).some(
+        (c) => String(c) === String(centerId)
+      );
+      if (!programHasCenter) {
+        return {
+          ok: false,
+          status: 400,
+          message: 'Selected program is not available for the selected center'
+        };
+      }
+
+      const category = await AcademicCategory.findOne({
+        _id: categoryId,
+        centerId,
+        programId,
+        status: 'ACTIVE'
+      }).lean();
+
+      if (!category) {
+        return {
+          ok: false,
+          status: 400,
+          message: 'Invalid category for the selected center and program'
+        };
+      }
+
+      const subCategory = await AcademicSubCategory.findOne({
+        _id: subCategoryId,
+        centerId,
+        programId,
+        categoryId,
+        status: 'ACTIVE'
+      }).lean();
+
+      if (!subCategory) {
+        return {
+          ok: false,
+          status: 400,
+          message: 'Invalid subCategory for the selected center, program, and category'
+        };
+      }
+
+      return { ok: true, center, program, category, subCategory };
+    };
+
+    module.exports = { validateCourseHierarchy };
+    ```
+
+    ### `utils/courseIdGenerator.js`
+
+    ```javascript
+    const mongoose = require('mongoose');
+    const Course = require('../models/Course');
+
+    const parseNumericSuffix = (value, prefix) => {
+      if (!value || typeof value !== 'string') return 0;
+      const match = value.match(new RegExp(`^${prefix}(\\d+)$`, 'i'));
+      return match ? parseInt(match[1], 10) : 0;
+    };
+
+    const generateCourseId = async () => {
+      const latest = await Course.findOne({ courseId: /^CRS\d+$/i })
+        .sort({ courseId: -1 })
+        .select('courseId')
+        .lean();
+      const next = parseNumericSuffix(latest?.courseId, 'CRS') + 1;
+      return `CRS${String(next).padStart(3, '0')}`;
+    };
+
+    const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
+
+    module.exports = { generateCourseId, isValidObjectId };
+    ```
+
+    ### `utils/coursePayloadHelpers.js`
+
+    ```javascript
+    const safeParseJson = (value, fallback = null) => {
+      if (value === undefined || value === null || value === '') return fallback;
+      if (typeof value === 'object') return value;
+      try {
+        return JSON.parse(value);
+      } catch {
+        return fallback;
+      }
+    };
+
+    const resolveCourseName = (body) => {
+      const name = body.courseName || body.title;
+      return name?.trim() || '';
+    };
+
+    const resolveCenterId = (body) => body.centerId || body.center || null;
+    const resolveProgramId = (body) => body.programId || body.program || null;
+    const resolveCategoryId = (body) => body.categoryId || body.academicCategory || null;
+    const resolveSubCategoryId = (body) => body.subCategoryId || body.academicSubCategory || null;
+
+    const resolveCourseStatus = (body) => {
+      if (body.status === 'INACTIVE') return 'INACTIVE';
+      if (body.status === 'ACTIVE') return 'ACTIVE';
+      if (body.isActive === false || body.isActive === 'false') return 'INACTIVE';
+      return 'ACTIVE';
+    };
+
+    const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const courseListPopulate = [
+      { path: 'center', select: 'centerName name city' },
+      { path: 'program', select: 'programId programName' },
+      { path: 'academicCategory', select: 'categoryId categoryName' },
+      { path: 'academicSubCategory', select: 'subCategoryId subCategoryName' },
+      { path: 'category', select: 'name' }
+    ];
+
+    module.exports = {
+      safeParseJson,
+      resolveCourseName,
+      resolveCenterId,
+      resolveProgramId,
+      resolveCategoryId,
+      resolveSubCategoryId,
+      resolveCourseStatus,
+      escapeRegex,
+      courseListPopulate
+    };
+    ```
+
+    ### `createCourse` — hierarchy block (excerpt from `controllers/courseController.js`)
+
+    ```javascript
+    const courseName = resolveCourseName(req.body);
+    const centerId = resolveCenterId(req.body);
+    const programId = resolveProgramId(req.body);
+    const categoryId = resolveCategoryId(req.body);
+    const subCategoryId = resolveSubCategoryId(req.body);
+
+    const hierarchy = await validateCourseHierarchy({
+      centerId,
+      programId,
+      categoryId,
+      subCategoryId
+    });
+    if (!hierarchy.ok) {
+      return res.status(hierarchy.status).json({ success: false, message: hierarchy.message });
+    }
+
+    const course = await Course.create({
+      courseId: await generateCourseId(),
+      courseName,
+      title: courseName,
+      center: centerId,
+      program: programId,
+      academicCategory: categoryId,
+      academicSubCategory: subCategoryId,
+      courseOverview: req.body.courseOverview || req.body.description || '',
+      keyFeatures: safeParseJson(req.body.keyFeatures, []),
+      whyChooseSection: safeParseJson(req.body.whyChooseSection, {}),
+      helpSections: safeParseJson(req.body.helpSections, []),
+      status: resolveCourseStatus(req.body),
+      // ... fees, media, legacy sections ...
+    });
+    ```
+
+    ### Sample `multipart/form-data` body (create)
+
+    ```text
+    courseName: GS Foundation Batch 2026
+    centerId: <CENTER_OBJECT_ID>
+    programId: <PROGRAM_OBJECT_ID>
+    categoryId: <ACADEMIC_CATEGORY_OBJECT_ID>
+    subCategoryId: <ACADEMIC_SUBCATEGORY_OBJECT_ID>
+    courseOverview: Complete UPSC foundation course
+    status: ACTIVE
+    keyFeatures: [{"image":"https://res.cloudinary.com/.../f1.png","points":["Daily tests","Mentorship"]}]
+    whyChooseSection: {"title":"Why Us","subtitle":"Best faculty","featureCards":[]}
+    helpSections: [{"video":"https://...mp4","image1":"https://...jpg","image2":""}]
+    onlineActualPrice: 50000
+    onlineDiscountPercent: 10
+    banner: <FILE>
+    ```
+
+    ---
+
+    **Last Updated:** May 26, 2026  
+    **Version:** 2.0 (Academic ERP hierarchy + CMS fields + cascading dropdowns)  
     **Status:** Production Ready ✅

@@ -1,0 +1,428 @@
+{
+  "info": {
+    "name": "Sriram IAS - Academic ERP (Program / Category / SubCategory)",
+    "description": "Center-based hierarchy: Program ↔ Centers (M:N) → Category (center+program) → SubCategory.\n\nSetup:\n1. Login Super Admin → saves superAdminToken\n2. GET Centers dropdown → set centerId, centerId2\n3. Create Program → set programId\n4. Create Category → set categoryId\n5. Create SubCategory\n\nLegacy course categories: GET /api/legacy-categories (public, no auth).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "superAdminToken", "value": "" },
+    { "key": "centerId", "value": "" },
+    { "key": "centerId2", "value": "" },
+    { "key": "programId", "value": "" },
+    { "key": "categoryId", "value": "" },
+    { "key": "subCategoryId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. Auth",
+      "item": [
+        {
+          "name": "Login Super Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.token) {",
+                  "  pm.collectionVariables.set('superAdminToken', json.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@sriram.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login-super-admin"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Setup - Centers",
+      "item": [
+        {
+          "name": "GET Centers Dropdown",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const list = json.data || json.centers || [];",
+                  "if (list[0]?._id) pm.collectionVariables.set('centerId', list[0]._id);",
+                  "if (list[1]?._id) pm.collectionVariables.set('centerId2', list[1]._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": "{{baseUrl}}/api/admin/centers/dropdown"
+          }
+        },
+        {
+          "name": "GET Legacy Categories (public)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/legacy-categories"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Programs",
+      "item": [
+        {
+          "name": "POST Create Program",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data?._id) pm.collectionVariables.set('programId', json.data._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{superAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"programName\": \"UPSC Complete Program\",\n  \"centers\": [\"{{centerId}}\", \"{{centerId2}}\"],\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": "{{baseUrl}}/api/programs"
+          }
+        },
+        {
+          "name": "GET List Programs",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/programs?search=&center={{centerId}}&status=ACTIVE&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "programs"],
+              "query": [
+                { "key": "search", "value": "" },
+                { "key": "center", "value": "{{centerId}}" },
+                { "key": "status", "value": "ACTIVE" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Program By Id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": "{{baseUrl}}/api/programs/{{programId}}"
+          }
+        },
+        {
+          "name": "GET Programs By Center (dropdown)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": "{{baseUrl}}/api/programs/by-center/{{centerId}}"
+          }
+        },
+        {
+          "name": "PUT Update Program",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{superAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"programName\": \"UPSC Complete Program 2026\",\n  \"centers\": [\"{{centerId}}\"],\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": "{{baseUrl}}/api/programs/{{programId}}"
+          }
+        },
+        {
+          "name": "PATCH Program Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{superAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"INACTIVE\"\n}"
+            },
+            "url": "{{baseUrl}}/api/programs/status/{{programId}}"
+          }
+        },
+        {
+          "name": "DELETE Program (hard)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": "{{baseUrl}}/api/programs/{{programId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Categories",
+      "item": [
+        {
+          "name": "POST Create Category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data?._id) pm.collectionVariables.set('categoryId', json.data._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{superAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"centerId\": \"{{centerId}}\",\n  \"programId\": \"{{programId}}\",\n  \"categoryName\": \"UPSC\",\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": "{{baseUrl}}/api/categories"
+          }
+        },
+        {
+          "name": "GET List Categories",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/categories?search=&center={{centerId}}&program={{programId}}&status=ACTIVE",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "categories"],
+              "query": [
+                { "key": "search", "value": "" },
+                { "key": "center", "value": "{{centerId}}" },
+                { "key": "program", "value": "{{programId}}" },
+                { "key": "status", "value": "ACTIVE" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Categories Filter (dropdown)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/categories/filter?centerId={{centerId}}&programId={{programId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "categories", "filter"],
+              "query": [
+                { "key": "centerId", "value": "{{centerId}}" },
+                { "key": "programId", "value": "{{programId}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Category By Id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": "{{baseUrl}}/api/categories/{{categoryId}}"
+          }
+        },
+        {
+          "name": "PUT Update Category",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{superAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"UPSC Mains\",\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": "{{baseUrl}}/api/categories/{{categoryId}}"
+          }
+        },
+        {
+          "name": "PATCH Category Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{superAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"INACTIVE\"\n}"
+            },
+            "url": "{{baseUrl}}/api/categories/status/{{categoryId}}"
+          }
+        },
+        {
+          "name": "DELETE Category (hard)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": "{{baseUrl}}/api/categories/{{categoryId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. SubCategories",
+      "item": [
+        {
+          "name": "POST Create SubCategory",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data?._id) pm.collectionVariables.set('subCategoryId', json.data._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{superAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"centerId\": \"{{centerId}}\",\n  \"programId\": \"{{programId}}\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"subCategoryName\": \"Foundation\",\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": "{{baseUrl}}/api/sub-categories"
+          }
+        },
+        {
+          "name": "GET SubCategories Filter (dropdown — center+program+category)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data?.[0]?._id) pm.collectionVariables.set('subCategoryId', json.data[0]._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/sub-categories/filter?centerId={{centerId}}&programId={{programId}}&categoryId={{categoryId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sub-categories", "filter"],
+              "query": [
+                { "key": "centerId", "value": "{{centerId}}" },
+                { "key": "programId", "value": "{{programId}}" },
+                { "key": "categoryId", "value": "{{categoryId}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET List SubCategories",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/sub-categories?search=Foundation&center={{centerId}}&program={{programId}}&category={{categoryId}}&status=ACTIVE&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sub-categories"],
+              "query": [
+                { "key": "search", "value": "Foundation", "description": "Search by subCategoryName or subCategoryId" },
+                { "key": "center", "value": "{{centerId}}" },
+                { "key": "program", "value": "{{programId}}" },
+                { "key": "category", "value": "{{categoryId}}" },
+                { "key": "status", "value": "ACTIVE" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET SubCategory By Id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": "{{baseUrl}}/api/sub-categories/{{subCategoryId}}"
+          }
+        },
+        {
+          "name": "PUT Update SubCategory",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{superAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subCategoryName\": \"Foundation Batch A\",\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": "{{baseUrl}}/api/sub-categories/{{subCategoryId}}"
+          }
+        },
+        {
+          "name": "PATCH SubCategory Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{superAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"INACTIVE\"\n}"
+            },
+            "url": "{{baseUrl}}/api/sub-categories/status/{{subCategoryId}}"
+          }
+        },
+        {
+          "name": "DELETE SubCategory (hard)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": "{{baseUrl}}/api/sub-categories/{{subCategoryId}}"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -149,7 +149,7 @@ exports.getHomePage = async (req, res) => {
       groupedCourses[categoryName].push({
         _id: course._id,
         title: course.title,
-        bannerImage: course.bannerImage?.url || null
+        bannerImage: course.keyFeatures?.[0]?.image || null
       });
     });
 

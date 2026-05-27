@@ -66,13 +66,12 @@ router.get('/centers', async (req, res) => {
   }
 });
 
-// Get all categories
-router.get('/categories', async (req, res) => {
+const listLegacyCategories = async (req, res) => {
   try {
     const categories = await Category.find({})
       .sort({ name: 1 })
       .select('name categoryType');
-    
+
     res.json({
       success: true,
       count: categories.length,
@@ -85,6 +84,9 @@ router.get('/categories', async (req, res) => {
       error: error.message
     });
   }
-});
+};
+
+// Legacy global categories (course/coupon dropdowns until Course ERP migration)
+router.get('/legacy-categories', listLegacyCategories);
 
 module.exports = router;

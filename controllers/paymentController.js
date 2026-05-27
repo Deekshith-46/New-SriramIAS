@@ -57,20 +57,23 @@ exports.createOrder = async (req, res) => {
          });
       }
 
-      // Get price based on mode
+      // Get price based on mode (pricing module — fees removed from Course schema)
       let actualPrice, priceDetails;
-      if (enrolledMode === 'online') {
-         actualPrice = course.fees.online.discountedPrice;
-         priceDetails = course.fees.online;
-      } else if (enrolledMode === 'offline') {
-         actualPrice = course.fees.offline.discountedPrice;
-         priceDetails = course.fees.offline;
-      } else {
+      const feeKey = enrolledMode === 'online' ? 'online' : enrolledMode === 'offline' ? 'offline' : null;
+      if (!feeKey) {
          return res.status(400).json({
             success: false,
             message: 'Invalid enrolled mode. Use "online" or "offline"'
          });
       }
+      if (!course.fees?.[feeKey]) {
+         return res.status(400).json({
+            success: false,
+            message: 'Course pricing is not configured yet'
+         });
+      }
+      actualPrice = course.fees[feeKey].discountedPrice;
+      priceDetails = course.fees[feeKey];
 
       let finalPrice = actualPrice;
       let discountAmount = 0;
@@ -254,12 +257,14 @@ exports.verifyPayment = async (req, res) => {
       // Calculate price AGAIN (never trust frontend)
       let actualPrice, finalPrice, discountAmount = 0;
       
-      if (enrolledMode === 'online') {
-         actualPrice = course.fees.online.discountedPrice;
-      } else {
-         actualPrice = course.fees.offline.discountedPrice;
+      const feeKey = enrolledMode === 'online' ? 'online' : 'offline';
+      if (!course.fees?.[feeKey]) {
+         return res.status(400).json({
+            success: false,
+            message: 'Course pricing is not configured yet'
+         });
       }
-
+      actualPrice = course.fees[feeKey].discountedPrice;
       finalPrice = actualPrice;
 
       // Apply coupon AGAIN if provided

@@ -58,7 +58,17 @@ const attendanceRoutes = require('./routes/attendanceRoutes');
 const answerWritingRoutes = require('./routes/answerWritingRoutes');
 const portalFreeResourceRoutes = require('./routes/portalFreeResourceRoutes');
 const portalCurrentAffairsRoutes = require('./routes/portalCurrentAffairsRoutes');
-
+const programRoutes = require('./routes/programRoutes');
+const academicCategoryRoutes = require('./routes/academicCategoryRoutes');
+const academicSubCategoryRoutes = require('./routes/academicSubCategoryRoutes');
+const subjectRoutes = require('./routes/subjectRoutes');
+const topicRoutes = require('./routes/topicRoutes');
+const teacherRoutes = require('./routes/teacherRoutes');
+const cityRoutes = require('./routes/cityRoutes');
+const classroomRoutes = require('./routes/classroomRoutes');
+const { getCentersDropdown } = require('./controllers/centerManagementController');
+const { protect } = require('./middleware/authMiddleware');
+const { requireSuperAdmin } = require('./middleware/requireSuperAdmin');
 
 const app = express();
 
@@ -129,7 +139,19 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/courses', courseRoutes);
-app.use('/api', publicRoutes); // Public routes for centers and categories
+
+// Academic ERP hierarchy (Center → Program → Category → SubCategory)
+app.use('/api/programs', programRoutes);
+app.use('/api/categories', academicCategoryRoutes);
+app.use('/api/subjects', subjectRoutes);
+app.use('/api/topics', topicRoutes);
+app.use('/api/teachers', teacherRoutes);
+app.use('/api/cities', cityRoutes);
+app.use('/api/classrooms', classroomRoutes);
+app.get('/api/centers/dropdown', protect, requireSuperAdmin, getCentersDropdown);
+app.use('/api/sub-categories', academicSubCategoryRoutes);
+
+app.use('/api', publicRoutes); // Public routes for centers and legacy categories
 app.use('/api/enquiries', enquiryRoutes); // Public enquiry route
 app.use('/api/admin/enquiries', adminEnquiryRoutes); // Super Admin enquiry routes
 app.use('/api/center/enquiries', centerEnquiryRoutes); // Center Admin & Employee enquiry routes

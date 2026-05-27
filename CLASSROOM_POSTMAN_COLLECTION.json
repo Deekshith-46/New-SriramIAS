@@ -1,0 +1,210 @@
+{
+  "info": {
+    "name": "Sriram IAS - Classroom (Center → City → Classroom)",
+    "description": "Dependent dropdowns + Classroom CRUD.\n\nAuth: Bearer {{SuperAdminToken}}\n\nFlow:\n1. Login → sets SuperAdminToken\n2. Centers dropdown\n3. Cities by center\n4. Create / list classrooms",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "BASE_URL", "value": "http://localhost:5000" },
+    { "key": "SuperAdminToken", "value": "" },
+    { "key": "centerId", "value": "" },
+    { "key": "cityId", "value": "" },
+    { "key": "classroomId", "value": "" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{SuperAdminToken}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Login Super Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.token) pm.collectionVariables.set('SuperAdminToken', j.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@sriram.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/auth/login-super-admin"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Dependent Dropdowns",
+      "item": [
+        {
+          "name": "GET Centers Dropdown",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.data?.[0]?._id) pm.collectionVariables.set('centerId', j.data[0]._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/centers/dropdown"
+          }
+        },
+        {
+          "name": "GET Cities By Center",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.data?.[0]?._id) pm.collectionVariables.set('cityId', j.data[0]._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/cities/by-center/{{centerId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Classrooms",
+      "item": [
+        {
+          "name": "POST Create Classroom",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.data?._id) pm.collectionVariables.set('classroomId', j.data._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"center\": \"{{centerId}}\",\n  \"city\": \"{{cityId}}\",\n  \"classroomName\": \"Class Room 1\",\n  \"classroomCode\": \"CR-01\",\n  \"capacity\": 40,\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/classrooms"
+          }
+        },
+        {
+          "name": "GET Classrooms List",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/api/classrooms?page=1&limit=10&search=&center={{centerId}}&status=ACTIVE",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "classrooms"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "" },
+                { "key": "center", "value": "{{centerId}}" },
+                { "key": "status", "value": "ACTIVE" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Classrooms Search",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/api/classrooms?page=1&limit=10&search=CR-01&status=ACTIVE",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "classrooms"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "CR-01" },
+                { "key": "status", "value": "ACTIVE" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Classroom By Id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/classrooms/{{classroomId}}"
+          }
+        },
+        {
+          "name": "PUT Update Classroom",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"classroomName\": \"Seminar Hall\",\n  \"capacity\": 80,\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/classrooms/{{classroomId}}"
+          }
+        },
+        {
+          "name": "PATCH Classroom Status INACTIVE",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"INACTIVE\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/classrooms/status/{{classroomId}}"
+          }
+        },
+        {
+          "name": "DELETE Classroom",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/classrooms/{{classroomId}}"
+          }
+        }
+      ]
+    }
+  ]
+}

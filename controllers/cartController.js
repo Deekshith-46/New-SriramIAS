@@ -59,7 +59,8 @@ exports.addToCart = async (req, res) => {
       }
 
       // Check if course mode is available
-      if (!item.modes.includes(courseMode)) {
+      const availableModes = item.modes?.length ? item.modes : ['online', 'offline'];
+      if (!availableModes.includes(courseMode)) {
         return res.status(400).json({
           success: false,
           message: `Course is not available in ${courseMode} mode`
@@ -83,7 +84,13 @@ exports.addToCart = async (req, res) => {
       }
 
       // Get pricing for the selected mode
-      const fees = item.fees[courseMode];
+      const fees = item.fees?.[courseMode];
+      if (!fees) {
+        return res.status(400).json({
+          success: false,
+          message: 'Course pricing is not configured yet'
+        });
+      }
       actualPrice = fees.actualPrice;
       discountedPrice = fees.discountedPrice;
       appliedOfferText = fees.offerText || '';
@@ -91,7 +98,7 @@ exports.addToCart = async (req, res) => {
       // Create enhanced snapshot
       itemSnapshot = {
         title: item.title,
-        image: item.bannerImage?.url || null,
+        image: item.keyFeatures?.[0]?.image || item.bannerImage?.url || null,
         center: item.center?.name || null,
         category: item.category?.name || null,
         duration: item.duration || null,

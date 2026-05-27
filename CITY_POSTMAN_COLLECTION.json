@@ -1,0 +1,200 @@
+{
+  "info": {
+    "name": "Sriram IAS - City Management",
+    "description": "City CRUD linked to Center.\n\nFields: centerId, cityAddress, status\n\nRun Auth first, then set centerId from Centers dropdown.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "BASE_URL", "value": "http://localhost:5000" },
+    { "key": "token", "value": "" },
+    { "key": "centerId", "value": "" },
+    { "key": "cityId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Login Super Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.token) pm.collectionVariables.set('token', j.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@sriram.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/auth/login-super-admin"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Centers (get centerId)",
+      "item": [
+        {
+          "name": "GET Centers Dropdown",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "const id = j.data?.[0]?._id || j.centers?.[0]?._id;",
+                  "if (id) pm.collectionVariables.set('centerId', id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{BASE_URL}}/api/admin/centers/dropdown"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Cities",
+      "item": [
+        {
+          "name": "POST Create City",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.data?._id) pm.collectionVariables.set('cityId', j.data._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"centerId\": \"{{centerId}}\",\n  \"cityAddress\": \"Plot 12, Road No 5, Banjara Hills, Hyderabad - 500034\",\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/cities"
+          }
+        },
+        {
+          "name": "GET Cities List (search + filters)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/api/cities?page=1&limit=10&search=&center={{centerId}}&status=ACTIVE",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "cities"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "" },
+                { "key": "center", "value": "{{centerId}}" },
+                { "key": "status", "value": "ACTIVE" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Cities Search by address or center name",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/api/cities?page=1&limit=10&search=hyderabad&status=ACTIVE",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "cities"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "hyderabad" },
+                { "key": "status", "value": "ACTIVE" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET City By Id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{BASE_URL}}/api/cities/{{cityId}}"
+          }
+        },
+        {
+          "name": "PUT Update City",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cityAddress\": \"Updated: MG Road, Secunderabad - 500003\",\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/cities/{{cityId}}"
+          }
+        },
+        {
+          "name": "PATCH City Status INACTIVE",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"INACTIVE\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/cities/status/{{cityId}}"
+          }
+        },
+        {
+          "name": "PATCH City Status ACTIVE",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/cities/status/{{cityId}}"
+          }
+        },
+        {
+          "name": "DELETE City",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{BASE_URL}}/api/cities/{{cityId}}"
+          }
+        }
+      ]
+    }
+  ]
+}

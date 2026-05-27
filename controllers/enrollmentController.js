@@ -15,7 +15,12 @@ const razorpay = new Razorpay({
 // ─── helpers ────────────────────────────────────────────────────────────────
 
 async function resolveFees(course, learningMode) {
-  return learningMode === 'online' ? course.fees.online : course.fees.offline;
+  const fees =
+    learningMode === 'online' ? course.fees?.online : course.fees?.offline;
+  if (!fees) {
+    throw new Error('Course pricing is not configured yet');
+  }
+  return fees;
 }
 
 async function applyCoupon(code, baseFees, userId) {
@@ -100,22 +105,10 @@ function refreshExpiredEnrollment(enrollment) {
 
 function buildCourseSnapshot(course) {
   return {
-    title: course.title,
+    title: course.courseName || course.title,
     slug: course.slug,
-    centerName: course.center?.name || '',
-    fees: {
-      online: course.fees?.online || 0,
-      offline: course.fees?.offline || 0
-    },
-    installmentPlans: course.installmentPlans || {
-      online: { enabled: false, installments: [] },
-      offline: { enabled: false, installments: [] }
-    },
-    modes: course.modes || [],
-    batchStartDate: course.batchStartDate || null,
-    batchEndDate: course.batchEndDate || null,
-    accessValidityInDays: course.accessValidityInDays || null,
-    recordedContentValidityInDays: course.recordedContentValidityInDays || null
+    centerName: course.center?.centerName || course.center?.name || '',
+    courseOverview: course.courseOverview || ''
   };
 }
 

@@ -150,6 +150,57 @@ const validations = {
     status: Joi.string().valid('ACTIVE', 'INACTIVE').required()
   }),
 
+  createUnifiedUserStudent: Joi.object({
+    userType: Joi.string().valid('STUDENT').required(),
+    fullName: Joi.string().min(2).max(100).required().trim(),
+    email: studentGmailEmail.required(),
+    mobile: Joi.string()
+      .pattern(/^[6-9]\d{9}$/)
+      .required()
+      .messages({ 'string.pattern.base': 'Invalid Indian mobile number' }),
+    parentName: Joi.string().min(2).max(100).trim().optional(),
+    parentEmail: Joi.string().email().trim().optional(),
+    parentMobile: Joi.string()
+      .pattern(/^[6-9]\d{9}$/)
+      .optional()
+      .messages({ 'string.pattern.base': 'Invalid Indian mobile number' }),
+    centerId: Joi.string().hex().length(24).required(),
+    status: Joi.boolean().optional()
+  }),
+
+  createUnifiedUserAdmin: Joi.object({
+    userType: Joi.string()
+      .required()
+      .custom((value, helpers) => {
+        if (value === 'ALL' || value === 'STUDENT' || value === 'ADMIN') {
+          return helpers.error('any.invalid');
+        }
+        if (!/^[a-f0-9]{24}$/i.test(value)) {
+          return helpers.error('any.invalid');
+        }
+        return value;
+      })
+      .messages({
+        'any.invalid':
+          'userType must be a Role _id from GET /api/admin/user-roles (e.g. Content Admin id). Use STUDENT for students. Do not use ALL or ADMIN.'
+      }),
+    fullName: Joi.string().min(2).max(150).required().trim(),
+    officialEmail: Joi.string().email().required().trim(),
+    contactNumber: Joi.string().pattern(/^[6-9]\d{9}$/).required(),
+    employeeId: Joi.string().min(2).max(30).required().trim(),
+    roleId: Joi.string().hex().length(24).optional(),
+    centerId: Joi.string().hex().length(24).required(),
+    password: Joi.string().min(6).required(),
+    confirmPassword: Joi.string().valid(Joi.ref('password')).required()
+      .messages({ 'any.only': 'Passwords do not match' }),
+    accountStatus: Joi.boolean().optional(),
+    twoFactorEnabled: Joi.boolean().optional(),
+    loginAlertEnabled: Joi.boolean().optional(),
+    sessionTimeout: Joi.string()
+      .valid('15_MINUTES', '30_MINUTES', '1_HOUR', '2_HOURS', '8_HOURS')
+      .optional()
+  }),
+
   manageAdminAccessCreate: Joi.object({
     fullName: Joi.string().min(2).max(150).required().trim(),
     officialEmail: Joi.string().email().required().trim(),
