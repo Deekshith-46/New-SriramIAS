@@ -15,6 +15,8 @@ const blogUpload = require('../middleware/blogUpload');
 router.get('/', getBooks);
 router.get('/sample', getSampleBooks);
 router.get('/:id', getBook);
+console.log("book routes");
+
 
 // Admin routes
 router.post(
