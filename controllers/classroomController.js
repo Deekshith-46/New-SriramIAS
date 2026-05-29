@@ -115,6 +115,38 @@ const buildClassroomListPipeline = ({ search = '', center, city, status, sort, s
   return { dataPipeline: pipeline, countPipeline };
 };
 
+exports.getClassroomsDropdown = async (req, res) => {
+  try {
+    const { centerId, city, status = 'ACTIVE' } = req.query;
+    const query = buildClassroomBaseMatch({
+      center: centerId,
+      city,
+      status: status || 'ACTIVE'
+    });
+
+    const rows = await Classroom.find(query)
+      .select('_id classroomId classroomName classroomCode center capacity')
+      .sort({ classroomName: 1 })
+      .lean();
+
+    res.json({
+      success: true,
+      count: rows.length,
+      data: rows.map((row) => ({
+        _id: row._id,
+        classroomId: row.classroomId || '',
+        classroomName: row.classroomName || '',
+        classroomCode: row.classroomCode || '',
+        centerId: row.center,
+        capacity: row.capacity ?? 0
+      }))
+    });
+  } catch (error) {
+    console.error('Classrooms dropdown error:', error);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+};
+
 exports.createClassroom = async (req, res) => {
   try {
     const centerId = resolveCenterId(req.body);

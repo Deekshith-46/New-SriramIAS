@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const FacultySubject = require('../models/FacultySubject');
+const SubjectContentFolder = require('../models/SubjectContentFolder');
 const Subject = require('../models/Subject');
 const Topic = require('../models/Topic');
 const Teacher = require('../models/Teacher');
@@ -12,12 +13,16 @@ const {
   findActiveSubject
 } = require('../utils/contentMastersHelpers');
 const { validateFacultySubjectPayload } = require('../utils/batchFacultyHelpers');
-const { FACULTY_CATEGORIES } = require('../utils/batchFacultyConstants');
+const {
+  FACULTY_CATEGORIES,
+  normalizeFacultyCategories
+} = require('../utils/batchFacultyConstants');
 
 const FACULTY_CATEGORY_LABELS = {
   LIVE_CLASS: 'Live Class',
   RECORDING: 'Recording',
-  TEST: 'Test',
+  PRELIMS_TEST: 'Prelims Test',
+  MAINS_ANSWER_WRITING: 'Mains Answer Writing',
   PDF: 'PDF'
 };
 
@@ -63,7 +68,7 @@ const formatFacultySubject = (doc) => ({
     topicId: t.topicId,
     topicName: t.topicName
   })),
-  categories: doc.categories || [],
+  categories: normalizeFacultyCategories(doc.categories || []),
   status: doc.status,
   createdAt: doc.createdAt,
   updatedAt: doc.updatedAt
@@ -417,15 +422,74 @@ exports.getFacultySubjectSummary = async (req, res) => {
   }
 };
 
+/** Left navigation content tree grouped by category */
+exports.getContentTree = async (req, res) => {
+  try {
+    const ref = req.params.id;
+    let facultySubject = null;
+
+    if (isValidObjectId(ref)) {
+      facultySubject = await FacultySubject.findOne({ _id: ref, ...NOT_DELETED }).lean();
+    } else {
+      facultySubject = await FacultySubject.findOne({
+        facultySubjectId: String(ref).trim(),
+        ...NOT_DELETED
+      }).lean();
+    }
+
+    if (!facultySubject) {
+      return res.status(404).json({ success: false, message: 'FacultySubject not found' });
+    }
+
+    const folders = await SubjectContentFolder.find({
+      facultySubjectId: facultySubject._id,
+      status: 'ACTIVE',
+      ...NOT_DELETED
+    })
+      .select('_id folderId folderName category')
+      .sort({ folderName: 1 })
+      .lean();
+
+    const tree = {};
+    for (const category of FACULTY_CATEGORIES) {
+      tree[category] = [];
+    }
+
+    for (const folder of folders) {
+      if (!tree[folder.category]) tree[folder.category] = [];
+      tree[folder.category].push({
+        _id: folder._id,
+        folderId: folder.folderId,
+        folderName: folder.folderName
+      });
+    }
+
+    res.json({
+      success: true,
+      facultySubjectId: facultySubject._id,
+      subjectName: facultySubject.subjectName,
+      categories: facultySubject.categories || [],
+      data: tree
+    });
+  } catch (error) {
+    console.error('Get content tree error:', error);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+};
+
 exports.deleteFacultySubject = async (req, res) => {
   try {
-    const doc = await FacultySubject.findOne({ _id: req.params.id, ...NOT_DELETED });
-    if (!doc) return res.status(404).json({ success: false, message: 'FacultySubject not found' });
+    const doc = await FacultySubject.findOneAndUpdate(
+      { _id: req.params.id, ...NOT_DELETED },
+      {
+        isDeleted: true,
+        deletedAt: new Date(),
+        status: 'INACTIVE'
+      },
+      { new: true, runValidators: false }
+    );
 
-    doc.isDeleted = true;
-    doc.deletedAt = new Date();
-    doc.status = 'INACTIVE';
-    await doc.save();
+    if (!doc) return res.status(404).json({ success: false, message: 'FacultySubject not found' });
 
     res.json({ success: true, message: 'FacultySubject deleted successfully', data: { _id: doc._id } });
   } catch (error) {

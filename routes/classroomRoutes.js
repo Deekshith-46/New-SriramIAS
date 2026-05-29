@@ -5,6 +5,7 @@ const { requireSuperAdmin } = require('../middleware/requireSuperAdmin');
 const {
   createClassroom,
   getClassrooms,
+  getClassroomsDropdown,
   getClassroomById,
   updateClassroom,
   updateClassroomStatus,
@@ -16,6 +17,7 @@ router.use(protect, requireSuperAdmin);
 router.patch('/status/:id', updateClassroomStatus);
 
 router.post('/', createClassroom);
+router.get('/dropdown', getClassroomsDropdown);
 router.get('/', getClassrooms);
 router.get('/:id', getClassroomById);
 router.put('/:id', updateClassroom);

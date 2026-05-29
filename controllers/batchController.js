@@ -426,13 +426,17 @@ exports.getBatchQuickView = async (req, res) => {
 
 exports.getBatchesDropdown = async (req, res) => {
   try {
-    const { courseId, excludeBatchId, status } = req.query;
+    const { courseId, facultySubjectId, excludeBatchId, status } = req.query;
     const query = { ...NOT_DELETED };
 
     if (status && ['ACTIVE', 'UPCOMING', 'INACTIVE', 'COMPLETED'].includes(status)) {
       query.status = status;
     } else {
       query.status = { $in: ['ACTIVE', 'UPCOMING'] };
+    }
+
+    if (facultySubjectId && mongoose.Types.ObjectId.isValid(facultySubjectId)) {
+      query.facultySubjects = new mongoose.Types.ObjectId(facultySubjectId);
     }
 
     if (courseId && mongoose.Types.ObjectId.isValid(courseId)) {

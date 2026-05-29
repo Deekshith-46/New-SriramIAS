@@ -6,7 +6,12 @@ const FacultySubject = require('../models/FacultySubject');
 const Course = require('../models/Course');
 const { isValidObjectId } = require('./contentIdGenerator');
 const { NOT_DELETED } = require('./contentMastersHelpers');
-const { FACULTY_CATEGORIES, BATCH_STATUSES, FEE_CURRENCIES } = require('./batchFacultyConstants');
+const {
+  FACULTY_CATEGORIES,
+  normalizeFacultyCategories,
+  BATCH_STATUSES,
+  FEE_CURRENCIES
+} = require('./batchFacultyConstants');
 const { safeParseJson } = require('./coursePayloadHelpers');
 
 const parseObjectIdList = (raw) => {
@@ -103,15 +108,14 @@ const validateCategories = (categories) => {
   if (!Array.isArray(categories) || categories.length === 0) {
     return { ok: false, message: 'At least one category is required' };
   }
-  const normalized = categories.map((c) => String(c).trim().toUpperCase());
-  const invalid = normalized.filter((c) => !FACULTY_CATEGORIES.includes(c));
-  if (invalid.length) {
+  const normalized = normalizeFacultyCategories(categories);
+  if (!normalized.length) {
     return {
       ok: false,
-      message: `Invalid categories. Allowed: ${FACULTY_CATEGORIES.join(', ')}`
+      message: `Invalid categories. Allowed: ${FACULTY_CATEGORIES.join(', ')} (legacy TEST maps to PRELIMS_TEST)`
     };
   }
-  return { ok: true, value: [...new Set(normalized)] };
+  return { ok: true, value: normalized };
 };
 
 const validateFacultySubjectPayload = async ({

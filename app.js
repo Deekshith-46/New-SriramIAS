@@ -69,6 +69,8 @@ const classroomRoutes = require('./routes/classroomRoutes');
 const facultySubjectRoutes = require('./routes/facultySubjectRoutes');
 const batchRoutes = require('./routes/batchRoutes');
 const batchEnrollmentRoutes = require('./routes/batchEnrollmentRoutes');
+const subjectContentFolderRoutes = require('./routes/subjectContentFolderRoutes');
+const subjectLiveClassRoutes = require('./routes/subjectLiveClassRoutes');
 const { getCentersDropdown } = require('./controllers/centerManagementController');
 const { protect } = require('./middleware/authMiddleware');
 const { requireSuperAdmin } = require('./middleware/requireSuperAdmin');
@@ -153,8 +155,11 @@ app.use('/api/teachers', teacherRoutes);
 app.use('/api/cities', cityRoutes);
 app.use('/api/classrooms', classroomRoutes);
 app.use('/api/faculty-subjects', ...superAdminAuth, facultySubjectRoutes);
+app.use('/api/folders', ...superAdminAuth, subjectContentFolderRoutes);
 app.use('/api/batches', ...superAdminAuth, batchRoutes);
 app.use('/api/batch-enrollments', ...superAdminAuth, batchEnrollmentRoutes);
+// Academic CMS live classes (Faculty Subject content module)
+app.use('/api/live-classes', ...superAdminAuth, subjectLiveClassRoutes);
 app.get('/api/centers/dropdown', protect, requireSuperAdmin, getCentersDropdown);
 app.use('/api/sub-categories', academicSubCategoryRoutes);
 
@@ -198,8 +203,8 @@ app.use('/api/payments', paymentRoutes);
 // Order Management routes
 app.use('/api/orders', orderRoutes);
 
-// Live Class routes
-app.use('/api/live-classes', liveClassRoutes);
+// Legacy LMS live classes (100ms integration — separate from Academic CMS)
+app.use('/api/lms/live-classes', liveClassRoutes);
 
 // My Courses — recorded lectures LMS
 app.use('/api/course-subjects', courseSubjectRoutes);

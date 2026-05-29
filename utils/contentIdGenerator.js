@@ -32,6 +32,10 @@ const generateBatchEnrollmentId = () =>
   generateSequentialId(require('../models/BatchEnrollment'), 'enrollmentId', 'ENR');
 const generateBatchTransferId = () =>
   generateSequentialId(require('../models/BatchTransfer'), 'transferId', 'BTR');
+const generateSubjectContentFolderId = () =>
+  generateSequentialId(require('../models/SubjectContentFolder'), 'folderId', 'FLD');
+const generateSubjectLiveClassId = () =>
+  generateSequentialId(require('../models/SubjectLiveClass'), 'liveClassId', 'LVC');
 
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
@@ -45,5 +49,7 @@ module.exports = {
   generateAcademicStudentId,
   generateBatchEnrollmentId,
   generateBatchTransferId,
+  generateSubjectContentFolderId,
+  generateSubjectLiveClassId,
   isValidObjectId
 };
