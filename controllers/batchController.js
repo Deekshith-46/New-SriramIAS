@@ -23,7 +23,11 @@ const {
   generateBatchId,
   generateBatchEnrollmentId
 } = require('../utils/contentIdGenerator');
-const { syncBatchStudentCount } = require('../utils/enrollmentErpHelpers');
+const {
+  syncBatchStudentCount,
+  formatEnrollment,
+  listActiveEnrollmentsForBatch
+} = require('../utils/enrollmentErpHelpers');
 
 const resolveBatchBanner = async (req, existing) => {
   if (req.file?.buffer) {
@@ -223,10 +227,19 @@ exports.getBatchById = async (req, res) => {
       .lean();
     if (!batch) return res.status(404).json({ success: false, message: 'Batch not found' });
 
-    const totalStudents = await syncBatchStudentCount(batch._id);
+    const [totalStudents, enrollments] = await Promise.all([
+      syncBatchStudentCount(batch._id),
+      listActiveEnrollmentsForBatch(batch._id)
+    ]);
     batch.totalStudents = totalStudents;
 
-    res.json({ success: true, data: formatBatch(batch) });
+    const data = formatBatch(batch);
+    data.students = enrollments.map((enrollment) =>
+      formatEnrollment(enrollment, { includeBatch: false })
+    );
+    data.studentCount = data.students.length;
+
+    res.json({ success: true, data });
   } catch (error) {
     console.error('Get batch by id error:', error);
     res.status(500).json({ success: false, message: 'Server error', error: error.message });

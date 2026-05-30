@@ -26,7 +26,9 @@ const {
   validateCourseForBatch,
   assertNoActiveEnrollment,
   syncBatchStudentCount,
-  findEnrollmentByRef
+  findEnrollmentByRef,
+  ENROLLMENT_POPULATE,
+  formatEnrollment
 } = require('../utils/enrollmentErpHelpers');
 
 const logBatchAudit = async (batchId, action, description, performedBy, meta = {}) => {
@@ -38,50 +40,6 @@ const logBatchAudit = async (batchId, action, description, performedBy, meta = {
     meta
   });
 };
-
-const formatEnrollment = (doc) => ({
-  _id: doc._id,
-  enrollmentId: doc.enrollmentId,
-  student: doc.student
-    ? {
-        _id: doc.student._id,
-        studentId: doc.student.studentId,
-        studentName: doc.student.studentName,
-        email: doc.student.email,
-        mobileNumber: doc.student.mobileNumber,
-        status: doc.student.status
-      }
-    : doc.student,
-  batch: doc.batch
-    ? {
-        _id: doc.batch._id,
-        batchId: doc.batch.batchId,
-        batchName: doc.batch.batchName
-      }
-    : doc.batch,
-  course: doc.course
-    ? {
-        _id: doc.course._id,
-        courseId: doc.course.courseId,
-        courseName: doc.course.courseName
-      }
-    : doc.course,
-  paymentStatus: doc.paymentStatus,
-  attendancePercentage: doc.attendancePercentage ?? 0,
-  courseProgressPercentage: doc.courseProgressPercentage ?? 0,
-  enrollmentDate: doc.enrollmentDate,
-  status: doc.status,
-  transferredFrom: doc.transferredFrom || null,
-  transferredTo: doc.transferredTo || null,
-  createdAt: doc.createdAt,
-  updatedAt: doc.updatedAt
-});
-
-const enrollmentPopulate = [
-  { path: 'student', select: 'studentId studentName email mobileNumber status' },
-  { path: 'batch', select: 'batchId batchName course status' },
-  { path: 'course', select: 'courseId courseName' }
-];
 
 const buildEnrollmentQuery = ({ batchId, paymentStatus, status, search }) => {
   const query = { ...NOT_DELETED };
@@ -201,7 +159,7 @@ exports.createBatchEnrollment = async (req, res) => {
     );
 
     const populated = await BatchEnrollment.findById(enrollment._id)
-      .populate(enrollmentPopulate)
+      .populate(ENROLLMENT_POPULATE)
       .lean();
 
     res.status(201).json({
@@ -277,14 +235,14 @@ exports.getEnrollmentsByBatch = async (req, res) => {
       total = agg[0]?.total?.[0]?.count || 0;
 
       enrollments = await BatchEnrollment.find({ _id: { $in: ids } })
-        .populate(enrollmentPopulate)
+        .populate(ENROLLMENT_POPULATE)
         .lean();
 
       const orderMap = new Map(ids.map((id, i) => [String(id), i]));
       enrollments.sort((a, b) => orderMap.get(String(a._id)) - orderMap.get(String(b._id)));
     } else {
       [enrollments, total] = await Promise.all([
-        BatchEnrollment.find(query).populate(enrollmentPopulate).sort(sort).skip(skip).limit(limit).lean(),
+        BatchEnrollment.find(query).populate(ENROLLMENT_POPULATE).sort(sort).skip(skip).limit(limit).lean(),
         BatchEnrollment.countDocuments(query)
       ]);
     }
@@ -308,7 +266,7 @@ exports.getEnrollmentsByBatch = async (req, res) => {
 exports.getBatchEnrollmentById = async (req, res) => {
   try {
     const doc = await BatchEnrollment.findOne({ _id: req.params.id, ...NOT_DELETED })
-      .populate(enrollmentPopulate)
+      .populate(ENROLLMENT_POPULATE)
       .lean();
 
     if (!doc) {
@@ -378,7 +336,7 @@ exports.updateBatchEnrollment = async (req, res) => {
     }
 
     const populated = await BatchEnrollment.findById(enrollment._id)
-      .populate(enrollmentPopulate)
+      .populate(ENROLLMENT_POPULATE)
       .lean();
 
     res.json({
@@ -410,7 +368,7 @@ exports.updateBatchEnrollmentStatus = async (req, res) => {
     const totalStudents = await syncBatchStudentCount(enrollment.batch);
 
     const populated = await BatchEnrollment.findById(enrollment._id)
-      .populate(enrollmentPopulate)
+      .populate(ENROLLMENT_POPULATE)
       .lean();
 
     res.json({
@@ -621,7 +579,7 @@ exports.moveStudentToBatch = async (req, res) => {
     ]);
 
     const populated = await BatchEnrollment.findById(newEnrollment._id)
-      .populate(enrollmentPopulate)
+      .populate(ENROLLMENT_POPULATE)
       .lean();
 
     res.json({
@@ -734,7 +692,7 @@ exports.getStudentEnrollmentHistory = async (req, res) => {
       student: studentId,
       ...NOT_DELETED
     })
-      .populate(enrollmentPopulate)
+      .populate(ENROLLMENT_POPULATE)
       .sort({ enrollmentDate: -1 })
       .lean();
 

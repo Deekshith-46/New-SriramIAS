@@ -131,6 +131,65 @@ const syncBatchStudentCount = async (batchId) => {
   return count;
 };
 
+const ENROLLMENT_POPULATE = [
+  { path: 'student', select: 'studentId studentName email mobileNumber status createdAt updatedAt' },
+  { path: 'batch', select: 'batchId batchName course status' },
+  { path: 'course', select: 'courseId courseName' }
+];
+
+const formatEnrollment = (doc, { includeBatch = true } = {}) => ({
+  _id: doc._id,
+  enrollmentId: doc.enrollmentId,
+  student: doc.student
+    ? {
+        _id: doc.student._id,
+        studentId: doc.student.studentId,
+        studentName: doc.student.studentName,
+        email: doc.student.email,
+        mobileNumber: doc.student.mobileNumber,
+        status: doc.student.status,
+        createdAt: doc.student.createdAt,
+        updatedAt: doc.student.updatedAt
+      }
+    : doc.student,
+  batch:
+    includeBatch && doc.batch
+      ? {
+          _id: doc.batch._id,
+          batchId: doc.batch.batchId,
+          batchName: doc.batch.batchName
+        }
+      : includeBatch
+        ? doc.batch
+        : undefined,
+  course: doc.course
+    ? {
+        _id: doc.course._id,
+        courseId: doc.course.courseId,
+        courseName: doc.course.courseName
+      }
+    : doc.course,
+  paymentStatus: doc.paymentStatus,
+  attendancePercentage: doc.attendancePercentage ?? 0,
+  courseProgressPercentage: doc.courseProgressPercentage ?? 0,
+  enrollmentDate: doc.enrollmentDate,
+  status: doc.status,
+  transferredFrom: doc.transferredFrom || null,
+  transferredTo: doc.transferredTo || null,
+  createdAt: doc.createdAt,
+  updatedAt: doc.updatedAt
+});
+
+const listActiveEnrollmentsForBatch = async (batchId) =>
+  BatchEnrollment.find({
+    batch: batchId,
+    status: 'ACTIVE',
+    ...NOT_DELETED
+  })
+    .populate(ENROLLMENT_POPULATE)
+    .sort({ enrollmentDate: -1 })
+    .lean();
+
 /** Resolve enrollment by MongoDB _id or display id (e.g. ENR-2024-2201). */
 const findEnrollmentByRef = async (ref, { activeOnly = false } = {}) => {
   const filter = { ...NOT_DELETED };
@@ -157,5 +216,8 @@ module.exports = {
   assertNoActiveEnrollment,
   syncBatchStudentCount,
   findEnrollmentByRef,
+  ENROLLMENT_POPULATE,
+  formatEnrollment,
+  listActiveEnrollmentsForBatch,
   PAYMENT_STATUSES
 };
