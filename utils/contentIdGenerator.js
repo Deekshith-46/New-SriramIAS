@@ -36,6 +36,16 @@ const generateSubjectContentFolderId = () =>
   generateSequentialId(require('../models/SubjectContentFolder'), 'folderId', 'FLD');
 const generateSubjectLiveClassId = () =>
   generateSequentialId(require('../models/SubjectLiveClass'), 'liveClassId', 'LVC');
+const generateSubjectRecordingId = () =>
+  generateSequentialId(require('../models/SubjectRecording'), 'recordingId', 'REC');
+const generateSubjectMainsAnswerWritingId = () =>
+  generateSequentialId(
+    require('../models/SubjectMainsAnswerWriting'),
+    'mainsAnswerWritingId',
+    'MAW'
+  );
+const generateSubjectPdfId = () =>
+  generateSequentialId(require('../models/SubjectPdf'), 'subjectPdfId', 'SPF');
 
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
@@ -51,5 +61,8 @@ module.exports = {
   generateBatchTransferId,
   generateSubjectContentFolderId,
   generateSubjectLiveClassId,
+  generateSubjectRecordingId,
+  generateSubjectMainsAnswerWritingId,
+  generateSubjectPdfId,
   isValidObjectId
 };

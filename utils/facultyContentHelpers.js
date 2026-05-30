@@ -1,5 +1,7 @@
 const FacultySubject = require('../models/FacultySubject');
 const SubjectContentFolder = require('../models/SubjectContentFolder');
+const Topic = require('../models/Topic');
+const Teacher = require('../models/Teacher');
 const Batch = require('../models/Batch');
 const Course = require('../models/Course');
 const Center = require('../models/Center');
@@ -11,11 +13,15 @@ const {
   FACULTY_CATEGORIES,
   FOLDER_STATUSES,
   PUBLISH_STATUSES,
+  RECORDING_VISIBILITY_STATUSES,
   LIVE_CLASS_TIMEZONES,
   CLASS_STATUSES,
   REPEAT_TYPES,
   WEEKDAYS,
-  MONTHLY_PATTERNS
+  MONTHLY_PATTERNS,
+  MAINS_DURATION_PRESETS,
+  MAINS_DURATION_PRESET_OPTIONS,
+  PDF_VISIBILITY_STATUSES
 } = require('./facultyContentConstants');
 
 const normalizeCategory = (value) => String(value || '').trim().toUpperCase();
@@ -458,19 +464,730 @@ const validateFolderPayload = async ({ facultySubjectId, category, folderName })
   return { ok: true, facultySubject, category: cat.value };
 };
 
+const parseTags = (raw) => {
+  if (!raw) return [];
+  if (Array.isArray(raw)) {
+    return raw.map((t) => String(t).trim()).filter(Boolean);
+  }
+  if (typeof raw === 'string') {
+    return raw
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean);
+  }
+  return [];
+};
+
+const validateTopicForFacultySubject = async (topicId, facultySubject) => {
+  if (!isValidObjectId(topicId)) {
+    return fail({
+      code: 'INVALID_TOPIC_ID',
+      field: 'topicId',
+      message: 'Invalid topic id',
+      reason: 'topicId is missing or not a valid MongoDB ObjectId.',
+      suggestions: ['Use a topic from GET /api/recordings/create-form?facultySubjectId=...']
+    });
+  }
+
+  const allowedIds = (facultySubject.topics || []).map((t) => String(t));
+  if (!allowedIds.includes(String(topicId))) {
+    return fail({
+      code: 'TOPIC_NOT_ON_FACULTY_SUBJECT',
+      field: 'topicId',
+      message: 'Topic is not linked to this faculty subject',
+      reason: 'topicId must be one of the topics selected on the faculty subject.',
+      suggestions: ['Reload topics from the create-form after selecting faculty subject.']
+    });
+  }
+
+  const topic = await Topic.findOne({
+    _id: topicId,
+    status: 'ACTIVE',
+    ...NOT_DELETED
+  }).lean();
+
+  if (!topic) {
+    return fail({
+      code: 'TOPIC_NOT_ACTIVE',
+      field: 'topicId',
+      message: 'Invalid or inactive topic',
+      reason: 'Topic was not found or is inactive.',
+      suggestions: ['Pick a topic from the faculty subject topic list.']
+    });
+  }
+
+  return { ok: true, topic };
+};
+
+const validateTeacherForRecording = async (teacherId, facultySubject) => {
+  if (!isValidObjectId(teacherId)) {
+    return fail({
+      code: 'INVALID_TEACHER_ID',
+      field: 'teacherId',
+      message: 'Invalid teacher id',
+      reason: 'teacherId is missing or not a valid MongoDB ObjectId.',
+      suggestions: ['Use the teacher assigned to this faculty subject.']
+    });
+  }
+
+  if (String(facultySubject.teacher) !== String(teacherId)) {
+    return fail({
+      code: 'TEACHER_FACULTY_MISMATCH',
+      field: 'teacherId',
+      message: 'Teacher must match the faculty subject assigned teacher',
+      reason: 'Recording teacher must be the same teacher linked on the faculty subject.',
+      suggestions: ['Use teacherId from GET /api/recordings/create-form → data.teacher._id']
+    });
+  }
+
+  const teacher = await Teacher.findOne({
+    _id: teacherId,
+    status: 'ACTIVE',
+    ...NOT_DELETED
+  }).lean();
+
+  if (!teacher) {
+    return fail({
+      code: 'TEACHER_NOT_ACTIVE',
+      field: 'teacherId',
+      message: 'Invalid or inactive teacher',
+      reason: 'Teacher was not found or is inactive.'
+    });
+  }
+
+  return { ok: true, teacher };
+};
+
+const validateRecordingPayload = async (body, { partial = false, requireVideo = false } = {}) => {
+  const errors = [];
+  const missingFields = [];
+
+  const requireField = (field, label) => {
+    if (body[field] === undefined || body[field] === null || body[field] === '') {
+      missingFields.push(field);
+      errors.push(`${label} is required`);
+      return false;
+    }
+    return true;
+  };
+
+  if (!partial || body.facultySubjectId !== undefined) requireField('facultySubjectId', 'facultySubjectId');
+  if (!partial || body.folderId !== undefined) requireField('folderId', 'folderId');
+  if (!partial || body.batchId !== undefined) requireField('batchId', 'batchId');
+  if (!partial || body.lessonName !== undefined) requireField('lessonName', 'lessonName');
+  if (!partial || body.centerId !== undefined) requireField('centerId', 'centerId');
+  if (!partial || body.topicId !== undefined) requireField('topicId', 'topicId');
+  if (!partial || body.teacherId !== undefined) requireField('teacherId', 'teacherId');
+  if (!partial || body.visibility !== undefined) requireField('visibility', 'visibility');
+
+  if (errors.length) {
+    return fail({
+      code: 'VALIDATION_REQUIRED_FIELDS',
+      message: errors.join('; '),
+      reason: 'One or more required fields are missing for this recording request.',
+      details: { missingFields },
+      suggestions: partial
+        ? ['Send only fields you want to change.']
+        : [
+            'Required on create: facultySubjectId, folderId, batchId, lessonName, centerId, topicId, teacherId, visibility, recording file'
+          ]
+    });
+  }
+
+  let facultySubject = null;
+  let folder = null;
+
+  if (body.facultySubjectId) {
+    facultySubject = await findActiveFacultySubject(body.facultySubjectId);
+    if (!facultySubject) {
+      return fail({
+        code: 'FACULTY_SUBJECT_NOT_ACTIVE',
+        field: 'facultySubjectId',
+        message: 'Invalid or inactive faculty subject',
+        suggestions: ['Use GET /api/faculty-subjects/dropdown?category=RECORDING']
+      });
+    }
+
+    const hasCat = validateFacultySubjectHasCategory(facultySubject, 'RECORDING');
+    if (!hasCat.ok) {
+      return fail({
+        code: 'FACULTY_SUBJECT_CATEGORY_DISABLED',
+        field: 'facultySubjectId',
+        message: hasCat.message,
+        reason: 'RECORDING category is not enabled on this faculty subject.',
+        suggestions: ['Enable RECORDING on the faculty subject, then create a folder.']
+      });
+    }
+  }
+
+  if (body.folderId && facultySubject) {
+    folder = await findActiveFolder(body.folderId, {
+      facultySubjectId: facultySubject._id,
+      category: 'RECORDING'
+    });
+    if (!folder) {
+      return fail({
+        code: 'FOLDER_INVALID_FOR_RECORDING',
+        field: 'folderId',
+        message: 'Invalid folder or folder does not belong to faculty subject RECORDING category',
+        suggestions: [
+          'GET /api/folders?facultySubjectId=...&category=RECORDING',
+          'POST /api/faculty-subjects/content/folders with category RECORDING'
+        ]
+      });
+    }
+  }
+
+  if (body.batchId) {
+    const batchCheck = await validateBatchForLiveClass(body.batchId, {
+      facultySubjectId: facultySubject?._id
+    });
+    if (!batchCheck.ok) return batchCheck;
+  }
+
+  if (body.centerId) {
+    const centerCheck = await validateCenterForLiveClass(body.centerId);
+    if (!centerCheck.ok) return centerCheck;
+  }
+
+  if (body.topicId && facultySubject) {
+    const topicCheck = await validateTopicForFacultySubject(body.topicId, facultySubject);
+    if (!topicCheck.ok) return topicCheck;
+  }
+
+  if (body.teacherId && facultySubject) {
+    const teacherCheck = await validateTeacherForRecording(body.teacherId, facultySubject);
+    if (!teacherCheck.ok) return teacherCheck;
+  }
+
+  let visibility = body.visibility !== undefined ? String(body.visibility).trim().toUpperCase() : 'DRAFT';
+  if (body.visibility !== undefined && !RECORDING_VISIBILITY_STATUSES.includes(visibility)) {
+    return fail({
+      code: 'INVALID_VISIBILITY',
+      field: 'visibility',
+      message: `visibility must be one of: ${RECORDING_VISIBILITY_STATUSES.join(', ')}`,
+      suggestions: ['Use PATCH /api/recordings/:id/visibility to change visibility only.']
+    });
+  }
+
+  const tags = body.tags !== undefined ? parseTags(body.tags) : [];
+
+  if (requireVideo) {
+    return fail({
+      code: 'RECORDING_FILE_REQUIRED',
+      field: 'recording',
+      message: 'Upload Recording is required',
+      reason: 'No recording video file was uploaded.',
+      suggestions: ['Send multipart field name "recording" with MP4, MOV, MKV, or AVI (max 100 MB).']
+    });
+  }
+
+  return {
+    ok: true,
+    facultySubject,
+    folder,
+    visibility,
+    tags,
+    description: body.description !== undefined ? String(body.description || '').trim() : undefined
+  };
+};
+
+/**
+ * Batch → FacultySubject (on batch) → Subject → Topics (facultySubject.topics[]).
+ * Used for recording topic dropdown after batch is selected.
+ */
+const resolveRecordingTopicsForBatch = async (batchId, facultySubjectIdOptional) => {
+  if (!isValidObjectId(batchId)) {
+    return fail({
+      code: 'INVALID_BATCH_ID',
+      field: 'batchId',
+      message: 'Invalid batch id',
+      suggestions: ['Use an id from GET /api/batches/dropdown?facultySubjectId=...']
+    });
+  }
+
+  const batch = await Batch.findOne({
+    _id: batchId,
+    status: { $in: ['ACTIVE', 'UPCOMING'] },
+    ...NOT_DELETED
+  })
+    .select('_id batchId batchName facultySubjects')
+    .lean();
+
+  if (!batch) {
+    return fail({
+      code: 'BATCH_NOT_ACTIVE',
+      field: 'batchId',
+      message: 'Invalid or inactive batch',
+      suggestions: ['Pick a batch from GET /api/batches/dropdown']
+    });
+  }
+
+  const linkedIds = (batch.facultySubjects || []).map((id) => String(id));
+  if (!linkedIds.length) {
+    return fail({
+      code: 'BATCH_NO_FACULTY_SUBJECTS',
+      field: 'batchId',
+      message: 'Batch has no faculty subjects linked',
+      reason: 'batch.facultySubjects[] is empty.',
+      suggestions: ['Link faculty subjects to this batch in Batch ERP.']
+    });
+  }
+
+  let facultySubjectId = facultySubjectIdOptional ? String(facultySubjectIdOptional).trim() : null;
+
+  if (facultySubjectId) {
+    if (!isValidObjectId(facultySubjectId) || !linkedIds.includes(facultySubjectId)) {
+      return fail({
+        code: 'FACULTY_SUBJECT_NOT_ON_BATCH',
+        field: 'facultySubjectId',
+        message: 'Faculty subject is not linked to this batch',
+        reason: 'The facultySubjectId is not in batch.facultySubjects[].',
+        suggestions: ['Use a faculty subject that appears on the selected batch.']
+      });
+    }
+  } else if (linkedIds.length === 1) {
+    facultySubjectId = linkedIds[0];
+  } else {
+    const facultySubjects = await FacultySubject.find({
+      _id: { $in: linkedIds },
+      ...NOT_DELETED
+    })
+      .select('_id facultySubjectId subjectName')
+      .lean();
+
+    return fail({
+      code: 'FACULTY_SUBJECT_ID_REQUIRED',
+      field: 'facultySubjectId',
+      message: 'facultySubjectId is required when batch has multiple faculty subjects',
+      details: {
+        batchId: String(batch._id),
+        facultySubjects: facultySubjects.map((fs) => ({
+          _id: fs._id,
+          facultySubjectId: fs.facultySubjectId,
+          subjectName: fs.subjectName
+        }))
+      },
+      suggestions: ['Pass facultySubjectId query param matching the current faculty subject screen.']
+    });
+  }
+
+  const facultySubject = await FacultySubject.findOne({
+    _id: facultySubjectId,
+    status: 'ACTIVE',
+    ...NOT_DELETED
+  })
+    .select('_id facultySubjectId subjectName subject topics teacher categories')
+    .populate('subject', 'subjectId subjectName')
+    .lean();
+
+  if (!facultySubject) {
+    return fail({
+      code: 'FACULTY_SUBJECT_NOT_ACTIVE',
+      field: 'facultySubjectId',
+      message: 'Invalid or inactive faculty subject'
+    });
+  }
+
+  const subjectRef = facultySubject.subject?._id || facultySubject.subject;
+  const topicIdList = facultySubject.topics || [];
+
+  const topics = topicIdList.length
+    ? await Topic.find({
+        _id: { $in: topicIdList },
+        subject: subjectRef,
+        status: 'ACTIVE',
+        ...NOT_DELETED
+      })
+        .select('_id topicId topicName subject')
+        .sort({ topicName: 1 })
+        .lean()
+    : [];
+
+  return {
+    ok: true,
+    batch: {
+      _id: batch._id,
+      batchId: batch.batchId,
+      batchName: batch.batchName
+    },
+    facultySubject: {
+      _id: facultySubject._id,
+      facultySubjectId: facultySubject.facultySubjectId,
+      subjectName: facultySubject.subjectName,
+      subject: facultySubject.subject
+        ? {
+            _id: facultySubject.subject._id,
+            subjectId: facultySubject.subject.subjectId,
+            subjectName: facultySubject.subject.subjectName
+          }
+        : null
+    },
+    teacherId: facultySubject.teacher,
+    topics: topics.map((t) => ({
+      _id: t._id,
+      topicId: t.topicId,
+      topicName: t.topicName
+    }))
+  };
+};
+
+const parseDateField = (value, field) => {
+  if (value === undefined || value === null || value === '') {
+    return { ok: false, message: `${field} is required` };
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return fail({
+      code: 'INVALID_DATE',
+      field,
+      message: `${field} must be a valid date`,
+      reason: `${field} could not be parsed as a date.`,
+      suggestions: ['Use ISO date format, e.g. "2026-05-30" or "2026-05-30T00:00:00.000Z"']
+    });
+  }
+  return { ok: true, value: date };
+};
+
+const resolveMainsDuration = (durationPreset, durationMinutesRaw) => {
+  const preset = String(durationPreset || '').trim().toUpperCase();
+  if (!MAINS_DURATION_PRESET_OPTIONS.includes(preset)) {
+    return fail({
+      code: 'INVALID_DURATION_PRESET',
+      field: 'durationPreset',
+      message: `durationPreset must be one of: ${MAINS_DURATION_PRESET_OPTIONS.join(', ')}`,
+      suggestions: ['Load allowed values from GET /api/mains-answer-writing/create-form → data.enums.durationPresets']
+    });
+  }
+
+  if (preset === 'CUSTOM') {
+    const customMinutes = Number(durationMinutesRaw);
+    if (!Number.isFinite(customMinutes) || customMinutes < 1) {
+      return fail({
+        code: 'CUSTOM_DURATION_REQUIRED',
+        field: 'durationMinutes',
+        message: 'durationMinutes is required when durationPreset is CUSTOM',
+        reason: 'Custom duration must be a positive number of minutes.',
+        suggestions: ['Example: durationPreset=CUSTOM, durationMinutes=45']
+      });
+    }
+    return { ok: true, durationPreset: preset, durationMinutes: Math.floor(customMinutes) };
+  }
+
+  return {
+    ok: true,
+    durationPreset: preset,
+    durationMinutes: Number(preset)
+  };
+};
+
+const validateMainsAnswerWritingPayload = async (body, { partial = false } = {}) => {
+  const errors = [];
+  const missingFields = [];
+
+  const requireField = (field, label) => {
+    if (body[field] === undefined || body[field] === null || body[field] === '') {
+      missingFields.push(field);
+      errors.push(`${label} is required`);
+      return false;
+    }
+    return true;
+  };
+
+  if (!partial || body.facultySubjectId !== undefined) requireField('facultySubjectId', 'facultySubjectId');
+  if (!partial || body.folderId !== undefined) requireField('folderId', 'folderId');
+  if (!partial || body.testName !== undefined) requireField('testName', 'testName');
+  if (!partial || body.scheduleDate !== undefined) requireField('scheduleDate', 'scheduleDate');
+  if (!partial || body.durationPreset !== undefined) requireField('durationPreset', 'durationPreset');
+  if (!partial || body.totalMarks !== undefined) requireField('totalMarks', 'totalMarks');
+  if (!partial || body.resultDate !== undefined) requireField('resultDate', 'resultDate');
+  if (!partial || body.questionsText !== undefined) requireField('questionsText', 'questionsText');
+
+  if (errors.length) {
+    return fail({
+      code: 'VALIDATION_REQUIRED_FIELDS',
+      message: errors.join('; '),
+      reason: 'One or more required fields are missing for this mains answer writing request.',
+      details: { missingFields },
+      suggestions: partial
+        ? ['Send only fields you want to change.']
+        : [
+            'Required on create: facultySubjectId, folderId, testName, scheduleDate, durationPreset, totalMarks, resultDate, questionsText, pdf file'
+          ]
+    });
+  }
+
+  let facultySubject = null;
+  let folder = null;
+
+  if (body.facultySubjectId) {
+    facultySubject = await findActiveFacultySubject(body.facultySubjectId);
+    if (!facultySubject) {
+      return fail({
+        code: 'FACULTY_SUBJECT_NOT_ACTIVE',
+        field: 'facultySubjectId',
+        message: 'Invalid or inactive faculty subject',
+        suggestions: ['Use GET /api/faculty-subjects/dropdown?category=MAINS_ANSWER_WRITING']
+      });
+    }
+
+    const hasCat = validateFacultySubjectHasCategory(facultySubject, 'MAINS_ANSWER_WRITING');
+    if (!hasCat.ok) {
+      return fail({
+        code: 'FACULTY_SUBJECT_CATEGORY_DISABLED',
+        field: 'facultySubjectId',
+        message: hasCat.message,
+        reason: 'MAINS_ANSWER_WRITING category is not enabled on this faculty subject.',
+        suggestions: ['Enable MAINS_ANSWER_WRITING on the faculty subject, then create a folder.']
+      });
+    }
+  }
+
+  if (body.folderId && facultySubject) {
+    folder = await findActiveFolder(body.folderId, {
+      facultySubjectId: facultySubject._id,
+      category: 'MAINS_ANSWER_WRITING'
+    });
+    if (!folder) {
+      return fail({
+        code: 'FOLDER_INVALID_FOR_MAINS_ANSWER_WRITING',
+        field: 'folderId',
+        message: 'Invalid folder or folder does not belong to faculty subject MAINS_ANSWER_WRITING category',
+        suggestions: [
+          'GET /api/folders?facultySubjectId=...&category=MAINS_ANSWER_WRITING',
+          'POST /api/faculty-subjects/content/folders with category MAINS_ANSWER_WRITING'
+        ]
+      });
+    }
+  }
+
+  let scheduleDate = null;
+  if (body.scheduleDate !== undefined) {
+    const scheduleCheck = parseDateField(body.scheduleDate, 'scheduleDate');
+    if (!scheduleCheck.ok) return scheduleCheck;
+    scheduleDate = scheduleCheck.value;
+  }
+
+  let resultDate = null;
+  if (body.resultDate !== undefined) {
+    const resultCheck = parseDateField(body.resultDate, 'resultDate');
+    if (!resultCheck.ok) return resultCheck;
+    resultDate = resultCheck.value;
+  }
+
+  if (scheduleDate && resultDate && resultDate < scheduleDate) {
+    return fail({
+      code: 'INVALID_RESULT_DATE',
+      field: 'resultDate',
+      message: 'resultDate must be on or after scheduleDate',
+      reason: 'Result date cannot be before the test schedule date.',
+      suggestions: ['Set resultDate to the same day or after scheduleDate.']
+    });
+  }
+
+  let durationPreset = body.durationPreset;
+  let durationMinutes = body.durationMinutes;
+  if (body.durationPreset !== undefined || body.durationMinutes !== undefined) {
+    const durationCheck = resolveMainsDuration(
+      body.durationPreset ?? durationPreset,
+      body.durationMinutes ?? durationMinutes
+    );
+    if (!durationCheck.ok) return durationCheck;
+    durationPreset = durationCheck.durationPreset;
+    durationMinutes = durationCheck.durationMinutes;
+  }
+
+  let totalMarks = body.totalMarks;
+  if (body.totalMarks !== undefined) {
+    const marks = Number(body.totalMarks);
+    if (!Number.isFinite(marks) || marks < 1) {
+      return fail({
+        code: 'INVALID_TOTAL_MARKS',
+        field: 'totalMarks',
+        message: 'totalMarks must be a positive number',
+        suggestions: ['Example: 200']
+      });
+    }
+    totalMarks = marks;
+  }
+
+  let publishStatus =
+    body.publishStatus !== undefined
+      ? String(body.publishStatus).trim().toUpperCase()
+      : 'DRAFT';
+  if (body.publishStatus !== undefined && !PUBLISH_STATUSES.includes(publishStatus)) {
+    return fail({
+      code: 'INVALID_PUBLISH_STATUS',
+      field: 'publishStatus',
+      message: `publishStatus must be one of: ${PUBLISH_STATUSES.join(', ')}`,
+      suggestions: ['Use PATCH /api/mains-answer-writing/:id/publish-status to change publish state only.']
+    });
+  }
+
+  const questionsText =
+    body.questionsText !== undefined ? String(body.questionsText).trim() : undefined;
+  if (body.questionsText !== undefined && !questionsText) {
+    return fail({
+      code: 'QUESTIONS_TEXT_REQUIRED',
+      field: 'questionsText',
+      message: 'Write Questions Manually is required',
+      reason: 'questionsText cannot be empty.',
+      suggestions: ['Paste or type questions in the text area.']
+    });
+  }
+
+  return {
+    ok: true,
+    facultySubject,
+    folder,
+    scheduleDate,
+    resultDate,
+    durationPreset,
+    durationMinutes,
+    totalMarks,
+    publishStatus,
+    questionsText
+  };
+};
+
+const validateSubjectPdfPayload = async (body, { partial = false } = {}) => {
+  const errors = [];
+  const missingFields = [];
+
+  const requireField = (field, label) => {
+    if (body[field] === undefined || body[field] === null || body[field] === '') {
+      missingFields.push(field);
+      errors.push(`${label} is required`);
+      return false;
+    }
+    return true;
+  };
+
+  if (!partial || body.facultySubjectId !== undefined) requireField('facultySubjectId', 'facultySubjectId');
+  if (!partial || body.folderId !== undefined) requireField('folderId', 'folderId');
+  if (!partial || body.batchId !== undefined) requireField('batchId', 'batchId');
+  if (!partial || body.pdfTitle !== undefined) requireField('pdfTitle', 'pdfTitle');
+  if (!partial || body.visibility !== undefined) requireField('visibility', 'visibility');
+
+  if (errors.length) {
+    return fail({
+      code: 'VALIDATION_REQUIRED_FIELDS',
+      message: errors.join('; '),
+      reason: 'One or more required fields are missing for this PDF request.',
+      details: { missingFields },
+      suggestions: partial
+        ? ['Send only fields you want to change.']
+        : [
+            'Required on create: facultySubjectId, folderId, batchId, pdfTitle, visibility, pdf file'
+          ]
+    });
+  }
+
+  let facultySubject = null;
+  let folder = null;
+
+  if (body.facultySubjectId) {
+    facultySubject = await findActiveFacultySubject(body.facultySubjectId);
+    if (!facultySubject) {
+      return fail({
+        code: 'FACULTY_SUBJECT_NOT_ACTIVE',
+        field: 'facultySubjectId',
+        message: 'Invalid or inactive faculty subject',
+        suggestions: ['Use GET /api/faculty-subjects/dropdown?category=PDF']
+      });
+    }
+
+    const hasCat = validateFacultySubjectHasCategory(facultySubject, 'PDF');
+    if (!hasCat.ok) {
+      return fail({
+        code: 'FACULTY_SUBJECT_CATEGORY_DISABLED',
+        field: 'facultySubjectId',
+        message: hasCat.message,
+        reason: 'PDF category is not enabled on this faculty subject.',
+        suggestions: ['Enable PDF on the faculty subject, then create a folder.']
+      });
+    }
+  }
+
+  if (body.folderId && facultySubject) {
+    folder = await findActiveFolder(body.folderId, {
+      facultySubjectId: facultySubject._id,
+      category: 'PDF'
+    });
+    if (!folder) {
+      return fail({
+        code: 'FOLDER_INVALID_FOR_PDF',
+        field: 'folderId',
+        message: 'Invalid folder or folder does not belong to faculty subject PDF category',
+        suggestions: [
+          'GET /api/folders?facultySubjectId=...&category=PDF',
+          'POST /api/faculty-subjects/content/folders with category PDF'
+        ]
+      });
+    }
+  }
+
+  if (body.batchId) {
+    const batchCheck = await validateBatchForLiveClass(body.batchId, {
+      facultySubjectId: facultySubject?._id
+    });
+    if (!batchCheck.ok) return batchCheck;
+  }
+
+  let visibility =
+    body.visibility !== undefined ? String(body.visibility).trim().toUpperCase() : 'DRAFT';
+  if (body.visibility !== undefined && !PDF_VISIBILITY_STATUSES.includes(visibility)) {
+    return fail({
+      code: 'INVALID_VISIBILITY',
+      field: 'visibility',
+      message: `visibility must be one of: ${PDF_VISIBILITY_STATUSES.join(', ')}`,
+      suggestions: ['Use PATCH /api/subject-pdfs/:id/visibility to change visibility only.']
+    });
+  }
+
+  const tags = body.tags !== undefined ? parseTags(body.tags) : [];
+
+  if (body.pdfTitle !== undefined && !String(body.pdfTitle).trim()) {
+    return fail({
+      code: 'PDF_TITLE_REQUIRED',
+      field: 'pdfTitle',
+      message: 'PDF title is required',
+      reason: 'pdfTitle cannot be empty.'
+    });
+  }
+
+  return {
+    ok: true,
+    facultySubject,
+    folder,
+    visibility,
+    tags,
+    description: body.description !== undefined ? String(body.description || '').trim() : undefined
+  };
+};
+
 module.exports = {
   FACULTY_CATEGORIES,
   FOLDER_STATUSES,
   PUBLISH_STATUSES,
+  RECORDING_VISIBILITY_STATUSES,
+  PDF_VISIBILITY_STATUSES,
   LIVE_CLASS_TIMEZONES,
   CLASS_STATUSES,
+  MAINS_DURATION_PRESETS,
+  MAINS_DURATION_PRESET_OPTIONS,
   validateCategory,
   findActiveFacultySubject,
   findActiveFolder,
   validateFolderPayload,
   validateLiveClassPayload,
+  validateRecordingPayload,
+  validateMainsAnswerWritingPayload,
+  validateSubjectPdfPayload,
+  resolveRecordingTopicsForBatch,
   validateBatchForLiveClass,
   validateCenterForLiveClass,
   validateClassroomForLiveClass,
-  validateRecurrence
+  validateRecurrence,
+  parseTags
 };

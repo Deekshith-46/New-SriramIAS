@@ -71,6 +71,9 @@ const batchRoutes = require('./routes/batchRoutes');
 const batchEnrollmentRoutes = require('./routes/batchEnrollmentRoutes');
 const subjectContentFolderRoutes = require('./routes/subjectContentFolderRoutes');
 const subjectLiveClassRoutes = require('./routes/subjectLiveClassRoutes');
+const subjectRecordingRoutes = require('./routes/subjectRecordingRoutes');
+const subjectMainsAnswerWritingRoutes = require('./routes/subjectMainsAnswerWritingRoutes');
+const subjectPdfRoutes = require('./routes/subjectPdfRoutes');
 const { getCentersDropdown } = require('./controllers/centerManagementController');
 const { protect } = require('./middleware/authMiddleware');
 const { requireSuperAdmin } = require('./middleware/requireSuperAdmin');
@@ -160,6 +163,9 @@ app.use('/api/batches', ...superAdminAuth, batchRoutes);
 app.use('/api/batch-enrollments', ...superAdminAuth, batchEnrollmentRoutes);
 // Academic CMS live classes (Faculty Subject content module)
 app.use('/api/live-classes', ...superAdminAuth, subjectLiveClassRoutes);
+app.use('/api/recordings', ...superAdminAuth, subjectRecordingRoutes);
+app.use('/api/mains-answer-writing', ...superAdminAuth, subjectMainsAnswerWritingRoutes);
+app.use('/api/subject-pdfs', ...superAdminAuth, subjectPdfRoutes);
 app.get('/api/centers/dropdown', protect, requireSuperAdmin, getCentersDropdown);
 app.use('/api/sub-categories', academicSubCategoryRoutes);
 

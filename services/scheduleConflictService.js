@@ -1,5 +1,8 @@
 const mongoose = require('mongoose');
 const SubjectLiveClass = require('../models/SubjectLiveClass');
+const SubjectRecording = require('../models/SubjectRecording');
+const SubjectMainsAnswerWriting = require('../models/SubjectMainsAnswerWriting');
+const SubjectPdf = require('../models/SubjectPdf');
 const FacultySubject = require('../models/FacultySubject');
 const { isValidObjectId } = require('../utils/contentIdGenerator');
 const { NOT_DELETED } = require('../utils/contentMastersHelpers');
@@ -379,22 +382,31 @@ const assertFolderCanBeDeleted = async (folderId) => {
     };
   }
 
-  const count = await SubjectLiveClass.countDocuments({
-    folderId,
-    ...NOT_DELETED
-  });
+  const [liveClassCount, recordingCount, mainsAnswerWritingCount, subjectPdfCount] = await Promise.all([
+    SubjectLiveClass.countDocuments({ folderId, ...NOT_DELETED }),
+    SubjectRecording.countDocuments({ folderId, ...NOT_DELETED }),
+    SubjectMainsAnswerWriting.countDocuments({ folderId, ...NOT_DELETED }),
+    SubjectPdf.countDocuments({ folderId, ...NOT_DELETED })
+  ]);
 
-  if (count > 0) {
+  const total = liveClassCount + recordingCount + mainsAnswerWritingCount + subjectPdfCount;
+  if (total > 0) {
     return {
       ok: false,
-      errorCode: 'FOLDER_HAS_LIVE_CLASSES',
-      message: `Cannot delete folder: ${count} live class(es) still exist in this folder. Remove or move them first.`,
-      reason: 'Folders with live classes cannot be deleted (REQ-6).',
+      errorCode: 'FOLDER_HAS_CONTENT',
+      message: `Cannot delete folder: ${total} item(s) still exist in this folder. Remove them first.`,
+      reason: 'Folders with content cannot be deleted.',
       field: 'folderId',
-      details: { liveClassCount: count },
+      details: {
+        liveClassCount,
+        recordingCount,
+        mainsAnswerWritingCount,
+        subjectPdfCount,
+        contentCount: total
+      },
       suggestions: [
-        'Delete or move all live classes in this folder first.',
-        'Use GET /api/live-classes?folderId=... to list classes in the folder.'
+        'Delete or move all content in this folder first.',
+        'Use GET /api/live-classes?folderId=..., GET /api/recordings?folderId=..., GET /api/mains-answer-writing?folderId=..., or GET /api/subject-pdfs?folderId=...'
       ]
     };
   }

@@ -1,5 +1,9 @@
 const SubjectContentFolder = require('../models/SubjectContentFolder');
 const SubjectLiveClass = require('../models/SubjectLiveClass');
+const SubjectRecording = require('../models/SubjectRecording');
+const SubjectMainsAnswerWriting = require('../models/SubjectMainsAnswerWriting');
+const SubjectPdf = require('../models/SubjectPdf');
+const { RECORDING_VISIBILITY_STATUSES, PDF_VISIBILITY_STATUSES } = require('../utils/facultyContentConstants');
 const { assertFolderCanBeDeleted } = require('../services/scheduleConflictService');
 const {
   generateSubjectContentFolderId,
@@ -233,6 +237,89 @@ exports.getFolderContentSummary = async (req, res) => {
     }
 
     const baseMatch = { folderId: folder._id, ...NOT_DELETED };
+
+    if (folder.category === 'RECORDING') {
+      const counts = await Promise.all(
+        RECORDING_VISIBILITY_STATUSES.map((visibility) =>
+          SubjectRecording.countDocuments({ ...baseMatch, visibility })
+        )
+      );
+      const recordingCount = counts.reduce((a, b) => a + b, 0);
+      const viewsAgg = await SubjectRecording.aggregate([
+        { $match: baseMatch },
+        { $group: { _id: null, totalViews: { $sum: '$viewCount' } } }
+      ]);
+
+      const data = {
+        folderId: folder.folderId,
+        folderName: folder.folderName,
+        category: folder.category,
+        recordingCount,
+        totalViews: viewsAgg[0]?.totalViews || 0
+      };
+      RECORDING_VISIBILITY_STATUSES.forEach((status, index) => {
+        const key =
+          status === 'VISIBILITY'
+            ? 'visibilityCount'
+            : `${status.charAt(0)}${status.slice(1).toLowerCase()}Count`;
+        data[key] = counts[index];
+      });
+
+      return res.json({ success: true, data });
+    }
+
+    if (folder.category === 'MAINS_ANSWER_WRITING') {
+      const [total, published, draft, unpublished] = await Promise.all([
+        SubjectMainsAnswerWriting.countDocuments(baseMatch),
+        SubjectMainsAnswerWriting.countDocuments({ ...baseMatch, publishStatus: 'PUBLISHED' }),
+        SubjectMainsAnswerWriting.countDocuments({ ...baseMatch, publishStatus: 'DRAFT' }),
+        SubjectMainsAnswerWriting.countDocuments({ ...baseMatch, publishStatus: 'UNPUBLISHED' })
+      ]);
+
+      return res.json({
+        success: true,
+        data: {
+          folderId: folder.folderId,
+          folderName: folder.folderName,
+          category: folder.category,
+          mainsAnswerWritingCount: total,
+          publishedCount: published,
+          draftCount: draft,
+          unpublishedCount: unpublished
+        }
+      });
+    }
+
+    if (folder.category === 'PDF') {
+      const counts = await Promise.all(
+        PDF_VISIBILITY_STATUSES.map((visibility) =>
+          SubjectPdf.countDocuments({ ...baseMatch, visibility })
+        )
+      );
+      const pdfCount = counts.reduce((a, b) => a + b, 0);
+      const viewsAgg = await SubjectPdf.aggregate([
+        { $match: baseMatch },
+        { $group: { _id: null, totalViews: { $sum: '$viewCount' } } }
+      ]);
+
+      const data = {
+        folderId: folder.folderId,
+        folderName: folder.folderName,
+        category: folder.category,
+        pdfCount,
+        totalViews: viewsAgg[0]?.totalViews || 0
+      };
+      PDF_VISIBILITY_STATUSES.forEach((status, index) => {
+        const key =
+          status === 'VISIBILITY'
+            ? 'visibilityCount'
+            : `${status.charAt(0)}${status.slice(1).toLowerCase()}Count`;
+        data[key] = counts[index];
+      });
+
+      return res.json({ success: true, data });
+    }
+
     const [total, published, draft, unpublished] = await Promise.all([
       SubjectLiveClass.countDocuments(baseMatch),
       SubjectLiveClass.countDocuments({ ...baseMatch, publishStatus: 'PUBLISHED' }),
@@ -245,6 +332,7 @@ exports.getFolderContentSummary = async (req, res) => {
       data: {
         folderId: folder.folderId,
         folderName: folder.folderName,
+        category: folder.category,
         liveClassCount: total,
         publishedCount: published,
         draftCount: draft,

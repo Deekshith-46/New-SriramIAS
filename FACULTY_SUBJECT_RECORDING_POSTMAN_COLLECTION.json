@@ -1,0 +1,368 @@
+{
+  "info": {
+    "name": "Sriram IAS - Faculty Subject RECORDING CMS",
+    "description": "Academic CMS recordings (category RECORDING). Run「0. Auth」first, then folders, then recordings.\n\nNOTE: FACULTY_SUBJECT_RECORDING_API_SPEC.json is documentation only — do NOT import it into Postman. Import this file instead.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{SuperAdminToken}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "BASE_URL", "value": "http://localhost:5000" },
+    { "key": "SuperAdminToken", "value": "" },
+    { "key": "facultySubjectId", "value": "" },
+    { "key": "folderId", "value": "" },
+    { "key": "recordingId", "value": "" },
+    { "key": "batchId", "value": "" },
+    { "key": "centerId", "value": "" },
+    { "key": "topicId", "value": "" },
+    { "key": "teacherId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. Auth",
+      "item": [
+        {
+          "name": "Login Super Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "const token = j.token || j.data?.token;",
+                  "if (token) pm.collectionVariables.set('SuperAdminToken', token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{BASE_URL}}/api/auth/login-super-admin",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@sriram.com\",\n  \"password\": \"admin123\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "0.5 Dropdowns & Create Form",
+      "item": [
+        {
+          "name": "GET Faculty Subjects Dropdown (RECORDING)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?.[0]?._id) pm.collectionVariables.set('facultySubjectId', j.data[0]._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/faculty-subjects/dropdown?category=RECORDING"
+          }
+        },
+        {
+          "name": "GET Topics Dropdown (by batchId)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?.[0]?._id) pm.collectionVariables.set('topicId', j.data[0]._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/recordings/topics-dropdown?batchId={{batchId}}&facultySubjectId={{facultySubjectId}}",
+            "description": "Batch → facultySubject on batch → subject → topics. Pass facultySubjectId when batch has multiple faculty subjects."
+          }
+        },
+        {
+          "name": "GET Recording Create Form (topics + teacher)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?.topics?.[0]?._id) pm.collectionVariables.set('topicId', j.data.topics[0]._id);",
+                  "if (j?.data?.teacher?._id) pm.collectionVariables.set('teacherId', j.data.teacher._id);",
+                  "if (j?.data?.folders?.[0]?._id) pm.collectionVariables.set('folderId', j.data.folders[0]._id);",
+                  "if (j?.data?.batches?.[0]?._id) pm.collectionVariables.set('batchId', j.data.batches[0]._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/recordings/create-form?facultySubjectId={{facultySubjectId}}"
+          }
+        },
+        {
+          "name": "GET Batches Dropdown",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?.[0]?._id) pm.collectionVariables.set('batchId', j.data[0]._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/batches/dropdown?facultySubjectId={{facultySubjectId}}"
+          }
+        },
+        {
+          "name": "GET Centers Dropdown",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?.[0]?._id) pm.collectionVariables.set('centerId', j.data[0]._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/centers/dropdown"
+          }
+        },
+        {
+          "name": "GET Folders (RECORDING)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?.[0]?._id) pm.collectionVariables.set('folderId', j.data[0]._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/folders?facultySubjectId={{facultySubjectId}}&category=RECORDING"
+          }
+        },
+        {
+          "name": "GET Folder Content Summary",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/folders/{{folderId}}/content-summary"
+          }
+        },
+        {
+          "name": "GET Recordings Dashboard Summary",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/recordings/dashboard-summary?facultySubjectId={{facultySubjectId}}&folderId={{folderId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Folders (RECORDING)",
+      "item": [
+        {
+          "name": "POST Create Folder (RECORDING)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?._id) pm.collectionVariables.set('folderId', j.data._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{BASE_URL}}/api/faculty-subjects/content/folders",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"facultySubjectId\": \"{{facultySubjectId}}\",\n  \"category\": \"RECORDING\",\n  \"folderName\": \"New Record\",\n  \"description\": \"Recording folder\"\n}"
+            }
+          }
+        },
+        {
+          "name": "GET Content Tree",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/faculty-subjects/{{facultySubjectId}}/content-tree"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Recordings",
+      "item": [
+        {
+          "name": "POST Create Recording (multipart)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?._id) pm.collectionVariables.set('recordingId', j.data._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/recordings",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "facultySubjectId", "value": "{{facultySubjectId}}", "type": "text" },
+                { "key": "folderId", "value": "{{folderId}}", "type": "text" },
+                { "key": "batchId", "value": "{{batchId}}", "type": "text" },
+                { "key": "lessonName", "value": "Historical Background recording", "type": "text" },
+                { "key": "centerId", "value": "{{centerId}}", "type": "text" },
+                { "key": "topicId", "value": "{{topicId}}", "type": "text" },
+                { "key": "teacherId", "value": "{{teacherId}}", "type": "text" },
+                { "key": "tags", "value": "prelims,history", "type": "text" },
+                { "key": "visibility", "value": "DRAFT", "type": "text" },
+                { "key": "description", "value": "Recording description", "type": "text" },
+                {
+                  "key": "recording",
+                  "description": "Select MP4/MOV/MKV/AVI file (max 100 MB)",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET List Recordings",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/recordings?facultySubjectId={{facultySubjectId}}&folderId={{folderId}}&search=&page=1&limit=20"
+          }
+        },
+        {
+          "name": "GET Recording By Id (view)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/recordings/{{recordingId}}"
+          }
+        },
+        {
+          "name": "POST Play Recording (video + viewCount)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/recordings/{{recordingId}}/play"
+          }
+        },
+        {
+          "name": "PATCH Change Visibility (PUBLISHED)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{BASE_URL}}/api/recordings/{{recordingId}}/visibility",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"visibility\": \"PUBLISHED\"\n}"
+            }
+          }
+        },
+        {
+          "name": "PUT Update Recording (JSON — no new file)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{BASE_URL}}/api/recordings/{{recordingId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lessonName\": \"Historical Background recording (updated)\",\n  \"tags\": \"prelims,history,updated\",\n  \"description\": \"Updated description\"\n}"
+            }
+          }
+        },
+        {
+          "name": "PUT Update Recording (multipart — replace video)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/recordings/{{recordingId}}",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "lessonName", "value": "Historical Background recording (new file)", "type": "text" },
+                {
+                  "key": "recording",
+                  "description": "Optional new video file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE Recording",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/recordings/{{recordingId}}"
+          }
+        }
+      ]
+    }
+  ]
+}
