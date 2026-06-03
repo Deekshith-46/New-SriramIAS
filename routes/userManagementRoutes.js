@@ -6,7 +6,8 @@ const {
   createUnifiedUser,
   getUpdateFields,
   getSingleUser,
-  updateUnifiedUser
+  updateUnifiedUser,
+  deleteUnifiedUser
 } = require('../controllers/userManagementController');
 const { validate, validations } = require('../middleware/validation');
 
@@ -38,5 +39,6 @@ router.get('/', superAdmin, getUnifiedUsers);
 router.post('/', superAdmin, validateCreateUser, createUnifiedUser);
 router.get('/:id', superAdmin, getSingleUser);
 router.put('/:id', superAdmin, updateUnifiedUser);
+router.delete('/:id', superAdmin, deleteUnifiedUser);
 
 module.exports = router;

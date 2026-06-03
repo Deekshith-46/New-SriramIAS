@@ -76,7 +76,9 @@ Category filter tags on the UI map to `facultySubject.categories[]`.
 | GET | `/api/mains-answer-writing/create-form` | Form defaults, enums, folders |
 | GET | `/api/mains-answer-writing/dashboard-summary` | Counts by publish status |
 | POST | `/api/mains-answer-writing` | Create entry (requires PDF) |
-| GET | `/api/mains-answer-writing` | List (filter by `publishStatus`, `folderId`, `search`) |
+| GET | `/api/mains-answer-writing/filter/subjects-dropdown` | Subject filter dropdown (faculty subjects with MAINS) |
+| GET | `/api/mains-answer-writing/filter/topics-dropdown` | Topic filter dropdown (`?facultySubjectId=`) |
+| GET | `/api/mains-answer-writing` | List (filter by subject, topic, folder, publish, search) |
 | GET | `/api/mains-answer-writing/:id` | Get one entry |
 | PUT | `/api/mains-answer-writing/:id` | Update (optional new PDF) |
 | PATCH | `/api/mains-answer-writing/:id/publish-status` | Change DRAFT / PUBLISHED / UNPUBLISHED |
@@ -105,6 +107,26 @@ Category filter tags on the UI map to `facultySubject.categories[]`.
 **Publish Changes** → `PATCH /api/mains-answer-writing/:id/publish-status` with `{ "publishStatus": "PUBLISHED" }`
 
 **Unpublish** → same endpoint with `{ "publishStatus": "UNPUBLISHED" }`
+
+## List filters (admin + student published)
+
+| Query | Description |
+|-------|-------------|
+| `facultySubjectId` | Faculty subject Mongo `_id` |
+| `subjectName` | Partial match on faculty subject display name |
+| `subjectId` | Master `Subject` Mongo `_id` |
+| `topicId` | Topic Mongo `_id` |
+| `topicName` | Partial match on topic name |
+| `folderId` | Content folder Mongo `_id` |
+| `publishStatus` | `DRAFT` / `PUBLISHED` / `UNPUBLISHED` (admin list) |
+| `search` | testName, subject, topic, folder |
+
+Student published list: `GET /api/mains-answer-writing/published?subjectName=Polity&topicId=...`
+
+Student filter dropdowns:
+
+- `GET /api/mains-answer-writing/published/filter/subjects-dropdown`
+- `GET /api/mains-answer-writing/published/filter/topics-dropdown?facultySubjectId=`
 
 ## Create Example (multipart)
 

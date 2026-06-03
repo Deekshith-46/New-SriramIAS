@@ -26,8 +26,9 @@ const generateClassroomId = () =>
 const generateFacultySubjectId = () =>
   generateSequentialId(require('../models/FacultySubject'), 'facultySubjectId', 'FSU');
 const generateBatchId = () => generateSequentialId(require('../models/Batch'), 'batchId', 'BAT');
-const generateAcademicStudentId = () =>
-  generateSequentialId(require('../models/AcademicStudent'), 'studentId', 'STU');
+const generateStudentId = () =>
+  generateSequentialId(require('../models/Student'), 'studentId', 'STU');
+/** @deprecated Use generateStudentId — same collection (unified Student model) */
 const generateBatchEnrollmentId = () =>
   generateSequentialId(require('../models/BatchEnrollment'), 'enrollmentId', 'ENR');
 const generateBatchTransferId = () =>
@@ -46,6 +47,12 @@ const generateSubjectMainsAnswerWritingId = () =>
   );
 const generateSubjectPdfId = () =>
   generateSequentialId(require('../models/SubjectPdf'), 'subjectPdfId', 'SPF');
+const generateExamInstructionId = () =>
+  generateSequentialId(require('../models/ExamPatternInstruction'), 'instructionId', 'S-', 4);
+const generateTestConfigSectionId = () =>
+  generateSequentialId(require('../models/TestConfigSection'), 'sectionId', 'SEC-', 4);
+const generateTestConfigLanguageId = () =>
+  generateSequentialId(require('../models/TestConfigLanguage'), 'languageId', 'LG-', 4);
 
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
@@ -56,7 +63,7 @@ module.exports = {
   generateClassroomId,
   generateFacultySubjectId,
   generateBatchId,
-  generateAcademicStudentId,
+  generateStudentId,
   generateBatchEnrollmentId,
   generateBatchTransferId,
   generateSubjectContentFolderId,
@@ -64,5 +71,8 @@ module.exports = {
   generateSubjectRecordingId,
   generateSubjectMainsAnswerWritingId,
   generateSubjectPdfId,
+  generateExamInstructionId,
+  generateTestConfigSectionId,
+  generateTestConfigLanguageId,
   isValidObjectId
 };

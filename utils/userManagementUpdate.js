@@ -1,7 +1,14 @@
 const Center = require('../models/Center');
 const Role = require('../models/Role');
+const User = require('../models/User');
 const Student = require('../models/Student');
 const Employee = require('../models/Employee');
+const { NOT_DELETED } = require('./contentMastersHelpers');
+const {
+  ensureStudentProfileForUser,
+  assertStudentContactAvailable,
+  ACTIVE_STUDENT
+} = require('./studentService');
 const { SESSION_TIMEOUTS } = require('../models/AdminAccess');
 
 const applyAdminAccessUpdate = async (admin, body) => {
@@ -146,6 +153,29 @@ const applyUserAccountUpdate = async (user, body) => {
       }
     }
   }
+
+  if (user.role === 'student') {
+    const student = await Student.findOne({ userId: user._id, ...ACTIVE_STUDENT });
+    if (student) {
+      const nextEmail = email !== undefined ? user.email : student.email;
+      const nextMobile = mobile !== undefined ? user.mobile : student.mobileNumber;
+      const dup = await assertStudentContactAvailable({
+        email: nextEmail,
+        mobileNumber: nextMobile,
+        excludeId: student._id
+      });
+      if (!dup.ok) {
+        const err = new Error(dup.message);
+        err.statusCode = 409;
+        throw err;
+      }
+      if (name !== undefined) student.studentName = user.name;
+      if (email !== undefined) student.email = user.email;
+      if (mobile !== undefined) student.mobileNumber = user.mobile;
+      if (centerRef !== undefined) student.centerId = user.center || null;
+      await student.save();
+    }
+  }
 };
 
 const applyStudentProfileUpdate = async (userId, body) => {
@@ -167,9 +197,17 @@ const applyStudentProfileUpdate = async (userId, body) => {
 
   if (!hasStudentFields) return null;
 
-  let student = await Student.findOne({ userId });
+  let student = await Student.findOne({ userId, ...ACTIVE_STUDENT });
   if (!student) {
-    student = await Student.create({ userId });
+    const user = await User.findById(userId);
+    if (!user) return null;
+    await ensureStudentProfileForUser(user, {
+      parentName,
+      parentEmail,
+      parentMobile
+    });
+    student = await Student.findOne({ userId, ...ACTIVE_STUDENT });
+    if (!student) return null;
   }
 
   if (parentName !== undefined) student.parentName = String(parentName).trim();
@@ -220,9 +258,86 @@ const applyEmployeeProfileUpdate = async (userId, body) => {
   return employee;
 };
 
+/** Batch-only student (no portal User) — update master Student row */
+const applyBatchOnlyStudentUpdate = async (student, body) => {
+  const name = body.name ?? body.fullName ?? body.studentName;
+  const email = body.email;
+  const mobile = body.mobile ?? body.phoneNumber ?? body.mobileNumber;
+  const centerRef = body.centerId ?? body.center;
+  const active = body.isActive ?? body.accountStatus ?? body.status;
+
+  if (name !== undefined) student.studentName = String(name).trim();
+
+  const nextEmail = email !== undefined ? String(email).toLowerCase().trim() : student.email;
+  const nextMobile =
+    mobile !== undefined ? String(mobile).trim() : student.mobileNumber;
+
+  if (email !== undefined || mobile !== undefined) {
+    const dup = await assertStudentContactAvailable({
+      email: nextEmail,
+      mobileNumber: nextMobile,
+      excludeId: student._id
+    });
+    if (!dup.ok) {
+      const err = new Error(dup.message);
+      err.statusCode = 409;
+      throw err;
+    }
+    if (email !== undefined) student.email = nextEmail;
+    if (mobile !== undefined) student.mobileNumber = nextMobile;
+  }
+
+  if (centerRef !== undefined) {
+    if (centerRef === null || centerRef === '') {
+      student.centerId = null;
+    } else {
+      const center = await Center.findOne({ _id: centerRef, isDeleted: false });
+      if (!center) {
+        const err = new Error('Center not found');
+        err.statusCode = 404;
+        throw err;
+      }
+      student.centerId = centerRef;
+    }
+  }
+
+  if (active !== undefined) {
+    const isActive =
+      active === true ||
+      active === 'ACTIVE' ||
+      active === 'active' ||
+      active === 1;
+    student.status = isActive ? 'ACTIVE' : 'INACTIVE';
+  }
+
+  const parentFields = [
+    'parentName',
+    'parentMobile',
+    'parentEmail',
+    'parentMobileVerified',
+    'parentEmailVerified'
+  ];
+  if (parentFields.some((k) => body[k] !== undefined)) {
+    if (body.parentName !== undefined) student.parentName = String(body.parentName).trim();
+    if (body.parentMobile !== undefined) student.parentMobile = String(body.parentMobile).trim();
+    if (body.parentEmail !== undefined) {
+      student.parentEmail = String(body.parentEmail).toLowerCase().trim();
+    }
+    if (body.parentMobileVerified !== undefined) {
+      student.parentMobileVerified = !!body.parentMobileVerified;
+    }
+    if (body.parentEmailVerified !== undefined) {
+      student.parentEmailVerified = !!body.parentEmailVerified;
+    }
+  }
+
+  await student.save();
+};
+
 module.exports = {
   applyAdminAccessUpdate,
   applyUserAccountUpdate,
   applyStudentProfileUpdate,
-  applyEmployeeProfileUpdate
+  applyEmployeeProfileUpdate,
+  applyBatchOnlyStudentUpdate
 };

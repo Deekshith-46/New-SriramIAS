@@ -1,0 +1,357 @@
+{
+  "info": {
+    "name": "Sriram IAS - Mains Management (Super Admin)",
+    "description": "Test Management → Mains Management (Levels 1–4)\n\nAuth: Super Admin Bearer token on /api/mains-management/*\nStudent token for PDF download tracking.\n\nFlow:\n1. Login Super Admin\n2. Dashboard + Faculty Subjects list\n3. Faculty Subject Details → copy topicId\n4. Topic Tests → copy testId\n5. Test Results (filters + pagination)\n\nVariables auto-set: facultySubjectId, topicId, testId",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{SuperAdminToken}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "BASE_URL", "value": "http://localhost:5000" },
+    { "key": "SuperAdminToken", "value": "" },
+    { "key": "StudentToken", "value": "" },
+    { "key": "studentUserId", "value": "" },
+    { "key": "otp", "value": "" },
+    { "key": "facultySubjectId", "value": "" },
+    { "key": "topicId", "value": "" },
+    { "key": "testId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. Auth",
+      "item": [
+        {
+          "name": "Login Super Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.token) pm.collectionVariables.set('SuperAdminToken', j.token);",
+                  "pm.test('Token saved', () => pm.expect(pm.collectionVariables.get('SuperAdminToken')).to.not.eql(''));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@sriram.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/auth/login-super-admin"
+          }
+        },
+        {
+          "name": "Student - Send OTP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.userId) pm.collectionVariables.set('studentUserId', j.userId);",
+                  "if (j.otp) pm.collectionVariables.set('otp', j.otp);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"suresh123@gmail.com\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/auth/send-otp"
+          }
+        },
+        {
+          "name": "Student - Verify OTP (Login)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.token) pm.collectionVariables.set('StudentToken', j.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{studentUserId}}\",\n  \"otp\": \"{{otp}}\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/auth/verify-otp"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Level 1 - Dashboard",
+      "item": [
+        {
+          "name": "GET Dashboard (Evaluation Progress Cards)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mains-management/dashboard?progressLimit=5",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mains-management", "dashboard"],
+              "query": [{ "key": "progressLimit", "value": "5" }]
+            }
+          }
+        },
+        {
+          "name": "GET Faculty Subjects (table)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "const id = j.data?.[0]?.facultySubjectId;",
+                  "if (id) pm.collectionVariables.set('facultySubjectId', id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mains-management/faculty-subjects?search=&page=1&limit=20&sort=lastUpdated",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mains-management", "faculty-subjects"],
+              "query": [
+                { "key": "search", "value": "" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                { "key": "sort", "value": "lastUpdated" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Faculty Subjects (search Economy)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mains-management/faculty-subjects?search=Economy&page=1&limit=20",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mains-management", "faculty-subjects"],
+              "query": [
+                { "key": "search", "value": "Economy" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Level 2 - Faculty Subject Details",
+      "item": [
+        {
+          "name": "GET Faculty Subject Details + Topics",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "const id = j.data?.topics?.[0]?.topicId;",
+                  "if (id) pm.collectionVariables.set('topicId', id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{BASE_URL}}/api/mains-management/faculty-subjects/{{facultySubjectId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Level 3 - Topic Tests",
+      "item": [
+        {
+          "name": "GET Topic Tests List",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "const id = j.data?.[0]?.testId;",
+                  "if (id) pm.collectionVariables.set('testId', id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mains-management/topics/{{topicId}}/tests?search=&page=1&limit=10",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mains-management", "topics", "{{topicId}}", "tests"],
+              "query": [
+                { "key": "search", "value": "" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Level 4 - Test Results",
+      "item": [
+        {
+          "name": "GET Test Results (all students)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mains-management/tests/{{testId}}/results?search=&status=all&page=1&limit=20",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mains-management", "tests", "{{testId}}", "results"],
+              "query": [
+                { "key": "search", "value": "" },
+                { "key": "status", "value": "all" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Test Results (uploaded only)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mains-management/tests/{{testId}}/results?status=uploaded&page=1&limit=20",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mains-management", "tests", "{{testId}}", "results"],
+              "query": [
+                { "key": "status", "value": "uploaded" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Test Results (not uploaded)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mains-management/tests/{{testId}}/results?status=not_uploaded",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mains-management", "tests", "{{testId}}", "results"],
+              "query": [{ "key": "status", "value": "not_uploaded" }]
+            }
+          }
+        },
+        {
+          "name": "GET Test Results (passed)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mains-management/tests/{{testId}}/results?status=passed",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mains-management", "tests", "{{testId}}", "results"],
+              "query": [{ "key": "status", "value": "passed" }]
+            }
+          }
+        },
+        {
+          "name": "GET Test Results (failed)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mains-management/tests/{{testId}}/results?status=failed",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mains-management", "tests", "{{testId}}", "results"],
+              "query": [{ "key": "status", "value": "failed" }]
+            }
+          }
+        },
+        {
+          "name": "GET Test Results (pending evaluation)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mains-management/tests/{{testId}}/results?status=pending_evaluation",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mains-management", "tests", "{{testId}}", "results"],
+              "query": [{ "key": "status", "value": "pending_evaluation" }]
+            }
+          }
+        },
+        {
+          "name": "GET Test Results (search student)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mains-management/tests/{{testId}}/results?search=Suresh&status=all",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mains-management", "tests", "{{testId}}", "results"],
+              "query": [
+                { "key": "search", "value": "Suresh" },
+                { "key": "status", "value": "all" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Student - PDF Download Tracking",
+      "item": [
+        {
+          "name": "POST Track PDF Download",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{StudentToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [],
+            "url": "{{BASE_URL}}/api/mains-answer-writing/published/{{testId}}/track-pdf-download"
+          }
+        }
+      ]
+    }
+  ]
+}

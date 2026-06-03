@@ -1,0 +1,274 @@
+{
+  "info": {
+    "name": "Sriram IAS - Mentor Admin",
+    "description": "Mentor Admin (AdminAccess roleCode: MENTOR_ADMIN)\n\nMains Answer Writing flow (faculty subject / batch — NOT courseId):\n1. GET faculty-subjects-dropdown\n2. GET tests-dropdown?facultySubjectId=\n3. GET submissions?status=submitted|evaluated&facultySubjectId=&batchId=&mainsAnswerWritingId=&search=\n4. GET submissions/:id (full student + answer + test)\n5. PUT submissions/:id/evaluate\n\nStudent sees results: GET /api/mains-answer-writing/my-submissions?status=evaluated\n\nAuth: Authorization: Bearer {{MentorToken}}",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{MentorToken}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "BASE_URL", "value": "http://localhost:5000" },
+    { "key": "MentorToken", "value": "" },
+    { "key": "adminAccessId", "value": "" },
+    { "key": "otp", "value": "" },
+    { "key": "batchId", "value": "" },
+    { "key": "facultySubjectId", "value": "" },
+    { "key": "mainsAnswerWritingId", "value": "" },
+    { "key": "submissionId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. Auth (AdminAccess)",
+      "item": [
+        {
+          "name": "Login Mentor Admin (email + password)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.token) pm.collectionVariables.set('MentorToken', j.token);",
+                  "if (j.adminAccessId) pm.collectionVariables.set('adminAccessId', j.adminAccessId);",
+                  "if (j.otp) pm.collectionVariables.set('otp', j.otp);",
+                  "if (j.token) pm.test('Token saved', () => pm.expect(pm.collectionVariables.get('MentorToken')).to.not.eql(''));",
+                  "if (j.requiresOtp) pm.test('OTP required', () => pm.expect(j.requiresOtp).to.eql(true));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"officialEmail\": \"mentor1@sriramias.com\",\n  \"password\": \"password_here\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/auth/login-admin-access"
+          }
+        },
+        {
+          "name": "Verify OTP (only if requiresOtp = true)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.token) pm.collectionVariables.set('MentorToken', j.token);",
+                  "pm.test('Token saved', () => pm.expect(pm.collectionVariables.get('MentorToken')).to.not.eql(''));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"adminAccessId\": \"{{adminAccessId}}\",\n  \"otp\": \"{{otp}}\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/auth/login-admin-access/verify-otp"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Mentor Dashboard",
+      "item": [
+        {
+          "name": "GET Assigned Batches",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{BASE_URL}}/api/mentor/batches"
+          }
+        },
+        {
+          "name": "GET Assigned Students (all batches)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mentor/students?search=",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mentor", "students"],
+              "query": [{ "key": "search", "value": "" }]
+            }
+          }
+        },
+        {
+          "name": "GET Assigned Students (by batchId)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mentor/students?batchId={{batchId}}&search=",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mentor", "students"],
+              "query": [
+                { "key": "batchId", "value": "{{batchId}}" },
+                { "key": "search", "value": "" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Mentor - Mains Answer Writing",
+      "item": [
+        {
+          "name": "GET Faculty Subjects Dropdown",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "const id = j.data?.[0]?._id;",
+                  "if (id) pm.collectionVariables.set('facultySubjectId', id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{BASE_URL}}/api/mentor/mains-answer-writing/faculty-subjects-dropdown"
+          }
+        },
+        {
+          "name": "GET Tests Dropdown (by facultySubjectId)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "const id = j.data?.[0]?._id;",
+                  "if (id) pm.collectionVariables.set('mainsAnswerWritingId', id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mentor/mains-answer-writing/tests-dropdown?facultySubjectId={{facultySubjectId}}",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mentor", "mains-answer-writing", "tests-dropdown"],
+              "query": [{ "key": "facultySubjectId", "value": "{{facultySubjectId}}" }]
+            }
+          }
+        },
+        {
+          "name": "GET Submissions (pending / submitted)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "const id = j.data?.[0]?._id;",
+                  "if (id) pm.collectionVariables.set('submissionId', id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mentor/mains-answer-writing/submissions?status=submitted&facultySubjectId={{facultySubjectId}}&batchId={{batchId}}&mainsAnswerWritingId={{mainsAnswerWritingId}}&search=&page=1&limit=20",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mentor", "mains-answer-writing", "submissions"],
+              "query": [
+                { "key": "status", "value": "submitted" },
+                { "key": "facultySubjectId", "value": "{{facultySubjectId}}" },
+                { "key": "batchId", "value": "{{batchId}}" },
+                { "key": "mainsAnswerWritingId", "value": "{{mainsAnswerWritingId}}" },
+                { "key": "search", "value": "" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Submissions (evaluated)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mentor/mains-answer-writing/submissions?status=evaluated&facultySubjectId={{facultySubjectId}}&search=",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mentor", "mains-answer-writing", "submissions"],
+              "query": [
+                { "key": "status", "value": "evaluated" },
+                { "key": "facultySubjectId", "value": "{{facultySubjectId}}" },
+                { "key": "search", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Submission Detail (student + answer + test)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{BASE_URL}}/api/mentor/mains-answer-writing/submissions/{{submissionId}}"
+          }
+        },
+        {
+          "name": "PUT Evaluate Submission (TEXT)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"evaluatedAnswerType\": \"text\",\n  \"evaluatedAnswerText\": \"Evaluated answer text...\",\n  \"evaluatorFeedback\": \"Good structure, improve examples.\",\n  \"marks\": 40\n}"
+            },
+            "url": "{{BASE_URL}}/api/mentor/mains-answer-writing/submissions/{{submissionId}}/evaluate"
+          }
+        },
+        {
+          "name": "PUT Evaluate Submission (FILE - multipart)",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "evaluatedAnswerType", "value": "file", "type": "text" },
+                { "key": "evaluatorFeedback", "value": "See annotated PDF.", "type": "text" },
+                { "key": "marks", "value": "45", "type": "text" },
+                { "key": "evaluatedAnswerFile", "type": "file", "src": [] }
+              ]
+            },
+            "url": "{{BASE_URL}}/api/mentor/mains-answer-writing/submissions/{{submissionId}}/evaluate"
+          }
+        },
+        {
+          "name": "DELETE Evaluation (reset to submitted)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{BASE_URL}}/api/mentor/mains-answer-writing/submissions/{{submissionId}}/evaluation"
+          }
+        }
+      ]
+    }
+  ]
+}
+

@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 
 const connectDB = require('./config/db');
 
@@ -74,6 +74,8 @@ const subjectLiveClassRoutes = require('./routes/subjectLiveClassRoutes');
 const subjectRecordingRoutes = require('./routes/subjectRecordingRoutes');
 const subjectMainsAnswerWritingRoutes = require('./routes/subjectMainsAnswerWritingRoutes');
 const subjectPdfRoutes = require('./routes/subjectPdfRoutes');
+const testConfigurationRoutes = require('./routes/testConfigurationRoutes');
+const mentorRoutes = require('./routes/mentorRoutes');
 const { getCentersDropdown } = require('./controllers/centerManagementController');
 const { protect } = require('./middleware/authMiddleware');
 const { requireSuperAdmin } = require('./middleware/requireSuperAdmin');
@@ -164,7 +166,13 @@ app.use('/api/batch-enrollments', ...superAdminAuth, batchEnrollmentRoutes);
 // Academic CMS live classes (Faculty Subject content module)
 app.use('/api/live-classes', ...superAdminAuth, subjectLiveClassRoutes);
 app.use('/api/recordings', ...superAdminAuth, subjectRecordingRoutes);
-app.use('/api/mains-answer-writing', ...superAdminAuth, subjectMainsAnswerWritingRoutes);
+// Mains Answer Writing
+// - Super Admin CMS routes are protected inside the router
+// - Student can see only PUBLISHED tests and submit answers
+// - Mentor Admin can list/evaluate submissions for assigned faculty subjects
+app.use('/api/mains-answer-writing', subjectMainsAnswerWritingRoutes);
+const mainsManagementRoutes = require('./routes/mainsManagementRoutes');
+app.use('/api/mains-management', ...superAdminAuth, mainsManagementRoutes);
 app.use('/api/subject-pdfs', ...superAdminAuth, subjectPdfRoutes);
 app.get('/api/centers/dropdown', protect, requireSuperAdmin, getCentersDropdown);
 app.use('/api/sub-categories', academicSubCategoryRoutes);
@@ -184,6 +192,9 @@ app.use('/api/resources/questions', questionRoutes); // Questions
 // Portal UI — two tabs (CMS unchanged at /api/resources/*)
 app.use('/api/portal/current-affairs', portalCurrentAffairsRoutes);
 app.use('/api/portal/free-resources', portalFreeResourceRoutes);
+
+// Mentor Admin APIs (AdminAccess roleCode: MENTOR_ADMIN)
+app.use('/api/mentor', mentorRoutes);
 
 // Blog routes
 app.use('/api/blog', blogRoutes);
@@ -235,7 +246,9 @@ app.use('/api/bookmarks', lmsBookmarkRoutes);
 app.use('/api/attendance', attendanceRoutes);
 
 // Answer writing (UPSC Mains)
-app.use('/api/answer-writing', answerWritingRoutes);
+// NOTE: Legacy /api/answer-writing (course + categories) is disabled in favor of /api/mains-answer-writing
+// which is linked to FacultySubject and supports student submissions + mentor evaluation.
+// app.use('/api/answer-writing', answerWritingRoutes);
 
 // Announcement routes
 app.use('/api/announcements', announcementRoutes);
@@ -253,6 +266,9 @@ app.use('/api/test-contents', testContentRoutes);
 app.use('/api/test-papers', testPaperRoutes);
 app.use('/api/test-questions', testQuestionRoutes);
 app.use('/api/test-attempts', testAttemptRoutes);
+
+// Test Management — Test Configuration (Exam Pattern, Sections, Languages)
+app.use('/api/test-configuration', testConfigurationRoutes);
 
 // HomePage CMS routes
 app.use('/api/homepage', homePageRoutes);

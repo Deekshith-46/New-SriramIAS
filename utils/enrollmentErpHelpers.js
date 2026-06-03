@@ -1,16 +1,18 @@
-const AcademicStudent = require('../models/AcademicStudent');
+const Student = require('../models/Student');
 const BatchEnrollment = require('../models/BatchEnrollment');
 const Batch = require('../models/Batch');
 const Course = require('../models/Course');
 const { isValidObjectId } = require('./contentIdGenerator');
 const { NOT_DELETED } = require('./contentMastersHelpers');
 const {
+  findStudentByEmailOrMobile,
+  normalizeEmail,
+  normalizeMobile
+} = require('./studentService');
+const {
   PAYMENT_STATUSES,
   ENROLLMENT_STATUSES
 } = require('./enrollmentErpConstants');
-
-const normalizeEmail = (email) => String(email || '').trim().toLowerCase();
-const normalizeMobile = (mobile) => String(mobile || '').trim().replace(/\s+/g, '');
 
 const validatePaymentStatus = (status) => {
   if (!status) return { ok: true, value: 'PENDING' };
@@ -45,24 +47,6 @@ const validatePercent = (value, fieldName) => {
     return { ok: false, message: `${fieldName} must be between 0 and 100` };
   }
   return { ok: true, value: Math.round(n * 100) / 100 };
-};
-
-const findStudentByEmailOrMobile = async ({ email, mobileNumber }) => {
-  const emailNorm = normalizeEmail(email);
-  const mobileNorm = normalizeMobile(mobileNumber);
-
-  if (!emailNorm && !mobileNorm) {
-    return null;
-  }
-
-  const or = [];
-  if (emailNorm) or.push({ email: emailNorm });
-  if (mobileNorm) or.push({ mobileNumber: mobileNorm });
-
-  return AcademicStudent.findOne({
-    ...NOT_DELETED,
-    $or: or
-  }).lean();
 };
 
 const validateActiveBatch = async (batchId) => {
@@ -132,7 +116,11 @@ const syncBatchStudentCount = async (batchId) => {
 };
 
 const ENROLLMENT_POPULATE = [
-  { path: 'student', select: 'studentId studentName email mobileNumber status createdAt updatedAt' },
+  {
+    path: 'student',
+    select:
+      'studentId studentName email mobileNumber userId centerId status parentName parentEmail parentMobile createdAt updatedAt'
+  },
   { path: 'batch', select: 'batchId batchName course status' },
   { path: 'course', select: 'courseId courseName' }
 ];
@@ -147,7 +135,11 @@ const formatEnrollment = (doc, { includeBatch = true } = {}) => ({
         studentName: doc.student.studentName,
         email: doc.student.email,
         mobileNumber: doc.student.mobileNumber,
+        userId: doc.student.userId || null,
         status: doc.student.status,
+        parentName: doc.student.parentName || null,
+        parentEmail: doc.student.parentEmail || null,
+        parentMobile: doc.student.parentMobile || null,
         createdAt: doc.student.createdAt,
         updatedAt: doc.student.updatedAt
       }
@@ -199,25 +191,28 @@ const findEnrollmentByRef = async (ref, { activeOnly = false } = {}) => {
   if (!id) return null;
 
   if (isValidObjectId(id)) {
-    return BatchEnrollment.findOne({ _id: id, ...filter });
+    return BatchEnrollment.findOne({ _id: id, ...filter }).lean();
   }
-  return BatchEnrollment.findOne({ enrollmentId: id, ...filter });
+
+  return BatchEnrollment.findOne({ enrollmentId: id, ...filter }).lean();
 };
 
 module.exports = {
+  PAYMENT_STATUSES,
+  ENROLLMENT_STATUSES,
   normalizeEmail,
   normalizeMobile,
+  findStudentByEmailOrMobile,
   validatePaymentStatus,
   validateEnrollmentStatus,
   validatePercent,
-  findStudentByEmailOrMobile,
   validateActiveBatch,
   validateCourseForBatch,
   assertNoActiveEnrollment,
   syncBatchStudentCount,
-  findEnrollmentByRef,
   ENROLLMENT_POPULATE,
   formatEnrollment,
   listActiveEnrollmentsForBatch,
-  PAYMENT_STATUSES
+  findEnrollmentByRef,
+  Student
 };

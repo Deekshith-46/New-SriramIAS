@@ -102,12 +102,15 @@ exports.loginAdminAccess = [
           return res.status(429).json({ success: false, message: error.message });
         }
 
+        const exposeOtp =
+          process.env.EXPOSE_OTP_IN_RESPONSE === 'true' || process.env.NODE_ENV !== 'production';
+
         return res.json({
           success: true,
           requiresOtp: true,
           message: 'OTP sent to your official email',
           adminAccessId: admin._id.toString(),
-          otp: process.env.NODE_ENV !== 'production' ? otp : undefined
+          otp: exposeOtp ? otp : undefined
         });
       }
 

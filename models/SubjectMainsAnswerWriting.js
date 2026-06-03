@@ -33,6 +33,12 @@ const subjectMainsAnswerWritingSchema = new mongoose.Schema(
       required: true,
       index: true
     },
+    topicId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Topic',
+      default: null,
+      index: true
+    },
     testName: {
       type: String,
       required: true,
@@ -56,6 +62,11 @@ const subjectMainsAnswerWritingSchema = new mongoose.Schema(
       type: Number,
       required: true,
       min: 1
+    },
+    passMarks: {
+      type: Number,
+      default: null,
+      min: 0
     },
     resultDate: {
       type: Date,
@@ -102,6 +113,7 @@ const subjectMainsAnswerWritingSchema = new mongoose.Schema(
 subjectMainsAnswerWritingSchema.index({
   facultySubjectId: 1,
   folderId: 1,
+  topicId: 1,
   publishStatus: 1,
   isDeleted: 1
 });

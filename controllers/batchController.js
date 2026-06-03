@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Batch = require('../models/Batch');
 const BatchEnrollment = require('../models/BatchEnrollment');
+const AdminAccess = require('../models/AdminAccess');
 const cloudinary = require('../config/cloudinary');
 const uploadToCloudinary = require('../utils/uploadToCloudinary');
 const {
@@ -9,6 +10,7 @@ const {
   escapeRegex,
   NOT_DELETED
 } = require('../utils/contentMastersHelpers');
+const { attachParentDetailsToEnrollments } = require('../utils/studentService');
 const {
   parseFees,
   parseObjectIdList,
@@ -28,6 +30,27 @@ const {
   formatEnrollment,
   listActiveEnrollmentsForBatch
 } = require('../utils/enrollmentErpHelpers');
+
+const resolveMentorIdFromBody = (body) => body.mentorId ?? body.mentor ?? body.mentorAdminId;
+
+const validateMentorAdmin = async (mentorId) => {
+  if (!mentorId || !mongoose.Types.ObjectId.isValid(mentorId)) {
+    return { ok: false, message: 'Valid mentorId is required' };
+  }
+
+  const mentor = await AdminAccess.findOne({ _id: mentorId, accountStatus: true })
+    .populate('roleId', 'roleTitle roleCode status')
+    .populate('centerId', 'centerName centerCode name status')
+    .lean();
+
+  if (!mentor) return { ok: false, message: 'Invalid or inactive mentor' };
+  if (mentor.roleId?.status !== 'ACTIVE') return { ok: false, message: 'Mentor role is not active' };
+  if (mentor.roleId?.roleCode !== 'MENTOR_ADMIN') {
+    return { ok: false, message: 'Selected mentor must be a MENTOR_ADMIN' };
+  }
+
+  return { ok: true, mentor };
+};
 
 const resolveBatchBanner = async (req, existing) => {
   if (req.file?.buffer) {
@@ -70,6 +93,19 @@ const formatBatch = (doc) => ({
     facultySubjectId: fs.facultySubjectId,
     subjectName: fs.subjectName
   })),
+  mentor: doc.mentor
+    ? {
+        _id: doc.mentor._id || doc.mentor,
+        fullName: doc.mentor.fullName,
+        officialEmail: doc.mentor.officialEmail,
+        employeeId: doc.mentor.employeeId,
+        centerId: doc.mentor.centerId?._id || doc.mentor.centerId,
+        centerName: doc.mentor.centerId?.centerName || doc.mentor.centerId?.name || null,
+        centerCode: doc.mentor.centerId?.centerCode || null,
+        roleCode: doc.mentor.roleId?.roleCode || null,
+        roleTitle: doc.mentor.roleId?.roleTitle || null
+      }
+    : null,
   status: doc.status,
   totalStudents: doc.totalStudents ?? 0,
   createdAt: doc.createdAt,
@@ -99,6 +135,9 @@ exports.createBatch = async (req, res) => {
     const {
       batchName,
       courseId,
+      mentorId,
+      mentor,
+      mentorAdminId,
       commencementDate,
       durationInMonths,
       batchStartDate,
@@ -113,6 +152,14 @@ exports.createBatch = async (req, res) => {
     if (!batchName?.trim()) {
       return res.status(400).json({ success: false, message: 'batchName is required' });
     }
+
+    const mentorValidation = await validateMentorAdmin(
+      resolveMentorIdFromBody({ mentorId, mentor, mentorAdminId })
+    );
+    if (!mentorValidation.ok) {
+      return res.status(400).json({ success: false, message: mentorValidation.message });
+    }
+
     const courseValidation = await validateActiveCourse(courseId);
     if (!courseValidation.ok) {
       return res.status(400).json({ success: false, message: courseValidation.message });
@@ -156,6 +203,7 @@ exports.createBatch = async (req, res) => {
       batchId: await generateBatchId(),
       batchName: batchName.trim(),
       course: courseValidation.course._id,
+      mentor: mentorValidation.mentor._id,
       commencementDate: datesValidation.commencementDate,
       durationInMonths: durValidation.value,
       batchStartDate: datesValidation.batchStartDate,
@@ -170,6 +218,14 @@ exports.createBatch = async (req, res) => {
     const populated = await Batch.findById(batch._id)
       .populate('course', 'courseId courseName')
       .populate('facultySubjects', 'facultySubjectId subjectName')
+      .populate({
+        path: 'mentor',
+        select: 'fullName officialEmail employeeId centerId roleId accountStatus',
+        populate: [
+          { path: 'centerId', select: 'centerName centerCode name' },
+          { path: 'roleId', select: 'roleTitle roleCode status' }
+        ]
+      })
       .lean();
 
     res.status(201).json({
@@ -197,6 +253,14 @@ exports.getBatches = async (req, res) => {
       Batch.find(query)
         .populate('course', 'courseId courseName')
         .populate('facultySubjects', 'facultySubjectId subjectName')
+        .populate({
+          path: 'mentor',
+          select: 'fullName officialEmail employeeId centerId roleId',
+          populate: [
+            { path: 'centerId', select: 'centerName centerCode name' },
+            { path: 'roleId', select: 'roleTitle roleCode status' }
+          ]
+        })
         .sort(sort)
         .skip(skip)
         .limit(limit)
@@ -224,6 +288,14 @@ exports.getBatchById = async (req, res) => {
     const batch = await Batch.findOne({ _id: req.params.id, ...NOT_DELETED })
       .populate('course', 'courseId courseName')
       .populate('facultySubjects', 'facultySubjectId subjectName')
+      .populate({
+        path: 'mentor',
+        select: 'fullName officialEmail employeeId centerId roleId',
+        populate: [
+          { path: 'centerId', select: 'centerName centerCode name' },
+          { path: 'roleId', select: 'roleTitle roleCode status' }
+        ]
+      })
       .lean();
     if (!batch) return res.status(404).json({ success: false, message: 'Batch not found' });
 
@@ -234,9 +306,10 @@ exports.getBatchById = async (req, res) => {
     batch.totalStudents = totalStudents;
 
     const data = formatBatch(batch);
-    data.students = enrollments.map((enrollment) =>
+    const studentRows = enrollments.map((enrollment) =>
       formatEnrollment(enrollment, { includeBatch: false })
     );
+    data.students = await attachParentDetailsToEnrollments(studentRows);
     data.studentCount = data.students.length;
 
     res.json({ success: true, data });
@@ -252,6 +325,19 @@ exports.updateBatch = async (req, res) => {
     if (!batch) return res.status(404).json({ success: false, message: 'Batch not found' });
 
     const updates = {};
+
+    if (
+      req.body.mentorId !== undefined ||
+      req.body.mentor !== undefined ||
+      req.body.mentorAdminId !== undefined
+    ) {
+      const nextMentorId = resolveMentorIdFromBody(req.body);
+      const mentorValidation = await validateMentorAdmin(nextMentorId);
+      if (!mentorValidation.ok) {
+        return res.status(400).json({ success: false, message: mentorValidation.message });
+      }
+      updates.mentor = mentorValidation.mentor._id;
+    }
 
     if (req.body.batchName !== undefined) {
       if (!String(req.body.batchName).trim()) {
@@ -329,6 +415,14 @@ exports.updateBatch = async (req, res) => {
     const updated = await Batch.findById(batch._id)
       .populate('course', 'courseId courseName')
       .populate('facultySubjects', 'facultySubjectId subjectName')
+      .populate({
+        path: 'mentor',
+        select: 'fullName officialEmail employeeId centerId roleId',
+        populate: [
+          { path: 'centerId', select: 'centerName centerCode name' },
+          { path: 'roleId', select: 'roleTitle roleCode status' }
+        ]
+      })
       .lean();
 
     res.json({ success: true, message: 'Batch updated successfully', data: formatBatch(updated) });
@@ -353,6 +447,14 @@ exports.updateBatchStatus = async (req, res) => {
     )
       .populate('course', 'courseId courseName')
       .populate('facultySubjects', 'facultySubjectId subjectName')
+      .populate({
+        path: 'mentor',
+        select: 'fullName officialEmail employeeId centerId roleId',
+        populate: [
+          { path: 'centerId', select: 'centerName centerCode name' },
+          { path: 'roleId', select: 'roleTitle roleCode status' }
+        ]
+      })
       .lean();
 
     if (!batch) return res.status(404).json({ success: false, message: 'Batch not found' });
@@ -421,6 +523,14 @@ exports.getBatchQuickView = async (req, res) => {
     const batch = await Batch.findOne({ _id: req.params.id, ...NOT_DELETED })
       .populate('course', 'courseId courseName')
       .populate('facultySubjects', 'facultySubjectId subjectName categories')
+      .populate({
+        path: 'mentor',
+        select: 'fullName officialEmail employeeId centerId roleId',
+        populate: [
+          { path: 'centerId', select: 'centerName centerCode name' },
+          { path: 'roleId', select: 'roleTitle roleCode status' }
+        ]
+      })
       .lean();
 
     if (!batch) return res.status(404).json({ success: false, message: 'Batch not found' });

@@ -1,11 +1,42 @@
+const mongoose = require('mongoose');
 const User = require('../models/User');
-const Student = require('../models/Student');
 const Parent = require('../models/Parent');
 const Center = require('../models/Center');
 const generateToken = require('../utils/generateToken');
 const { sendOTP, verifyOTP } = require('../utils/otpService');
 const { validate, validations } = require('../middleware/validation');
 const { assertStudentGmail, normalizeEmail } = require('../utils/studentEmail');
+const { ensureStudentProfileForUser, resolveLoginUser, normalizeMobile } = require('../utils/studentService');
+
+const authFail = (res, status, message, code = null) =>
+  res.status(status).json({
+    success: false,
+    message,
+    ...(code ? { code } : {})
+  });
+
+const otpFailureCode = (message) => {
+  if (message.includes('expired')) return 'OTP_EXPIRED';
+  if (message.includes('Maximum')) return 'OTP_MAX_ATTEMPTS';
+  if (message.includes('not found')) return 'OTP_NOT_FOUND';
+  return 'INVALID_OTP';
+};
+
+const assertContactMatchesUser = (user, { email, mobile }) => {
+  if (email) {
+    const emailNorm = normalizeEmail(email);
+    if (!user.email || normalizeEmail(user.email) !== emailNorm) {
+      return 'Email does not match the account for this userId';
+    }
+  }
+  if (mobile) {
+    const mobileNorm = normalizeMobile(mobile);
+    if (!user.mobile || normalizeMobile(user.mobile) !== mobileNorm) {
+      return 'Mobile does not match the account for this userId';
+    }
+  }
+  return null;
+};
 
 // @desc    Super Admin Login
 // @route   POST /api/auth/login-super-admin
@@ -117,39 +148,31 @@ exports.sendOtp = [
     const { mobile, email: rawEmail } = req.body;
     const email = rawEmail ? normalizeEmail(rawEmail) : null;
 
-    // Find user with STRICT query (not $or)
-    let user;
-    if (email) {
-      user = await User.findOne({ email });
-    } else if (mobile) {
-      user = await User.findOne({ mobile: mobile.trim() });
-    }
-
-    console.log('Send OTP - Email:', email, 'Mobile:', mobile);
-    console.log('User found:', user ? { id: user._id, name: user.name, role: user.role } : 'null');
+    const { user } = await resolveLoginUser({ email, mobile });
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return authFail(res, 404, 'User not found');
     }
 
     if (!user.isActive) {
-      return res.status(403).json({ message: 'Account is deactivated' });
+      return authFail(res, 403, 'Account is deactivated');
     }
 
-    // Determine OTP type based on user role
+    if (!['student', 'parent'].includes(user.role)) {
+      return authFail(res, 403, 'OTP login is only available for students and parents');
+    }
+
     const otpType = user.role === 'parent' ? 'parent' : 'student';
-
-    if (email && otpType === 'student') {
-      try {
-        assertStudentGmail(email);
-      } catch (err) {
-        return res.status(err.statusCode || 400).json({ message: err.message });
-      }
-    }
 
     let otp;
     try {
-      otp = await sendOTP(user._id, mobile, email, otpType, user.name);
+      otp = await sendOTP(
+        user._id,
+        mobile || user.mobile,
+        email || user.email,
+        otpType,
+        user.name
+      );
     } catch (error) {
       if (error.statusCode === 503) {
         return res.status(503).json({ message: error.message });
@@ -157,15 +180,20 @@ exports.sendOtp = [
       return res.status(429).json({ message: error.message });
     }
 
+    const exposeOtp =
+      process.env.EXPOSE_OTP_IN_RESPONSE === 'true' || process.env.NODE_ENV !== 'production';
+
     res.json({
       success: true,
       message: 'OTP sent successfully',
       userId: user._id.toString(),
-      otp
+      flow: 'login',
+      nextStep: 'POST /api/auth/verify-otp',
+      otp: exposeOtp ? otp : undefined
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 }];
 
@@ -179,50 +207,60 @@ exports.verifyOtp = [
     const { mobile, email: rawEmail, userId, otp } = req.body;
     const email = rawEmail ? normalizeEmail(rawEmail) : null;
 
-    // Find user by email, mobile, or userId (strict query - backend finds user internally)
-    let user;
+    if (!userId && !email && !mobile) {
+      return authFail(res, 400, 'userId, email, or mobile is required');
+    }
+
+    let user = null;
+
     if (userId) {
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        return authFail(res, 400, 'Invalid userId');
+      }
       user = await User.findById(userId);
-    } else if (email) {
-      user = await User.findOne({ email });
-    } else if (mobile) {
-      user = await User.findOne({ mobile: mobile.trim() });
-    }
-
-    console.log('Verify OTP - Email:', email, 'Mobile:', mobile, 'UserId:', userId);
-    console.log('User found:', user ? { id: user._id, name: user.name, role: user.role } : 'null');
-
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    if (!user.isActive) {
-      return res.status(403).json({ message: 'Account is deactivated. Please complete OTP verification first.' });
-    }
-
-    // Determine OTP type based on user role
-    const otpType = user.role === 'parent' ? 'parent' : 'student';
-
-    if (email && otpType === 'student') {
-      try {
-        assertStudentGmail(email);
-      } catch (err) {
-        return res.status(err.statusCode || 400).json({ message: err.message });
+      if (!user) {
+        return authFail(res, 404, 'User not found');
+      }
+      const contactMismatch = assertContactMatchesUser(user, { email, mobile });
+      if (contactMismatch) {
+        return authFail(res, 400, contactMismatch);
+      }
+    } else {
+      ({ user } = await resolveLoginUser({ email, mobile }));
+      if (!user) {
+        return authFail(res, 404, 'User not found');
       }
     }
 
-    // Verify OTP using user's internal ID
+    if (!['student', 'parent'].includes(user.role)) {
+      return authFail(res, 403, 'OTP login is only available for students and parents');
+    }
+
+    if (!user.isActive) {
+      return authFail(
+        res,
+        403,
+        'Account is not active. Complete signup verification or contact support.'
+      );
+    }
+
+    const otpType = user.role === 'parent' ? 'parent' : 'student';
     const verification = await verifyOTP(user._id, otp, otpType);
 
     if (!verification.valid) {
-      return res.status(400).json({ message: verification.message });
+      let message = verification.message;
+      if (message.includes('not found') || message.includes('expired')) {
+        message = 'Invalid or expired login OTP. Please call send-otp again and use the latest OTP.';
+      }
+      return authFail(res, 400, message, otpFailureCode(verification.message));
     }
 
-    // Generate token
     const token = generateToken(user);
 
     res.json({
       success: true,
+      message: 'Login successful',
+      flow: 'login',
       token,
       user: {
         id: user._id,
@@ -234,7 +272,7 @@ exports.verifyOtp = [
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 }];
 
@@ -301,7 +339,7 @@ exports.studentSignup = async (req, res) => {
 
     let otp;
     try {
-      otp = await sendOTP(user._id, mobile, email, 'student', user.name);
+      otp = await sendOTP(user._id, mobile, email, 'student_signup', user.name);
     } catch (error) {
       await User.deleteOne({ _id: user._id });
       if (error.statusCode === 503) {
@@ -310,15 +348,20 @@ exports.studentSignup = async (req, res) => {
       return res.status(429).json({ message: error.message });
     }
 
+    const exposeOtp =
+      process.env.EXPOSE_OTP_IN_RESPONSE === 'true' || process.env.NODE_ENV !== 'production';
+
     res.status(200).json({
       success: true,
       message: 'OTP sent successfully. Please verify to complete registration.',
       userId: user._id.toString(),
+      flow: 'signup',
+      nextStep: 'POST /api/auth/verify-student-signup',
       center: {
         _id: center._id,
         centerName: center.centerName || center.name
       },
-      otp
+      otp: exposeOtp ? otp : undefined
     });
   } catch (error) {
     console.error(error);
@@ -364,57 +407,46 @@ exports.verifyStudentSignup = async (req, res) => {
   try {
     const { userId, otp } = req.body;
 
-    if (!userId || !otp) {
-      return res.status(400).json({ 
-        message: 'User ID and OTP are required' 
-      });
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return authFail(res, 400, 'Invalid userId');
     }
 
-    // Find user
     const user = await User.findById(userId);
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return authFail(res, 404, 'User not found');
     }
 
-    // If already verified, return login token instead of error
-    if (user.isActive) {
-      // Check if student profile exists
-      let studentProfile = await Student.findOne({ userId: user._id });
-      
-      // Create student profile if it doesn't exist
-      if (!studentProfile) {
-        studentProfile = await Student.create({
-          userId: user._id
-        });
-      }
-
-      // Generate JWT token for login
-      const token = generateToken(user);
-
-      return res.status(200).json({
-        success: true,
-        message: 'Already verified. Login successful.',
-        token: token,
-        user: await formatStudentAuthUser(user)
-      });
+    if (user.role !== 'student') {
+      return authFail(res, 400, 'Invalid signup verification request', 'INVALID_REQUEST');
     }
 
-    // Verify OTP for unverified users
-    const verification = await verifyOTP(user._id, otp, 'student');
+    // Signup OTP is separate from login OTP (send-otp uses type "student")
+    const verification = await verifyOTP(user._id, otp, 'student_signup');
 
     if (!verification.valid) {
-      return res.status(400).json({ message: verification.message });
+      let message = verification.message;
+      if (message.includes('not found') || message.includes('expired')) {
+        message =
+          'Invalid or expired signup OTP. If you already registered, use send-otp and verify-otp to login.';
+      }
+      return authFail(res, 400, message, otpFailureCode(verification.message));
+    }
+
+    if (user.isActive) {
+      return authFail(
+        res,
+        409,
+        'Account already verified. Please login using send-otp and verify-otp.',
+        'ACCOUNT_ALREADY_VERIFIED'
+      );
     }
 
     // Activate user account
     user.isActive = true;
     await user.save();
 
-    // Create student profile
-    await Student.create({
-      userId: user._id
-    });
+    await ensureStudentProfileForUser(user);
 
     // Generate JWT token for immediate login
     const token = generateToken(user);
@@ -486,12 +518,15 @@ exports.parentLoginRequest = async (req, res) => {
       return res.status(429).json({ message: error.message });
     }
 
+    const exposeOtp =
+      process.env.EXPOSE_OTP_IN_RESPONSE === 'true' || process.env.NODE_ENV !== 'production';
+
     res.json({
       success: true,
       message: 'OTP sent successfully',
       sentTo: otpEmail ? 'email' : 'mobile',
       userId: parentUser._id.toString(),
-      otp
+      otp: exposeOtp ? otp : undefined
     });
   } catch (error) {
     console.error(error);

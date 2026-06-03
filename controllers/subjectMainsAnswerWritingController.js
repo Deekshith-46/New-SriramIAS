@@ -1,14 +1,18 @@
-const mongoose = require('mongoose');
 const SubjectMainsAnswerWriting = require('../models/SubjectMainsAnswerWriting');
 const SubjectContentFolder = require('../models/SubjectContentFolder');
 const FacultySubject = require('../models/FacultySubject');
+const Topic = require('../models/Topic');
 const cloudinary = require('../config/cloudinary');
 const uploadToCloudinary = require('../utils/uploadToCloudinary');
 const {
   generateSubjectMainsAnswerWritingId,
   isValidObjectId
 } = require('../utils/contentIdGenerator');
-const { NOT_DELETED, escapeRegex, parsePagination, parseSort } = require('../utils/contentMastersHelpers');
+const { NOT_DELETED, parsePagination, parseSort } = require('../utils/contentMastersHelpers');
+const {
+  formatMainsAnswerWritingRow,
+  runMainsAnswerWritingList
+} = require('../utils/mainsAnswerWritingListHelpers');
 const {
   validateMainsAnswerWritingPayload,
   PUBLISH_STATUSES,
@@ -17,127 +21,20 @@ const {
 } = require('../utils/facultyContentHelpers');
 const { sendValidationError, sendNotFound, fail } = require('../utils/cmsApiErrors');
 
-const formatDurationLabel = (minutes = 0) => {
-  const mins = Math.max(0, Number(minutes) || 0);
-  if (mins < 60) return `${mins} mins`;
-  const hours = Math.floor(mins / 60);
-  const rem = mins % 60;
-  return rem ? `${hours} hr ${rem} mins` : `${hours} hr`;
-};
+const formatMainsAnswerWriting = formatMainsAnswerWritingRow;
 
-const formatMainsAnswerWriting = (doc) => ({
-  _id: doc._id,
-  mainsAnswerWritingId: doc.mainsAnswerWritingId,
-  facultySubjectId: doc.facultySubjectId,
-  folderId: doc.folderId,
-  testName: doc.testName,
-  scheduleDate: doc.scheduleDate,
-  durationPreset: doc.durationPreset,
-  durationMinutes: doc.durationMinutes,
-  durationLabel: formatDurationLabel(doc.durationMinutes),
-  totalMarks: doc.totalMarks,
-  resultDate: doc.resultDate,
-  questionsText: doc.questionsText,
-  pdf: doc.pdf,
-  publishStatus: doc.publishStatus,
-  folderName: doc.folderName || doc.folder?.folderName || '',
-  facultySubjectName: doc.facultySubjectName || doc.facultySubject?.subjectName || '',
-  createdAt: doc.createdAt,
-  updatedAt: doc.updatedAt
+const parseMainsListFilters = (query) => ({
+  facultySubjectId: query.facultySubjectId,
+  folderId: query.folderId,
+  topicId: query.topicId,
+  topicName: query.topicName,
+  subjectId: query.subjectId,
+  subjectName: query.subjectName,
+  publishStatus: query.publishStatus
+    ? String(query.publishStatus).trim().toUpperCase()
+    : undefined,
+  search: query.search ?? ''
 });
-
-const buildListPipeline = ({
-  facultySubjectId,
-  folderId,
-  publishStatus,
-  search = '',
-  sort,
-  skip,
-  limit
-}) => {
-  const match = { isDeleted: false };
-
-  if (facultySubjectId && isValidObjectId(facultySubjectId)) {
-    match.facultySubjectId = new mongoose.Types.ObjectId(facultySubjectId);
-  }
-  if (folderId && isValidObjectId(folderId)) {
-    match.folderId = new mongoose.Types.ObjectId(folderId);
-  }
-  if (publishStatus && PUBLISH_STATUSES.includes(publishStatus)) {
-    match.publishStatus = publishStatus;
-  }
-
-  const pipeline = [{ $match: match }];
-
-  pipeline.push(
-    {
-      $lookup: {
-        from: 'subjectcontentfolders',
-        localField: 'folderId',
-        foreignField: '_id',
-        as: 'folderDoc'
-      }
-    },
-    {
-      $lookup: {
-        from: 'facultysubjects',
-        localField: 'facultySubjectId',
-        foreignField: '_id',
-        as: 'facultySubjectDoc'
-      }
-    },
-    { $unwind: { path: '$folderDoc', preserveNullAndEmptyArrays: true } },
-    { $unwind: { path: '$facultySubjectDoc', preserveNullAndEmptyArrays: true } }
-  );
-
-  const trimmed = String(search).trim();
-  if (trimmed) {
-    const term = escapeRegex(trimmed);
-    pipeline.push({
-      $match: {
-        $or: [
-          { testName: { $regex: term, $options: 'i' } },
-          { 'folderDoc.folderName': { $regex: term, $options: 'i' } },
-          { 'facultySubjectDoc.subjectName': { $regex: term, $options: 'i' } }
-        ]
-      }
-    });
-  }
-
-  pipeline.push({
-    $facet: {
-      rows: [
-        { $sort: sort },
-        { $skip: skip },
-        { $limit: limit },
-        {
-          $project: {
-            _id: 1,
-            mainsAnswerWritingId: 1,
-            facultySubjectId: 1,
-            folderId: 1,
-            testName: 1,
-            scheduleDate: 1,
-            durationPreset: 1,
-            durationMinutes: 1,
-            totalMarks: 1,
-            resultDate: 1,
-            questionsText: 1,
-            pdf: 1,
-            publishStatus: 1,
-            createdAt: 1,
-            updatedAt: 1,
-            folderName: '$folderDoc.folderName',
-            facultySubjectName: '$facultySubjectDoc.subjectName'
-          }
-        }
-      ],
-      total: [{ $count: 'count' }]
-    }
-  });
-
-  return pipeline;
-};
 
 const deletePdfFromCloudinary = async (publicId) => {
   if (!publicId) return;
@@ -174,15 +71,22 @@ exports.createMainsAnswerWriting = async (req, res) => {
       'pdf'
     );
 
+    let resolvedTopicId = validation.topic?._id || null;
+    if (!resolvedTopicId && validation.facultySubject?.topics?.length === 1) {
+      resolvedTopicId = validation.facultySubject.topics[0];
+    }
+
     const doc = await SubjectMainsAnswerWriting.create({
       mainsAnswerWritingId: await generateSubjectMainsAnswerWritingId(),
       facultySubjectId: validation.facultySubject._id,
       folderId: validation.folder._id,
+      topicId: resolvedTopicId,
       testName: String(req.body.testName).trim(),
       scheduleDate: validation.scheduleDate,
       durationPreset: validation.durationPreset,
       durationMinutes: validation.durationMinutes,
       totalMarks: validation.totalMarks,
+      passMarks: validation.passMarks ?? null,
       resultDate: validation.resultDate,
       questionsText: validation.questionsText,
       pdf: {
@@ -218,21 +122,11 @@ exports.getMainsAnswerWritings = async (req, res) => {
       'resultDate'
     ]);
 
-    const pipeline = buildListPipeline({
-      facultySubjectId: req.query.facultySubjectId,
-      folderId: req.query.folderId,
-      publishStatus: req.query.publishStatus
-        ? String(req.query.publishStatus).trim().toUpperCase()
-        : undefined,
-      search: req.query.search ?? '',
+    const { rows, total } = await runMainsAnswerWritingList(parseMainsListFilters(req.query), {
       sort,
       skip,
       limit
     });
-
-    const [result] = await SubjectMainsAnswerWriting.aggregate(pipeline);
-    const rows = result?.rows || [];
-    const total = result?.total?.[0]?.count || 0;
 
     res.json({
       success: true,
@@ -260,9 +154,10 @@ exports.getMainsAnswerWritingById = async (req, res) => {
       });
     }
 
-    const [folder, facultySubject] = await Promise.all([
+    const [folder, facultySubject, topic] = await Promise.all([
       SubjectContentFolder.findById(doc.folderId).select('folderName').lean(),
-      FacultySubject.findById(doc.facultySubjectId).select('subjectName').lean()
+      FacultySubject.findById(doc.facultySubjectId).select('subjectName').lean(),
+      doc.topicId ? Topic.findById(doc.topicId).select('topicId topicName').lean() : null
     ]);
 
     res.json({
@@ -270,7 +165,8 @@ exports.getMainsAnswerWritingById = async (req, res) => {
       data: formatMainsAnswerWriting({
         ...doc,
         folderName: folder?.folderName,
-        facultySubjectName: facultySubject?.subjectName
+        facultySubjectName: facultySubject?.subjectName,
+        topicName: topic?.topicName
       })
     });
   } catch (error) {
@@ -292,11 +188,13 @@ exports.updateMainsAnswerWriting = async (req, res) => {
     const merged = {
       facultySubjectId: req.body.facultySubjectId ?? existing.facultySubjectId,
       folderId: req.body.folderId ?? existing.folderId,
+      topicId: req.body.topicId ?? existing.topicId,
       testName: req.body.testName ?? existing.testName,
       scheduleDate: req.body.scheduleDate ?? existing.scheduleDate,
       durationPreset: req.body.durationPreset ?? existing.durationPreset,
       durationMinutes: req.body.durationMinutes ?? existing.durationMinutes,
       totalMarks: req.body.totalMarks ?? existing.totalMarks,
+      passMarks: req.body.passMarks ?? existing.passMarks,
       resultDate: req.body.resultDate ?? existing.resultDate,
       questionsText: req.body.questionsText ?? existing.questionsText,
       publishStatus: req.body.publishStatus ?? existing.publishStatus
@@ -314,9 +212,13 @@ exports.updateMainsAnswerWriting = async (req, res) => {
       existing.durationMinutes = validation.durationMinutes;
     }
     if (req.body.totalMarks !== undefined) existing.totalMarks = validation.totalMarks;
+    if (req.body.passMarks !== undefined) existing.passMarks = validation.passMarks ?? null;
     if (req.body.resultDate !== undefined) existing.resultDate = validation.resultDate;
     if (req.body.questionsText !== undefined) existing.questionsText = validation.questionsText;
     if (req.body.folderId !== undefined) existing.folderId = validation.folder._id;
+    if (req.body.topicId !== undefined) {
+      existing.topicId = validation.topic?._id || null;
+    }
     if (req.body.facultySubjectId !== undefined) {
       existing.facultySubjectId = validation.facultySubject._id;
     }
@@ -433,11 +335,16 @@ const MAINS_DEPENDENCY_FLOW = [
   },
   {
     step: 2,
+    field: 'topicId',
+    api: 'GET /api/mains-answer-writing/filter/topics-dropdown?facultySubjectId={facultySubjectId}'
+  },
+  {
+    step: 3,
     field: 'folderId',
     api: 'GET /api/folders?facultySubjectId={facultySubjectId}&category=MAINS_ANSWER_WRITING'
   },
   {
-    step: 3,
+    step: 4,
     field: 'create',
     api: 'POST /api/mains-answer-writing (multipart pdf file)'
   }
@@ -468,10 +375,23 @@ exports.getMainsAnswerWritingCreateForm = async (req, res) => {
       },
       dependencyFlow: MAINS_DEPENDENCY_FLOW,
       dropdownApis: {
+        subjects: '/api/mains-answer-writing/filter/subjects-dropdown',
+        topics: '/api/mains-answer-writing/filter/topics-dropdown?facultySubjectId={facultySubjectId}',
         facultySubjects: '/api/faculty-subjects/dropdown?category=MAINS_ANSWER_WRITING',
         folders: '/api/folders?facultySubjectId={facultySubjectId}&category=MAINS_ANSWER_WRITING'
       },
-      folders: []
+      listFilters: {
+        facultySubjectId: 'Faculty subject Mongo _id',
+        subjectName: 'Filter by faculty subject display name (partial match)',
+        subjectId: 'Master subject Mongo _id',
+        topicId: 'Topic Mongo _id',
+        topicName: 'Filter by topic name (partial match)',
+        folderId: 'Content folder Mongo _id',
+        publishStatus: 'DRAFT | PUBLISHED | UNPUBLISHED',
+        search: 'testName, subject, topic, folder'
+      },
+      folders: [],
+      topics: []
     };
 
     if (facultySubjectId && isValidObjectId(facultySubjectId)) {
@@ -506,10 +426,23 @@ exports.getMainsAnswerWritingCreateForm = async (req, res) => {
         facultySubjectId: facultySubject.facultySubjectId,
         subjectName: facultySubject.subjectName
       };
+      const topicIds = facultySubject.topics || [];
+      const topics = topicIds.length
+        ? await Topic.find({ _id: { $in: topicIds }, status: 'ACTIVE', ...NOT_DELETED })
+            .select('_id topicId topicName')
+            .sort({ topicName: 1 })
+            .lean()
+        : [];
+
       data.folders = folders.map((f) => ({
         _id: f._id,
         folderId: f.folderId,
         folderName: f.folderName
+      }));
+      data.topics = topics.map((t) => ({
+        _id: t._id,
+        topicId: t.topicId,
+        topicName: t.topicName
       }));
     }
 
@@ -527,6 +460,90 @@ exports.getMainsAnswerWritingCreateForm = async (req, res) => {
     res.json({ success: true, data });
   } catch (error) {
     console.error('Mains answer writing create form error:', error);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+};
+
+exports.getMainsAnswerWritingSubjectsDropdown = async (req, res) => {
+  try {
+    const rows = await FacultySubject.find({
+      status: 'ACTIVE',
+      categories: { $in: ['MAINS_ANSWER_WRITING'] },
+      ...NOT_DELETED
+    })
+      .populate('subject', 'subjectId subjectName')
+      .select('_id facultySubjectId subjectName subject')
+      .sort({ subjectName: 1 })
+      .lean();
+
+    res.json({
+      success: true,
+      count: rows.length,
+      data: rows.map((r) => ({
+        _id: r._id,
+        facultySubjectId: r.facultySubjectId,
+        subjectName: r.subjectName,
+        masterSubjectId: r.subject?._id || null,
+        masterSubjectName: r.subject?.subjectName || null
+      }))
+    });
+  } catch (error) {
+    console.error('Mains subjects dropdown error:', error);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+};
+
+exports.getMainsAnswerWritingTopicsDropdown = async (req, res) => {
+  try {
+    const { facultySubjectId } = req.query;
+
+    if (!facultySubjectId || !isValidObjectId(facultySubjectId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'facultySubjectId is required and must be a valid id'
+      });
+    }
+
+    const facultySubject = await FacultySubject.findOne({
+      _id: facultySubjectId,
+      status: 'ACTIVE',
+      categories: { $in: ['MAINS_ANSWER_WRITING'] },
+      ...NOT_DELETED
+    })
+      .select('_id facultySubjectId subjectName topics')
+      .lean();
+
+    if (!facultySubject) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid faculty subject or MAINS_ANSWER_WRITING category not enabled'
+      });
+    }
+
+    const topicIds = facultySubject.topics || [];
+    const topics = topicIds.length
+      ? await Topic.find({ _id: { $in: topicIds }, status: 'ACTIVE', ...NOT_DELETED })
+          .select('_id topicId topicName')
+          .sort({ topicName: 1 })
+          .lean()
+      : [];
+
+    res.json({
+      success: true,
+      facultySubject: {
+        _id: facultySubject._id,
+        facultySubjectId: facultySubject.facultySubjectId,
+        subjectName: facultySubject.subjectName
+      },
+      count: topics.length,
+      data: topics.map((t) => ({
+        _id: t._id,
+        topicId: t.topicId,
+        topicName: t.topicName
+      }))
+    });
+  } catch (error) {
+    console.error('Mains topics dropdown error:', error);
     res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 };

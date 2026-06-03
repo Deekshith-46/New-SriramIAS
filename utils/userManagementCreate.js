@@ -1,11 +1,12 @@
-const User = require('../models/User');
-const Student = require('../models/Student');
 const AdminAccess = require('../models/AdminAccess');
 const Role = require('../models/Role');
 const Center = require('../models/Center');
-const { assertStudentGmail } = require('../utils/studentEmail');
 const { findActiveAdminAccessByIdPublic } = require('./adminAccessHelpers');
-const { normalizeAdminRecord, normalizeUserRecord } = require('./userManagementHelpers');
+const {
+  normalizeAdminRecord,
+  normalizeStudentListRecord
+} = require('./userManagementHelpers');
+const { createStudentWithUser } = require('./studentService');
 
 const validateRoleAndCenter = async (roleId, centerId) => {
   const role = await Role.findById(roleId);
@@ -27,73 +28,16 @@ const validateRoleAndCenter = async (roleId, centerId) => {
   return { role, center };
 };
 
-const validateStudentCenter = async (centerId) => {
-  const center = await Center.findOne({
-    _id: centerId,
-    isDeleted: false,
-    status: 'ACTIVE'
-  });
-  if (!center) {
-    return { error: { status: 400, message: 'Invalid or inactive center' } };
-  }
-  return { center };
-};
-
 const createStudentUser = async (body, createdBy) => {
-  const {
-    fullName,
-    email: rawEmail,
-    mobile,
-    parentName,
-    parentEmail,
-    parentMobile,
-    centerId,
-    status
-  } = body;
-
-  const email = assertStudentGmail(rawEmail);
-
-  const centerCheck = await validateStudentCenter(centerId);
-  if (centerCheck.error) {
-    const err = new Error(centerCheck.error.message);
-    err.statusCode = centerCheck.error.status;
-    throw err;
-  }
-
-  const existing = await User.findOne({
-    $or: [{ email }, { mobile: String(mobile).trim() }]
-  });
-  if (existing) {
-    const err = new Error('User already exists with this email or mobile');
-    err.statusCode = 400;
-    throw err;
-  }
-
-  const user = await User.create({
-    name: String(fullName).trim(),
-    email,
-    mobile: String(mobile).trim(),
-    center: centerId,
-    role: 'student',
-    isActive: status !== false
-  });
-
-  const student = await Student.create({
-    userId: user._id,
-    ...(parentName ? { parentName: String(parentName).trim() } : {}),
-    ...(parentEmail ? { parentEmail: String(parentEmail).toLowerCase().trim() } : {}),
-    ...(parentMobile ? { parentMobile: String(parentMobile).trim() } : {})
-  });
-
-  const populated = await User.findById(user._id)
-    .select('-password')
-    .populate('center', 'centerName centerCode name')
-    .lean();
+  const { user, student } = await createStudentWithUser(body);
 
   return {
-    user: populated,
-    student: student.toObject(),
-    summary: normalizeUserRecord(populated, student.toObject())
+    user,
+    student,
+    summary: normalizeStudentListRecord({
+      ...student,
+      userId: user
+    })
   };
 };
 

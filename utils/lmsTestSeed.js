@@ -9,7 +9,9 @@ const seedLmsTestCategories = async () => {
       { upsert: true }
     );
   }
-  console.log('✅ LMS test categories seeded (weekly, daily, monthly)');
+  if (process.env.STARTUP_VERBOSE === 'true') {
+    console.log('LMS test categories seeded (weekly, daily, monthly)');
+  }
 };
 
 module.exports = { seedLmsTestCategories };

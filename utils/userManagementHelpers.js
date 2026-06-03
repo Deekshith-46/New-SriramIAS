@@ -3,6 +3,7 @@ const Student = require('../models/Student');
 const Center = require('../models/Center');
 const User = require('../models/User');
 const AdminAccess = require('../models/AdminAccess');
+const { ensureStudentProfileForUser, ACTIVE_STUDENT } = require('./studentService');
 
 const escapeRegex = (term) =>
   new RegExp(String(term).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
@@ -24,6 +25,48 @@ const buildStudentDetails = (student) => {
     parentName: student.parentName || null,
     parentEmail: student.parentEmail || null,
     parentMobile: student.parentMobile || null
+  };
+};
+
+/** List row from unified Student master (batch + portal) */
+const normalizeStudentListRecord = (student) => {
+  const linkedUser =
+    student.userId && typeof student.userId === 'object' ? student.userId : null;
+  const centerDoc =
+    student.centerId && typeof student.centerId === 'object'
+      ? student.centerId
+      : linkedUser?.center && typeof linkedUser.center === 'object'
+        ? linkedUser.center
+        : null;
+  const centerName =
+    centerDoc?.centerName || centerDoc?.name || linkedUser?.location || '-';
+  const centerIdVal =
+    centerDoc?._id || student.centerId || linkedUser?.center || null;
+  const hasPortalUser = !!linkedUser?._id;
+
+  let status = student.status || 'ACTIVE';
+  if (hasPortalUser) {
+    status = linkedUser.isActive ? 'ACTIVE' : 'INACTIVE';
+  }
+
+  return {
+    id: hasPortalUser ? linkedUser._id : student._id,
+    studentRecordId: student._id,
+    studentId: student.studentId || null,
+    fullName: student.studentName,
+    email: linkedUser?.email || student.email || null,
+    phoneNumber: linkedUser?.mobile || student.mobileNumber || null,
+    role: 'Student',
+    roleType: 'STUDENT',
+    roleKey: 'student',
+    center: centerName,
+    centerId: centerIdVal,
+    status,
+    userType: 'STUDENT',
+    recordType: hasPortalUser ? 'USER' : 'STUDENT',
+    joinedDate: formatJoinedDate(student.createdAt || linkedUser?.createdAt),
+    createdAt: student.createdAt || linkedUser?.createdAt,
+    studentDetails: buildStudentDetails(student)
   };
 };
 
@@ -106,19 +149,21 @@ const resolveRecordTypeQuery = (typeOrRecordType) => {
   const value = typeOrRecordType;
   if (!value) return null;
   if (value === 'USER' || value === 'ADMIN') return value;
-  if (value === 'STUDENT') return 'USER';
+  if (value === 'STUDENT') return 'STUDENT';
   if (value === 'ALL') return null;
   return 'ADMIN';
 };
 
 const resolveRecordTypeById = async (id) => {
-  const [admin, user] = await Promise.all([
+  const [admin, user, student] = await Promise.all([
     AdminAccess.findById(id).select('_id').lean(),
-    User.findById(id).select('_id role').lean()
+    User.findById(id).select('_id role').lean(),
+    Student.findById(id).select('_id userId').lean()
   ]);
 
   if (admin) return 'ADMIN';
   if (user) return 'USER';
+  if (student) return student.userId ? 'USER' : 'STUDENT';
   return null;
 };
 
@@ -160,7 +205,85 @@ const resolveRoleFilter = async (role) => {
   };
 };
 
-/** Unified list: only platform students from User (never parent / legacy admin User rows) */
+/** Student master list — excludes legacy soft-deleted profiles */
+const buildStudentCollectionQuery = ({ search, status }) => {
+  const query = { ...ACTIVE_STUDENT };
+
+  if (status === 'ACTIVE') query.status = 'ACTIVE';
+  if (status === 'INACTIVE') query.status = 'INACTIVE';
+
+  const term = String(search).trim();
+  if (term) {
+    const regex = escapeRegex(term);
+    if (!/^student$/i.test(term)) {
+      query.$or = [
+        { studentName: regex },
+        { email: regex },
+        { mobileNumber: regex },
+        { studentId: regex }
+      ];
+    }
+  }
+
+  return query;
+};
+
+const filterStudentsByCenter = (students, centerId) => {
+  if (!centerId || centerId === 'ALL') return students;
+  return students.filter((s) => {
+    const studentCenter = s.centerId?._id || s.centerId;
+    const userCenter = s.userId?.center?._id || s.userId?.center;
+    return (
+      String(studentCenter || '') === String(centerId) ||
+      String(userCenter || '') === String(centerId)
+    );
+  });
+};
+
+const fetchStudentsForUnifiedList = async ({ search, status, centerId }) => {
+  const query = buildStudentCollectionQuery({ search, status });
+  let students = await Student.find(query)
+    .populate({ path: 'userId', select: '-password', populate: { path: 'center', select: 'centerName centerCode name' } })
+    .populate('centerId', 'centerName centerCode name')
+    .sort({ createdAt: -1 })
+    .lean();
+
+  students = filterStudentsByCenter(students, centerId);
+
+  const linkedUserIds = new Set(
+    students.filter((s) => s.userId?._id).map((s) => String(s.userId._id))
+  );
+
+  const userQuery = buildUserCollectionQuery({ search, status, centerId });
+  if (status !== 'INACTIVE') {
+    userQuery.isActive = true;
+  }
+  const orphanUsers = await User.find({
+    ...userQuery,
+    _id: { $nin: [...linkedUserIds] }
+  })
+    .select('-password')
+    .populate('center', 'centerName centerCode name')
+    .lean();
+
+  const studentRows = students.map((s) => normalizeStudentListRecord(s));
+  const orphanRows = [];
+
+  for (const user of orphanUsers) {
+    const profile = await ensureStudentProfileForUser(user);
+    const hydrated = await Student.findById(profile._id)
+      .populate({ path: 'userId', select: '-password', populate: { path: 'center', select: 'centerName centerCode name' } })
+      .populate('centerId', 'centerName centerCode name')
+      .lean();
+    if (hydrated && filterStudentsByCenter([hydrated], centerId).length) {
+      orphanRows.push(normalizeStudentListRecord(hydrated));
+    }
+  }
+
+  return [...studentRows, ...orphanRows];
+};
+
+/** Legacy User-only query for orphan portal accounts (no Student row yet) */
 const buildUserCollectionQuery = ({ search, status, centerId }) => {
   const query = { role: 'student' };
 
@@ -310,9 +433,12 @@ const getCreateUserRolesForDropdown = async () => {
 
 module.exports = {
   normalizeUserRecord,
+  normalizeStudentListRecord,
   normalizeAdminRecord,
   resolveRoleFilter,
   buildUserCollectionQuery,
+  buildStudentCollectionQuery,
+  fetchStudentsForUnifiedList,
   buildAdminCollectionQueryAsync,
   attachStudentProfiles,
   getAllUserRolesForDropdown,
