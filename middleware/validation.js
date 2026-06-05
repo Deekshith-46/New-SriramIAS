@@ -155,7 +155,7 @@ const validations = {
   }),
 
   createUnifiedUserStudent: Joi.object({
-    userType: Joi.string().valid('STUDENT').required(),
+    userType: Joi.string().valid('STUDENT').optional().default('STUDENT'),
     fullName: Joi.string().min(2).max(100).required().trim(),
     email: studentGmailEmail.required(),
     mobile: Joi.string()

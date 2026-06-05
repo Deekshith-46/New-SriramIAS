@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Sriram IAS - Unified User Management",
-    "description": "Final user management: Students (User+Student) + AdminAccess.\n\nSetup:\n1. Login Super Admin (saves superAdminToken)\n2. GET User Roles + GET User Centers — set roleId / centerId from dropdown value\n3. GET /api/admin/users with role, center, search, status filters\n\nFilters:\n- role=ALL | STUDENT | <Role._id>\n- center=ALL | <Center._id> (or centerId=)\n- status=ACTIVE | INACTIVE\n- userType=USER | ADMIN | ALL",
+    "description": "Users & Access → Student Management module.\n\n**List/View:** all roles (Student, Faculty, Employee, Admin, Super Admin)\n**Create/Edit/Delete:** STUDENT only from this module\n\nSetup:\n1. Login Super Admin\n2. GET module-config + user-centers — set centerId\n3. List with role/center/status filters\n\nCreate: POST /users always creates STUDENT (role field ignored).\nEdit/Delete non-students: 403 with module message.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -58,12 +58,35 @@
           }
         },
         {
-          "name": "GET User Create Roles (create form — no ALL)",
+          "name": "GET Module Config (Student Management)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": "{{baseUrl}}/api/admin/users/module-config"
+          }
+        },
+        {
+          "name": "GET User Create Roles (STUDENT only — no dropdown)",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
             "url": "{{baseUrl}}/api/admin/user-create-roles"
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('create roles locked to STUDENT', () => {",
+                  "  const data = pm.response.json().data;",
+                  "  pm.expect(data.length).to.eql(1);",
+                  "  pm.expect(data[0].value).to.eql('STUDENT');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
         },
         {
           "name": "GET User Centers (ALL + centers — list filter)",
@@ -218,10 +241,10 @@
       ]
     },
     {
-      "name": "4. Unified Users — Create",
+      "name": "4. Student Management — Create",
       "item": [
         {
-          "name": "POST Create Student",
+          "name": "POST Create Student (no userType required)",
           "event": [
             {
               "listen": "test",
@@ -246,26 +269,21 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"userType\": \"STUDENT\",\n  \"fullName\": \"Arjun Mehta\",\n  \"email\": \"arjun.test@gmail.com\",\n  \"mobile\": \"9876543210\",\n  \"parentName\": \"Rajesh Mehta\",\n  \"parentEmail\": \"parent.test@gmail.com\",\n  \"parentMobile\": \"9876543211\",\n  \"centerId\": \"{{centerId}}\",\n  \"status\": true\n}"
+              "raw": "{\n  \"fullName\": \"Arjun Mehta\",\n  \"email\": \"arjun.test@gmail.com\",\n  \"mobile\": \"9876543210\",\n  \"parentName\": \"Rajesh Mehta\",\n  \"parentMobile\": \"9876543211\",\n  \"centerId\": \"{{centerId}}\"\n}"
             },
             "url": "{{baseUrl}}/api/admin/users"
           }
         },
         {
-          "name": "POST Create Admin",
+          "name": "POST Attempt Admin Create (400 — admin fields stripped)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "const json = pm.response.json();",
-                  "if (json.data && json.data._id) {",
-                  "  pm.collectionVariables.set('userId', json.data._id);",
-                  "  if (json.summary && json.summary.userType) {",
-                  "    pm.collectionVariables.set('userType', json.summary.userType);",
-                  "  }",
-                  "  pm.collectionVariables.set('recordType', 'ADMIN');",
-                  "}"
+                  "pm.test('cannot create admin from this module', () => {",
+                  "  pm.response.to.have.status(400);",
+                  "});"
                 ],
                 "type": "text/javascript"
               }
@@ -279,7 +297,38 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"userType\": \"{{roleId}}\",\n  \"fullName\": \"Test Content Admin\",\n  \"officialEmail\": \"content.admin.test@sriramias.com\",\n  \"contactNumber\": \"9876543222\",\n  \"employeeId\": \"EMPTEST01\",\n  \"centerId\": \"{{centerId}}\",\n  \"password\": \"123456\",\n  \"confirmPassword\": \"123456\",\n  \"accountStatus\": true\n}"
+              "raw": "{\n  \"userType\": \"{{roleId}}\",\n  \"fullName\": \"Test Content Admin\",\n  \"officialEmail\": \"content.admin.test@sriramias.com\",\n  \"contactNumber\": \"9876543222\",\n  \"employeeId\": \"EMPTEST01\",\n  \"centerId\": \"{{centerId}}\",\n  \"password\": \"123456\",\n  \"confirmPassword\": \"123456\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/users",
+            "description": "Admin-only fields are stripped; validation fails without student email/mobile."
+          }
+        },
+        {
+          "name": "POST Role Ignored — student fields + roleId still creates STUDENT",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('role ignored', () => {",
+                  "  pm.response.to.have.status(201);",
+                  "  pm.expect(pm.response.json().userType).to.eql('STUDENT');",
+                  "  pm.expect(pm.response.json().roleIgnored).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{superAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userType\": \"{{roleId}}\",\n  \"fullName\": \"Role Ignored Student\",\n  \"email\": \"role.ignored.test@gmail.com\",\n  \"mobile\": \"9876543299\",\n  \"centerId\": \"{{centerId}}\"\n}"
             },
             "url": "{{baseUrl}}/api/admin/users"
           }
@@ -349,7 +398,21 @@
           }
         },
         {
-          "name": "PUT Update Admin (type=ADMIN)",
+          "name": "PUT Update Admin (type=ADMIN — expect 403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('admin not editable', () => {",
+                  "  pm.response.to.have.status(403);",
+                  "  pm.expect(pm.response.json().message).to.include('Only student accounts');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "PUT",
             "header": [
@@ -358,8 +421,49 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fullName\": \"Content Admin Updated\",\n  \"accountStatus\": true,\n  \"roleId\": \"{{roleId}}\",\n  \"centerId\": \"{{centerId}}\"\n}"
+              "raw": "{\n  \"fullName\": \"Content Admin Updated\",\n  \"accountStatus\": true\n}"
             },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/{{userId}}?type=ADMIN",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users", "{{userId}}"],
+              "query": [{ "key": "type", "value": "ADMIN" }]
+            },
+            "description": "Set userId to an AdminAccess _id from list (userType=ADMIN filter)."
+          }
+        },
+        {
+          "name": "DELETE Student",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/{{userId}}?type={{recordType}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users", "{{userId}}"],
+              "query": [{ "key": "type", "value": "{{recordType}}" }]
+            }
+          }
+        },
+        {
+          "name": "DELETE Admin (expect 403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('admin not deletable', () => {",
+                  "  pm.response.to.have.status(403);",
+                  "  pm.expect(pm.response.json().message).to.include('Only student accounts can be deleted');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{superAdminToken}}" }],
             "url": {
               "raw": "{{baseUrl}}/api/admin/users/{{userId}}?type=ADMIN",
               "host": ["{{baseUrl}}"],

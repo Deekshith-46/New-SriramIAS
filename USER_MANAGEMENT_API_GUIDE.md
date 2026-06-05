@@ -6,6 +6,24 @@
 
 ---
 
+## Student Management module (Users & Access change request)
+
+**List Users** screen is now a **Student Management** module for mutations:
+
+| Action | Scope |
+|--------|--------|
+| List | All users (Student, Faculty, Employee, Admin, Super Admin, …) |
+| View | All users |
+| Create | **Student only** — `role` / `userType` / `roleId` in body are **ignored** |
+| Edit | **Student only** — non-students return **403** |
+| Delete | **Student only** — non-students return **403** |
+
+- `GET /api/admin/users/module-config` — frontend integration metadata
+- List rows include `permissions: { canView, canEdit, canDelete, editDisabledReason, deleteDisabledReason }`
+- Create other roles: use **Admin Access** (`/api/admin/admin-access`) or **Role Management**, not List Users
+
+---
+
 ## 1. Architecture (final)
 
 ```txt
@@ -25,7 +43,7 @@ GET /api/admin/users → students + admins merged (parents NEVER listed separate
 
 **Role filter:** `ALL` \| `STUDENT` \| `<Role._id>` — Student is outside Role Management.
 
-**Create:** `POST /api/admin/users` with `userType` from `GET /api/admin/user-roles` (`STUDENT` or Role `_id`) — one API, dynamic form on frontend.
+**Create:** `POST /api/admin/users` — always creates **STUDENT** (no role dropdown). Optional `userType: "STUDENT"`; admin role ids are discarded.
 
 ---
 
@@ -38,6 +56,7 @@ utils/userManagementHelpers.js
 utils/userManagementFields.js
 utils/userManagementUpdate.js
 utils/userManagementCreate.js
+utils/userManagementStudentModule.js   (permissions, sanitize create, module config)
 routes/adminRoutes.js          (registers routes)
 ```
 
@@ -47,11 +66,13 @@ routes/adminRoutes.js          (registers routes)
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/admin/users` | Unified list (students + AdminAccess only) |
-| POST | `/api/admin/users` | Create student or admin (`userType`) |
-| GET | `/api/admin/users/update-fields?type=USER\|ADMIN` | All PUT body fields (for frontend comments) |
+| GET | `/api/admin/users` | Unified list (all roles; includes `permissions` per row) |
+| GET | `/api/admin/users/module-config` | Student Management module rules for frontend |
+| POST | `/api/admin/users` | **Create student only** (incoming role ignored) |
+| GET | `/api/admin/users/update-fields?type=USER\|ADMIN` | PUT fields; `editable: false` for ADMIN |
 | GET | `/api/admin/user-roles` | **List filter** roles: ALL + STUDENT + dynamic |
-| GET | `/api/admin/user-create-roles` | **Create User** roles: STUDENT + dynamic only (no ALL) |
+| GET | `/api/admin/user-create-roles` | **Create Student** — returns STUDENT only (`roleSelectionEnabled: false`) |
+| DELETE | `/api/admin/users/:id` | **Students only**; 403 for admins |
 | GET | `/api/admin/user-centers` | Center filter: ALL + active centers |
 | GET | `/api/admin/users/:id?type=USER\|ADMIN` | View one user (`recordType` from list row) |
 | PUT | `/api/admin/users/:id?type=USER\|ADMIN` | Update student or admin |

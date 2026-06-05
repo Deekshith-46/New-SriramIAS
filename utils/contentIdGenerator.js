@@ -53,6 +53,8 @@ const generateTestConfigSectionId = () =>
   generateSequentialId(require('../models/TestConfigSection'), 'sectionId', 'SEC-', 4);
 const generateTestConfigLanguageId = () =>
   generateSequentialId(require('../models/TestConfigLanguage'), 'languageId', 'LG-', 4);
+const generateQuestionBankCode = () =>
+  generateSequentialId(require('../models/QuestionBank'), 'questionCode', 'QB-', 6);
 
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
@@ -74,5 +76,6 @@ module.exports = {
   generateExamInstructionId,
   generateTestConfigSectionId,
   generateTestConfigLanguageId,
+  generateQuestionBankCode,
   isValidObjectId
 };

@@ -2,7 +2,6 @@ const User = require('../models/User');
 const AdminAccess = require('../models/AdminAccess');
 const Student = require('../models/Student');
 const {
-  normalizeUserRecord,
   normalizeAdminRecord,
   resolveRoleFilter,
   buildAdminCollectionQueryAsync,
@@ -14,16 +13,35 @@ const {
   resolveRecordTypeForRequest,
   buildAdminViewSummary
 } = require('../utils/userManagementHelpers');
+const {
+  MODULE_KEY,
+  MESSAGES,
+  assertStudentRecordAction,
+  attachModulePermissions,
+  sanitizeStudentCreatePayload,
+  wasNonStudentRoleRequested,
+  getModuleConfig
+} = require('../utils/userManagementStudentModule');
 const { getUpdatableFieldsForType } = require('../utils/userManagementFields');
 const {
-  applyAdminAccessUpdate,
   applyUserAccountUpdate,
   applyStudentProfileUpdate,
-  applyEmployeeProfileUpdate
+  applyBatchOnlyStudentUpdate
 } = require('../utils/userManagementUpdate');
-const { createStudentUser, createAdminAccessUser } = require('../utils/userManagementCreate');
+const { createStudentUser } = require('../utils/userManagementCreate');
 const { deleteStudent, ACTIVE_STUDENT } = require('../utils/studentService');
-const { applyBatchOnlyStudentUpdate } = require('../utils/userManagementUpdate');
+
+exports.getModuleConfig = async (req, res) => {
+  try {
+    res.json({
+      success: true,
+      data: getModuleConfig()
+    });
+  } catch (error) {
+    console.error('Get module config error:', error);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+};
 
 exports.getUnifiedUsers = async (req, res) => {
   try {
@@ -97,7 +115,10 @@ exports.getUnifiedUsers = async (req, res) => {
 
     const [studentRows, admins] = await Promise.all(fetchTasks);
 
-    let merged = [...studentRows, ...admins.map(normalizeAdminRecord)];
+    let merged = [
+      ...studentRows.map(attachModulePermissions),
+      ...admins.map((admin) => attachModulePermissions(normalizeAdminRecord(admin)))
+    ];
 
     const sortField = ['createdAt', 'fullName', 'email', 'role', 'status', 'joinedDate'].includes(
       sortBy
@@ -123,6 +144,7 @@ exports.getUnifiedUsers = async (req, res) => {
 
     res.json({
       success: true,
+      module: MODULE_KEY,
       total: merged.length,
       page: pageNum,
       limit: limitNum,
@@ -136,69 +158,30 @@ exports.getUnifiedUsers = async (req, res) => {
   }
 };
 
-const isAdminRoleUserType = (userType) =>
-  typeof userType === 'string' &&
-  userType !== 'STUDENT' &&
-  userType !== 'ALL' &&
-  /^[a-f0-9]{24}$/i.test(userType);
-
 exports.createUnifiedUser = async (req, res) => {
   try {
-    const { userType } = req.body;
+    const roleIgnored = wasNonStudentRoleRequested(req.body);
+    const payload = sanitizeStudentCreatePayload(req.body);
+    const result = await createStudentUser(payload, req.user?._id);
 
-    if (userType === 'STUDENT') {
-      const result = await createStudentUser(req.body, req.user?._id);
-      return res.status(201).json({
-        success: true,
-        message: 'Student created successfully',
-        recordType: result.summary.recordType,
-        userType: result.summary.userType,
-        createRoleValue: 'STUDENT',
-        selectedRole: {
-          value: 'STUDENT',
-          label: 'Student',
-          roleCode: 'STUDENT',
-          kind: 'STUDENT'
-        },
-        summary: result.summary,
-        data: result.user,
-        studentProfile: result.student
-      });
-    }
-
-    if (isAdminRoleUserType(userType)) {
-      const roleId = req.body.roleId || userType;
-      const result = await createAdminAccessUser(
-        { ...req.body, roleId },
-        req.user?._id
-      );
-      const roleDoc =
-        result.admin?.roleId && typeof result.admin.roleId === 'object'
-          ? result.admin.roleId
-          : null;
-
-      return res.status(201).json({
-        success: true,
-        message: 'Admin user created successfully',
-        recordType: result.summary.recordType,
-        userType: result.summary.userType,
-        createRoleValue: userType,
-        selectedRole: {
-          value: String(roleId),
-          label: roleDoc?.roleTitle || result.summary?.role,
-          roleCode: roleDoc?.roleCode || result.summary?.roleKey,
-          kind: 'ADMIN_ACCESS'
-        },
-        roleId: String(roleId),
-        summary: result.summary,
-        data: result.admin
-      });
-    }
-
-    return res.status(400).json({
-      success: false,
-      message:
-        'userType is required: use STUDENT for students, or a Role _id from GET /api/admin/user-roles. Do not use ALL or ADMIN.'
+    return res.status(201).json({
+      success: true,
+      message: 'Student created successfully',
+      module: MODULE_KEY,
+      roleIgnored,
+      recordType: result.summary.recordType,
+      userType: 'STUDENT',
+      createRoleValue: 'STUDENT',
+      selectedRole: {
+        value: 'STUDENT',
+        label: 'Student',
+        roleCode: 'STUDENT',
+        kind: 'STUDENT',
+        locked: true
+      },
+      summary: attachModulePermissions(result.summary),
+      data: result.user,
+      studentProfile: result.student
     });
   } catch (error) {
     console.error('Create unified user error:', error);
@@ -218,9 +201,14 @@ exports.createUnifiedUser = async (req, res) => {
 exports.getUpdateFields = async (req, res) => {
   try {
     const type = req.query.type === 'ADMIN' ? 'ADMIN' : 'USER';
+    const fields = getUpdatableFieldsForType(type);
+
     res.json({
       success: true,
-      ...getUpdatableFieldsForType(type)
+      module: MODULE_KEY,
+      editable: type !== 'ADMIN',
+      editDisabledReason: type === 'ADMIN' ? MESSAGES.MODIFY_BLOCKED : null,
+      ...fields
     });
   } catch (error) {
     console.error('Get update fields error:', error);
@@ -256,12 +244,15 @@ exports.getUserCenters = async (req, res) => {
   }
 };
 
-/** Create User form — roles without ALL (use user-roles for list filters) */
+/** Create Student form — role fixed to STUDENT */
 exports.getCreateUserRoles = async (req, res) => {
   try {
     const data = await getCreateUserRolesForDropdown();
     res.json({
       success: true,
+      module: MODULE_KEY,
+      createFormLabel: 'Create Student',
+      roleSelectionEnabled: false,
       count: data.length,
       data
     });
@@ -276,10 +267,24 @@ exports.deleteUnifiedUser = async (req, res) => {
     const typeParam = req.query.recordType || req.query.type;
     const recordType = await resolveRecordTypeForRequest(req.params.id, typeParam);
 
-    if (recordType === 'ADMIN') {
-      return res.status(400).json({
+    if (!recordType) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const access = await assertStudentRecordAction(
+      req.params.id,
+      recordType,
+      'delete'
+    );
+    if (!access.allowed) {
+      return res.status(access.status).json({
         success: false,
-        message: 'Admin accounts cannot be deleted from this endpoint yet. Deactivate via accountStatus instead.'
+        message: access.message,
+        permissions: {
+          canView: true,
+          canEdit: false,
+          canDelete: false
+        }
       });
     }
 
@@ -316,12 +321,14 @@ exports.getSingleUser = async (req, res) => {
         return res.status(404).json({ success: false, message: 'Student not found' });
       }
 
-      const summary = normalizeStudentListRecord(student);
+      const summary = attachModulePermissions(normalizeStudentListRecord(student));
 
       return res.json({
         success: true,
+        module: MODULE_KEY,
         userType: summary.userType,
         recordType: summary.recordType,
+        permissions: summary.permissions,
         summary
       });
     }
@@ -336,12 +343,14 @@ exports.getSingleUser = async (req, res) => {
         return res.status(404).json({ success: false, message: 'User not found' });
       }
 
-      const summary = buildAdminViewSummary(admin);
+      const summary = attachModulePermissions(buildAdminViewSummary(admin));
 
       return res.json({
         success: true,
+        module: MODULE_KEY,
         userType: summary.userType,
         recordType: summary.recordType,
+        permissions: summary.permissions,
         summary
       });
     }
@@ -355,10 +364,24 @@ exports.getSingleUser = async (req, res) => {
     }
 
     if (user.role !== 'student') {
-      return res.status(400).json({
-        success: false,
-        message:
-          'This account is not a student. Parents and legacy users are not managed here. Use type=ADMIN for AdminAccess records.'
+      const summary = attachModulePermissions({
+        id: user._id,
+        fullName: user.name,
+        email: user.email,
+        phoneNumber: user.mobile,
+        role: user.role,
+        recordType: 'USER',
+        userType: user.role?.toUpperCase(),
+        status: user.isActive ? 'ACTIVE' : 'INACTIVE'
+      });
+
+      return res.json({
+        success: true,
+        module: MODULE_KEY,
+        userType: summary.userType,
+        recordType: summary.recordType,
+        permissions: summary.permissions,
+        summary
       });
     }
 
@@ -371,15 +394,19 @@ exports.getSingleUser = async (req, res) => {
       });
     }
 
-    const summary = normalizeStudentListRecord({
-      ...studentProfile,
-      userId: user
-    });
+    const summary = attachModulePermissions(
+      normalizeStudentListRecord({
+        ...studentProfile,
+        userId: user
+      })
+    );
 
     res.json({
       success: true,
+      module: MODULE_KEY,
       userType: summary.userType,
       recordType: summary.recordType,
+      permissions: summary.permissions,
       summary
     });
   } catch (error) {
@@ -397,11 +424,30 @@ exports.updateUnifiedUser = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
+    const access = await assertStudentRecordAction(
+      req.params.id,
+      recordType,
+      'modify'
+    );
+    if (!access.allowed) {
+      return res.status(access.status).json({
+        success: false,
+        message: access.message,
+        permissions: {
+          canView: true,
+          canEdit: false,
+          canDelete: false,
+          editDisabledReason: MESSAGES.MODIFY_BLOCKED,
+          deleteDisabledReason: MESSAGES.DELETE_BLOCKED
+        }
+      });
+    }
+
     if (Object.keys(req.body || {}).length === 0) {
       return res.status(400).json({
         success: false,
         message: 'Request body is empty. Send at least one field to update.',
-        updatableFields: getUpdatableFieldsForType(recordType === 'ADMIN' ? 'ADMIN' : 'USER')
+        updatableFields: getUpdatableFieldsForType('USER')
       });
     }
 
@@ -416,38 +462,15 @@ exports.updateUnifiedUser = async (req, res) => {
       const refreshed = await Student.findById(student._id)
         .populate('centerId', 'centerName centerCode city state name')
         .lean();
-      const summary = normalizeStudentListRecord(refreshed);
+      const summary = attachModulePermissions(normalizeStudentListRecord(refreshed));
 
       return res.json({
         success: true,
         message: 'Student updated successfully',
+        module: MODULE_KEY,
         userType: summary.userType,
         recordType: summary.recordType,
-        summary
-      });
-    }
-
-    if (recordType === 'ADMIN') {
-      const admin = await AdminAccess.findById(req.params.id).select('+password');
-      if (!admin) {
-        return res.status(404).json({ success: false, message: 'User not found' });
-      }
-
-      await applyAdminAccessUpdate(admin, req.body);
-      await admin.save();
-
-      const populated = await AdminAccess.findById(admin._id)
-        .select('-password')
-        .populate('roleId', 'roleTitle roleCode status')
-        .populate('centerId', 'centerName centerCode city state');
-
-      const summary = buildAdminViewSummary(populated);
-
-      return res.json({
-        success: true,
-        message: 'Admin user updated successfully',
-        userType: summary.userType,
-        recordType: summary.recordType,
+        permissions: summary.permissions,
         summary
       });
     }
@@ -458,9 +481,14 @@ exports.updateUnifiedUser = async (req, res) => {
     }
 
     if (user.role !== 'student') {
-      return res.status(400).json({
+      return res.status(403).json({
         success: false,
-        message: 'Only student accounts can be updated with type=USER'
+        message: MESSAGES.MODIFY_BLOCKED,
+        permissions: {
+          canView: true,
+          canEdit: false,
+          canDelete: false
+        }
       });
     }
 
@@ -484,16 +512,20 @@ exports.updateUnifiedUser = async (req, res) => {
       });
     }
 
-    const summary = normalizeStudentListRecord({
-      ...student,
-      userId: populated
-    });
+    const summary = attachModulePermissions(
+      normalizeStudentListRecord({
+        ...student,
+        userId: populated
+      })
+    );
 
     res.json({
       success: true,
       message: 'Student updated successfully',
+      module: MODULE_KEY,
       userType: summary.userType,
       recordType: summary.recordType,
+      permissions: summary.permissions,
       summary
     });
   } catch (error) {

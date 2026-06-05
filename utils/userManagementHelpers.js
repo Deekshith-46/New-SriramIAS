@@ -405,30 +405,11 @@ const getAllUserRolesForDropdown = async () => {
 };
 
 /**
- * Create User page dropdown only — no ALL, no ADMIN.
- * userType in POST /api/admin/users = value from this list.
+ * Create Student form — role is fixed to STUDENT (no dropdown).
  */
 const getCreateUserRolesForDropdown = async () => {
-  const roles = await Role.find({ status: 'ACTIVE' })
-    .select('roleTitle roleCode status')
-    .sort({ roleTitle: 1 })
-    .lean();
-
-  return [
-    {
-      value: 'STUDENT',
-      label: 'Student',
-      roleCode: 'STUDENT',
-      kind: 'STUDENT'
-    },
-    ...roles.map((r) => ({
-      value: r._id.toString(),
-      label: r.roleTitle,
-      roleCode: r.roleCode,
-      status: r.status,
-      kind: 'ADMIN_ACCESS'
-    }))
-  ];
+  const { getStudentCreateRoles } = require('./userManagementStudentModule');
+  return getStudentCreateRoles();
 };
 
 module.exports = {

@@ -77,6 +77,7 @@ const subjectRecordingRoutes = require('./routes/subjectRecordingRoutes');
 const subjectMainsAnswerWritingRoutes = require('./routes/subjectMainsAnswerWritingRoutes');
 const subjectPdfRoutes = require('./routes/subjectPdfRoutes');
 const testConfigurationRoutes = require('./routes/testConfigurationRoutes');
+const questionBankRoutes = require('./routes/questionBankRoutes');
 const mentorRoutes = require('./routes/mentorRoutes');
 const { getCentersDropdown } = require('./controllers/centerManagementController');
 const { protect } = require('./middleware/authMiddleware');
@@ -276,6 +277,7 @@ app.use('/api/test-attempts', testAttemptRoutes);
 
 // Test Management — Test Configuration (Exam Pattern, Sections, Languages)
 app.use('/api/test-configuration', testConfigurationRoutes);
+app.use('/api/question-bank', questionBankRoutes);
 
 // HomePage CMS routes
 app.use('/api/homepage', homePageRoutes);
