@@ -1,10 +1,9 @@
 const mongoose = require('mongoose');
-const AcademicStudent = require('../models/AcademicStudent');
+const Student = require('../models/Student');
 const BatchEnrollment = require('../models/BatchEnrollment');
 const BatchTransfer = require('../models/BatchTransfer');
 const BatchAudit = require('../models/BatchAudit');
 const {
-  generateAcademicStudentId,
   generateBatchEnrollmentId,
   generateBatchTransferId,
   isValidObjectId
@@ -21,7 +20,6 @@ const {
   validatePaymentStatus,
   validateEnrollmentStatus,
   validatePercent,
-  findStudentByEmailOrMobile,
   validateActiveBatch,
   validateCourseForBatch,
   assertNoActiveEnrollment,
@@ -30,6 +28,7 @@ const {
   ENROLLMENT_POPULATE,
   formatEnrollment
 } = require('../utils/enrollmentErpHelpers');
+const { findOrCreateStudentForEnrollment, assertStudentContactAvailable } = require('../utils/studentService');
 
 const logBatchAudit = async (batchId, action, description, performedBy, meta = {}) => {
   await BatchAudit.create({
@@ -111,25 +110,11 @@ exports.createBatchEnrollment = async (req, res) => {
     const prog = validatePercent(courseProgressPercentage, 'courseProgressPercentage');
     if (!prog.ok) return res.status(400).json({ success: false, message: prog.message });
 
-    let student = await findStudentByEmailOrMobile({ email: emailNorm, mobileNumber: mobileNorm });
-    let studentCreated = false;
-
-    if (!student) {
-      const created = await AcademicStudent.create({
-        studentId: await generateAcademicStudentId(),
-        studentName: studentName.trim(),
-        email: emailNorm,
-        mobileNumber: mobileNorm,
-        status: 'ACTIVE'
-      });
-      student = created.toObject();
-      studentCreated = true;
-    } else if (studentName?.trim() && student.studentName !== studentName.trim()) {
-      await AcademicStudent.findByIdAndUpdate(student._id, {
-        studentName: studentName.trim()
-      });
-      student.studentName = studentName.trim();
-    }
+    const { student, created: studentCreated } = await findOrCreateStudentForEnrollment({
+      studentName: studentName.trim(),
+      email: emailNorm,
+      mobileNumber: mobileNorm
+    });
 
     const dupCheck = await assertNoActiveEnrollment(student._id, batchValidation.batch._id);
     if (!dupCheck.ok) {
@@ -203,7 +188,7 @@ exports.getEnrollmentsByBatch = async (req, res) => {
         { $match: query },
         {
           $lookup: {
-            from: 'academicstudents',
+            from: 'students',
             localField: 'student',
             foreignField: '_id',
             as: 'studentDoc'
@@ -312,20 +297,34 @@ exports.updateBatchEnrollment = async (req, res) => {
     }
 
     if (req.body.studentName !== undefined || req.body.email !== undefined || req.body.mobileNumber !== undefined) {
-      const student = await AcademicStudent.findOne({ _id: enrollment.student, ...NOT_DELETED });
+      const student = await Student.findOne({ _id: enrollment.student, ...NOT_DELETED });
       if (!student) {
         return res.status(404).json({ success: false, message: 'Linked student not found' });
       }
+
+      const nextEmail = req.body.email !== undefined ? normalizeEmail(req.body.email) : student.email;
+      const nextMobile =
+        req.body.mobileNumber !== undefined
+          ? normalizeMobile(req.body.mobileNumber)
+          : student.mobileNumber;
+
+      const dup = await assertStudentContactAvailable({
+        email: nextEmail,
+        mobileNumber: nextMobile,
+        excludeId: student._id
+      });
+      if (!dup.ok) {
+        return res.status(409).json({ success: false, message: dup.message });
+      }
+
       if (req.body.studentName !== undefined) {
         if (!String(req.body.studentName).trim()) {
           return res.status(400).json({ success: false, message: 'studentName cannot be empty' });
         }
         student.studentName = String(req.body.studentName).trim();
       }
-      if (req.body.email !== undefined) student.email = normalizeEmail(req.body.email);
-      if (req.body.mobileNumber !== undefined) {
-        student.mobileNumber = normalizeMobile(req.body.mobileNumber);
-      }
+      if (req.body.email !== undefined) student.email = nextEmail;
+      if (req.body.mobileNumber !== undefined) student.mobileNumber = nextMobile;
       await student.save();
     }
 
@@ -390,26 +389,27 @@ exports.deleteBatchEnrollment = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Enrollment not found' });
     }
 
-    enrollment.isDeleted = true;
-    enrollment.deletedAt = new Date();
-    enrollment.status = 'INACTIVE';
-    await enrollment.save();
+    const batchId = enrollment.batch;
+    const enrollmentId = enrollment.enrollmentId;
+    const enrollmentOid = enrollment._id;
 
-    const totalStudents = await syncBatchStudentCount(enrollment.batch);
+    await enrollment.deleteOne();
+
+    const totalStudents = await syncBatchStudentCount(batchId);
 
     await logBatchAudit(
-      enrollment.batch,
+      batchId,
       'ENROLLMENT_REMOVED',
-      `Enrollment ${enrollment.enrollmentId} soft-deleted`,
+      `Enrollment ${enrollmentId} permanently removed`,
       req.user?._id,
-      { enrollmentId: enrollment._id }
+      { enrollmentId: enrollmentOid }
     );
 
     res.json({
       success: true,
       message: 'Enrollment removed successfully',
       batchTotalStudents: totalStudents,
-      data: { _id: enrollment._id }
+      data: { _id: enrollmentOid }
     });
   } catch (error) {
     console.error('Delete enrollment error:', error);

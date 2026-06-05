@@ -1,0 +1,531 @@
+{
+  "info": {
+    "name": "Sriram IAS - Mains Management (Super Admin)",
+    "description": "Test Management → Mains Management (Levels 1–4)\n\nAuth: Super Admin Bearer token on /api/mains-management/*\nStudent token for PDF download tracking.\n\nFlow:\n1. Login Super Admin\n2. Dashboard + Faculty Subjects list\n3. Faculty Subject Details → copy topicId (topics include nested tests[])\n4. Topic Tests → copy testId\n5. Test Results (filters + pagination)\n6. Student: track PDF download (feeds pdfDownloads counts)\n\nCount rules (all levels):\n- studentsAssigned = distinct Student.userId from ACTIVE batch enrollments for the faculty subject\n- uploads / downloads / evaluated / pending / passed / failed scoped to assigned students only\n- pdfDownloads = MainsAnswerWritingPdfDownload rows (unique per student via track-pdf-download)\n- evaluationSummary on Level 4 = counts only (assigned, downloads, uploaded, evaluated, pending) — no progress percentages\n\nVariables auto-set: facultySubjectId, topicId, testId, mainsAnswerWritingId",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{SuperAdminToken}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "BASE_URL", "value": "http://localhost:5000" },
+    { "key": "SuperAdminToken", "value": "" },
+    { "key": "StudentToken", "value": "" },
+    { "key": "studentUserId", "value": "" },
+    { "key": "otp", "value": "" },
+    { "key": "facultySubjectId", "value": "" },
+    { "key": "topicId", "value": "" },
+    { "key": "testId", "value": "" },
+    { "key": "mainsAnswerWritingId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. Auth",
+      "item": [
+        {
+          "name": "Login Super Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.token) pm.collectionVariables.set('SuperAdminToken', j.token);",
+                  "pm.test('Token saved', () => pm.expect(pm.collectionVariables.get('SuperAdminToken')).to.not.eql(''));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@sriram.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/auth/login-super-admin",
+            "description": "Super Admin login. Token saved to {{SuperAdminToken}}."
+          }
+        },
+        {
+          "name": "Student - Send OTP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.userId) pm.collectionVariables.set('studentUserId', j.userId);",
+                  "if (j.otp) pm.collectionVariables.set('otp', j.otp);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"suresh123@gmail.com\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/auth/send-otp",
+            "description": "Send OTP for student login (needed for PDF download tracking)."
+          }
+        },
+        {
+          "name": "Student - Verify OTP (Login)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.token) pm.collectionVariables.set('StudentToken', j.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{studentUserId}}\",\n  \"otp\": \"{{otp}}\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/auth/verify-otp",
+            "description": "Verify OTP and save {{StudentToken}}."
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Level 1 - Dashboard",
+      "item": [
+        {
+          "name": "GET Dashboard (Evaluation Progress Cards)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "pm.test('success', () => pm.expect(j.success).to.eql(true));",
+                  "pm.test('evaluationProgress array', () => pm.expect(j.data.evaluationProgress).to.be.an('array'));",
+                  "const card = j.data.evaluationProgress[0];",
+                  "if (card) {",
+                  "  if (card.testId) pm.collectionVariables.set('testId', card.testId);",
+                  "  if (card.mainsAnswerWritingId) pm.collectionVariables.set('mainsAnswerWritingId', card.mainsAnswerWritingId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mains-management/dashboard?progressLimit=5",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mains-management", "dashboard"],
+              "query": [{ "key": "progressLimit", "value": "5", "description": "Max 10, default 5" }]
+            },
+            "description": "Latest published tests with scoped stats per faculty subject.\n\nevaluationPercentage = evaluatedCount / uploadedAnswerSheets * 100 (0 if no uploads).\n\nFields: testId, mainsAnswerWritingId, testName, facultyName, studentsAssigned, uploadedAnswerSheets, evaluatedCount, pendingCount, evaluationPercentage."
+          }
+        },
+        {
+          "name": "GET Faculty Subjects (table)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "pm.test('success', () => pm.expect(j.success).to.eql(true));",
+                  "const id = j.data?.[0]?.facultySubjectId;",
+                  "if (id) pm.collectionVariables.set('facultySubjectId', id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mains-management/faculty-subjects?search=&page=1&limit=20&sort=lastUpdated",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mains-management", "faculty-subjects"],
+              "query": [
+                { "key": "search", "value": "" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                { "key": "sort", "value": "lastUpdated", "description": "lastUpdated | subjectName | topicsCount" }
+              ]
+            },
+            "description": "Paginated faculty subjects with MAINS_ANSWER_WRITING category.\n\ntestsPdfCount = PUBLISHED tests only.\ntopicsCount = topics[] length on FacultySubject."
+          }
+        },
+        {
+          "name": "GET Faculty Subjects (search Economy)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mains-management/faculty-subjects?search=Economy&page=1&limit=20",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mains-management", "faculty-subjects"],
+              "query": [
+                { "key": "search", "value": "Economy" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Search by subjectName or facultySubjectId code."
+          }
+        },
+        {
+          "name": "GET Faculty Subjects (sort subjectName)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mains-management/faculty-subjects?sort=subjectName&page=1&limit=20",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mains-management", "faculty-subjects"],
+              "query": [
+                { "key": "sort", "value": "subjectName" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Sort ascending by subjectName."
+          }
+        },
+        {
+          "name": "GET Faculty Subjects (sort topicsCount)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mains-management/faculty-subjects?sort=topicsCount&page=1&limit=20",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mains-management", "faculty-subjects"],
+              "query": [
+                { "key": "sort", "value": "topicsCount" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Sort descending by topicsCount."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Level 2 - Faculty Subject Details",
+      "item": [
+        {
+          "name": "GET Faculty Subject Details + Topics",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "pm.test('success', () => pm.expect(j.success).to.eql(true));",
+                  "const topic = j.data?.topics?.[0];",
+                  "if (topic?.topicId) pm.collectionVariables.set('topicId', topic.topicId);",
+                  "const test = topic?.tests?.[0];",
+                  "if (test?.testId) pm.collectionVariables.set('testId', test.testId);",
+                  "if (test?.mainsAnswerWritingId) pm.collectionVariables.set('mainsAnswerWritingId', test.mainsAnswerWritingId);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{BASE_URL}}/api/mains-management/faculty-subjects/{{facultySubjectId}}",
+            "description": "Faculty subject detail with cards and topics.\n\nEach topic includes tests[] (actual PUBLISHED tests): testId, mainsAnswerWritingId, testName, uploadedDate, scheduleDate.\n\nTopics = union of FS.topics[] and topics referenced by published tests."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Level 3 - Topic Tests",
+      "item": [
+        {
+          "name": "GET Topic Tests List",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "pm.test('has topic header', () => pm.expect(j.topic).to.be.an('object'));",
+                  "const row = j.data?.[0];",
+                  "if (row?.testId) pm.collectionVariables.set('testId', row.testId);",
+                  "if (row?.mainsAnswerWritingId) pm.collectionVariables.set('mainsAnswerWritingId', row.mainsAnswerWritingId);",
+                  "if (row) {",
+                  "  pm.test('evaluationStatus present', () => pm.expect(row.evaluationStatus).to.be.oneOf(['Not Started', 'In Progress', 'Completed']));",
+                  "  pm.test('scoped counts present', () => {",
+                  "    pm.expect(row).to.have.property('studentsAssigned');",
+                  "    pm.expect(row).to.have.property('pdfDownloads');",
+                  "    pm.expect(row).to.have.property('answerSheetsUploaded');",
+                  "    pm.expect(row).to.have.property('evaluatedCount');",
+                  "    pm.expect(row).to.have.property('pendingCount');",
+                  "  });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mains-management/topics/{{topicId}}/tests?search=&page=1&limit=10",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mains-management", "topics", "{{topicId}}", "tests"],
+              "query": [
+                { "key": "search", "value": "" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "PUBLISHED tests under a topic with scoped stats.\n\nevaluationStatus: Not Started | In Progress | Completed.\npdfDownloads from MainsAnswerWritingPdfDownload (assigned students only).\nanswerSheetsUploaded / answerSheetUploads = submission count (assigned only)."
+          }
+        },
+        {
+          "name": "GET Topic Tests (search by test name)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mains-management/topics/{{topicId}}/tests?search=Indian&page=1&limit=10",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mains-management", "topics", "{{topicId}}", "tests"],
+              "query": [
+                { "key": "search", "value": "Indian" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "Filter tests by testName (case-insensitive)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Level 4 - Test Results",
+      "item": [
+        {
+          "name": "GET Test Results (all students)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "pm.test('success', () => pm.expect(j.success).to.eql(true));",
+                  "const d = j.data;",
+                  "pm.test('evaluationSummary counts only', () => {",
+                  "  const s = d.evaluationSummary;",
+                  "  pm.expect(s).to.have.keys(['assigned', 'downloads', 'uploaded', 'evaluated', 'pending']);",
+                  "  pm.expect(s).to.not.have.property('uploadProgressPercent');",
+                  "  pm.expect(s).to.not.have.property('evaluationProgressPercent');",
+                  "});",
+                  "pm.test('resultCards present', () => {",
+                  "  pm.expect(d.resultCards).to.have.keys(['totalStudents', 'evaluated', 'passed', 'failed']);",
+                  "});",
+                  "pm.test('students paginated', () => {",
+                  "  pm.expect(d.students).to.have.keys(['total', 'page', 'limit', 'totalPages', 'data']);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mains-management/tests/{{testId}}/results?search=&status=all&page=1&limit=20",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mains-management", "tests", "{{testId}}", "results"],
+              "query": [
+                { "key": "search", "value": "" },
+                { "key": "status", "value": "all", "description": "all | uploaded | not_uploaded | passed | failed | pending | pending_evaluation" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Full test results for assigned students (deduplicated per userId).\n\nevaluationSummary: assigned, downloads, uploaded, evaluated, pending (no progress percentages).\nresultCards: totalStudents, evaluated, passed, failed.\nanalytics: highestMarks, lowestMarks, averageMarks, topRanker, totalPassed, totalFailed.\nstudents.data[]: uploadedStatus, marks, rank, evaluatedBy (mentor fullName), passFailStatus."
+          }
+        },
+        {
+          "name": "GET Test Results (uploaded only)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mains-management/tests/{{testId}}/results?status=uploaded&page=1&limit=20",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mains-management", "tests", "{{testId}}", "results"],
+              "query": [
+                { "key": "status", "value": "uploaded" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Students with a submission."
+          }
+        },
+        {
+          "name": "GET Test Results (not uploaded)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mains-management/tests/{{testId}}/results?status=not_uploaded",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mains-management", "tests", "{{testId}}", "results"],
+              "query": [{ "key": "status", "value": "not_uploaded" }]
+            },
+            "description": "Assigned students without a submission."
+          }
+        },
+        {
+          "name": "GET Test Results (passed)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mains-management/tests/{{testId}}/results?status=passed",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mains-management", "tests", "{{testId}}", "results"],
+              "query": [{ "key": "status", "value": "passed" }]
+            },
+            "description": "Evaluated with marks >= passMarks (passMarks or 40% of totalMarks)."
+          }
+        },
+        {
+          "name": "GET Test Results (failed)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mains-management/tests/{{testId}}/results?status=failed",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mains-management", "tests", "{{testId}}", "results"],
+              "query": [{ "key": "status", "value": "failed" }]
+            },
+            "description": "Evaluated with marks < passMarks."
+          }
+        },
+        {
+          "name": "GET Test Results (pending evaluation)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mains-management/tests/{{testId}}/results?status=pending_evaluation",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mains-management", "tests", "{{testId}}", "results"],
+              "query": [{ "key": "status", "value": "pending_evaluation" }]
+            },
+            "description": "Submitted but not yet evaluated (submissionStatus = submitted)."
+          }
+        },
+        {
+          "name": "GET Test Results (pending alias)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mains-management/tests/{{testId}}/results?status=pending",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mains-management", "tests", "{{testId}}", "results"],
+              "query": [{ "key": "status", "value": "pending" }]
+            },
+            "description": "Alias for pending_evaluation."
+          }
+        },
+        {
+          "name": "GET Test Results (filter query alias)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mains-management/tests/{{testId}}/results?filter=passed",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mains-management", "tests", "{{testId}}", "results"],
+              "query": [{ "key": "filter", "value": "passed", "description": "Alias for status param" }]
+            },
+            "description": "Uses filter= instead of status= (same behavior)."
+          }
+        },
+        {
+          "name": "GET Test Results (search student)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mains-management/tests/{{testId}}/results?search=Suresh&status=all",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mains-management", "tests", "{{testId}}", "results"],
+              "query": [
+                { "key": "search", "value": "Suresh" },
+                { "key": "status", "value": "all" }
+              ]
+            },
+            "description": "Search by studentName or registerNumber."
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Student - PDF Download Tracking",
+      "item": [
+        {
+          "name": "POST Track PDF Download",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "pm.test('track ok', () => pm.expect(j.ok).to.eql(true));",
+                  "if (j.totalDownloads !== undefined) {",
+                  "  pm.test('totalDownloads returned', () => pm.expect(j.totalDownloads).to.be.a('number'));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{StudentToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [],
+            "url": "{{BASE_URL}}/api/mains-answer-writing/published/{{testId}}/track-pdf-download",
+            "description": "Call when student opens/downloads test PDF. Upserts one MainsAnswerWritingPdfDownload per student+test.\n\nResponse: { ok, pdfUrl, totalDownloads }.\nFeeds pdfDownloads counts on Level 3 and Level 4 (scoped to assigned students)."
+          }
+        }
+      ]
+    }
+  ]
+}

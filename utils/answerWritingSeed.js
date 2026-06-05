@@ -14,7 +14,9 @@ const seedAnswerWritingCategories = async () => {
       { upsert: true }
     );
   }
-  console.log('✅ Answer writing categories seeded (daily, weekly, monthly)');
+  if (process.env.STARTUP_VERBOSE === 'true') {
+    console.log('Answer writing categories seeded (daily, weekly, monthly)');
+  }
 };
 
 module.exports = { seedAnswerWritingCategories, DEFAULT_CATEGORIES };

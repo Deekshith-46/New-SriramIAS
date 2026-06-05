@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const OTP = require('../models/OTP');
 const { sendOTPEmail } = require('./emailService');
 const { assertEmailConfigured } = require('./emailConfig');
@@ -54,15 +55,24 @@ const sendOTP = async (userId, mobile, email, type = 'student', userName = null)
   return otp;
 };
 
+const normalizeOtpInput = (otp) => String(otp ?? '').trim();
+
 const verifyOTP = async (userId, otp, type) => {
-  const otpRecord = await OTP.findOne({
-    userId,
-    otp,
-    type
-  });
+  const otpNorm = normalizeOtpInput(otp);
+  if (!/^\d{6}$/.test(otpNorm)) {
+    return { valid: false, message: 'Invalid OTP' };
+  }
+
+  if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+    return { valid: false, message: 'Invalid user reference' };
+  }
+
+  const userOid = new mongoose.Types.ObjectId(userId);
+
+  const otpRecord = await OTP.findOne({ userId: userOid, type }).sort({ createdAt: -1 });
 
   if (!otpRecord) {
-    return { valid: false, message: 'Invalid OTP' };
+    return { valid: false, message: 'OTP not found or expired. Please request a new OTP.' };
   }
 
   if (otpRecord.expiresAt < new Date()) {
@@ -75,8 +85,15 @@ const verifyOTP = async (userId, otp, type) => {
     return { valid: false, message: 'Maximum attempts exceeded. Please request a new OTP.' };
   }
 
-  otpRecord.attempts += 1;
-  await otpRecord.save();
+  if (otpRecord.otp !== otpNorm) {
+    otpRecord.attempts += 1;
+    await otpRecord.save();
+    if (otpRecord.attempts >= otpRecord.maxAttempts) {
+      await OTP.deleteOne({ _id: otpRecord._id });
+      return { valid: false, message: 'Maximum attempts exceeded. Please request a new OTP.' };
+    }
+    return { valid: false, message: 'Invalid OTP' };
+  }
 
   await OTP.deleteOne({ _id: otpRecord._id });
 

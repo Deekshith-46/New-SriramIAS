@@ -961,6 +961,20 @@ const validateMainsAnswerWritingPayload = async (body, { partial = false } = {})
     }
   }
 
+  let topic = null;
+  if (body.topicId !== undefined && body.topicId !== null && body.topicId !== '') {
+    if (!facultySubject) {
+      return fail({
+        code: 'FACULTY_SUBJECT_REQUIRED_FOR_TOPIC',
+        field: 'topicId',
+        message: 'facultySubjectId is required when setting topicId'
+      });
+    }
+    const topicCheck = await validateTopicForFacultySubject(body.topicId, facultySubject);
+    if (!topicCheck.ok) return topicCheck;
+    topic = topicCheck.topic;
+  }
+
   let scheduleDate = null;
   if (body.scheduleDate !== undefined) {
     const scheduleCheck = parseDateField(body.scheduleDate, 'scheduleDate');
@@ -1011,6 +1025,29 @@ const validateMainsAnswerWritingPayload = async (body, { partial = false } = {})
     totalMarks = marks;
   }
 
+  let passMarks = body.passMarks;
+  if (body.passMarks !== undefined && body.passMarks !== null && body.passMarks !== '') {
+    const pass = Number(body.passMarks);
+    if (!Number.isFinite(pass) || pass < 0) {
+      return fail({
+        code: 'INVALID_PASS_MARKS',
+        field: 'passMarks',
+        message: 'passMarks must be a number >= 0',
+        suggestions: ['Leave empty to default to 40% of totalMarks']
+      });
+    }
+    passMarks = pass;
+    if (totalMarks !== undefined && passMarks > totalMarks) {
+      return fail({
+        code: 'PASS_MARKS_EXCEEDS_TOTAL',
+        field: 'passMarks',
+        message: 'passMarks cannot exceed totalMarks'
+      });
+    }
+  } else if (body.passMarks === '' || body.passMarks === null) {
+    passMarks = null;
+  }
+
   let publishStatus =
     body.publishStatus !== undefined
       ? String(body.publishStatus).trim().toUpperCase()
@@ -1040,11 +1077,13 @@ const validateMainsAnswerWritingPayload = async (body, { partial = false } = {})
     ok: true,
     facultySubject,
     folder,
+    topic,
     scheduleDate,
     resultDate,
     durationPreset,
     durationMinutes,
     totalMarks,
+    passMarks,
     publishStatus,
     questionsText
   };

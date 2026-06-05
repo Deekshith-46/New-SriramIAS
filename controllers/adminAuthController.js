@@ -6,8 +6,7 @@ const {
 } = require('../utils/adminAccessHelpers');
 const generateAdminToken = require('../utils/generateAdminToken');
 const { sendAdminLoginAlert } = require('../utils/adminLoginAlert');
-const { sendOTP, verifyOTP } = require('../utils/otpService');
-const { assertEmailConfigured } = require('../utils/emailConfig');
+const { verifyOTP } = require('../utils/otpService');
 
 const getClientIp = (req) =>
   req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
@@ -74,41 +73,6 @@ exports.loginAdminAccess = [
       const isMatch = await admin.matchPassword(password);
       if (!isMatch) {
         return res.status(401).json({ success: false, message: 'Invalid credentials' });
-      }
-
-      if (admin.twoFactorEnabled) {
-        try {
-          assertEmailConfigured();
-        } catch {
-          return res.status(503).json({
-            success: false,
-            message: 'Two-factor authentication requires email configuration'
-          });
-        }
-
-        let otp;
-        try {
-          otp = await sendOTP(
-            admin._id,
-            admin.contactNumber,
-            admin.officialEmail,
-            'admin_access',
-            admin.fullName
-          );
-        } catch (error) {
-          if (error.statusCode === 503) {
-            return res.status(503).json({ success: false, message: error.message });
-          }
-          return res.status(429).json({ success: false, message: error.message });
-        }
-
-        return res.json({
-          success: true,
-          requiresOtp: true,
-          message: 'OTP sent to your official email',
-          adminAccessId: admin._id.toString(),
-          otp: process.env.NODE_ENV !== 'production' ? otp : undefined
-        });
       }
 
       await completeAdminLogin(admin, req, res);

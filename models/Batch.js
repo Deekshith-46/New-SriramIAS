@@ -58,6 +58,12 @@ const batchSchema = new mongoose.Schema(
         ref: 'FacultySubject'
       }
     ],
+    mentor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'AdminAccess',
+      default: null,
+      index: true
+    },
     status: {
       type: String,
       enum: BATCH_STATUSES,
@@ -84,5 +90,6 @@ const batchSchema = new mongoose.Schema(
 batchSchema.index({ batchName: 1 });
 batchSchema.index({ course: 1, status: 1, isDeleted: 1 });
 batchSchema.index({ batchId: 1 });
+batchSchema.index({ mentor: 1 });
 
 module.exports = mongoose.model('Batch', batchSchema);

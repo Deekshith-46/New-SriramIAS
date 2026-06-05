@@ -9,7 +9,7 @@ const batchTransferSchema = new mongoose.Schema(
     },
     student: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'AcademicStudent',
+      ref: 'Student',
       required: true,
       index: true
     },

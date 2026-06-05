@@ -5,9 +5,9 @@ const {
   normalizeUserRecord,
   normalizeAdminRecord,
   resolveRoleFilter,
-  buildUserCollectionQuery,
   buildAdminCollectionQueryAsync,
-  attachStudentProfiles,
+  fetchStudentsForUnifiedList,
+  normalizeStudentListRecord,
   getAllUserRolesForDropdown,
   getCreateUserRolesForDropdown,
   getAllUserCentersForDropdown,
@@ -22,6 +22,8 @@ const {
   applyEmployeeProfileUpdate
 } = require('../utils/userManagementUpdate');
 const { createStudentUser, createAdminAccessUser } = require('../utils/userManagementCreate');
+const { deleteStudent, ACTIVE_STUDENT } = require('../utils/studentService');
+const { applyBatchOnlyStudentUpdate } = require('../utils/userManagementUpdate');
 
 exports.getUnifiedUsers = async (req, res) => {
   try {
@@ -65,7 +67,6 @@ exports.getUnifiedUsers = async (req, res) => {
       }
     }
 
-    const userQuery = buildUserCollectionQuery({ search, status, centerId });
     const adminQuery = await buildAdminCollectionQueryAsync({
       search,
       status,
@@ -77,10 +78,7 @@ exports.getUnifiedUsers = async (req, res) => {
     const fetchTasks = [];
     if (fetchStudents) {
       fetchTasks.push(
-        User.find(userQuery)
-          .select('-password')
-          .populate('center', 'centerName centerCode name')
-          .lean()
+        fetchStudentsForUnifiedList({ search, status, centerId })
       );
     } else {
       fetchTasks.push(Promise.resolve([]));
@@ -97,13 +95,9 @@ exports.getUnifiedUsers = async (req, res) => {
       fetchTasks.push(Promise.resolve([]));
     }
 
-    const [users, admins] = await Promise.all(fetchTasks);
-    const studentMap = await attachStudentProfiles(users);
+    const [studentRows, admins] = await Promise.all(fetchTasks);
 
-    let merged = [
-      ...users.map((u) => normalizeUserRecord(u, studentMap.get(String(u._id)))),
-      ...admins.map(normalizeAdminRecord)
-    ];
+    let merged = [...studentRows, ...admins.map(normalizeAdminRecord)];
 
     const sortField = ['createdAt', 'fullName', 'email', 'role', 'status', 'joinedDate'].includes(
       sortBy
@@ -277,6 +271,33 @@ exports.getCreateUserRoles = async (req, res) => {
   }
 };
 
+exports.deleteUnifiedUser = async (req, res) => {
+  try {
+    const typeParam = req.query.recordType || req.query.type;
+    const recordType = await resolveRecordTypeForRequest(req.params.id, typeParam);
+
+    if (recordType === 'ADMIN') {
+      return res.status(400).json({
+        success: false,
+        message: 'Admin accounts cannot be deleted from this endpoint yet. Deactivate via accountStatus instead.'
+      });
+    }
+
+    const result = await deleteStudent(req.params.id);
+    if (!result.ok) {
+      return res.status(result.status).json({ success: false, message: result.message });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Student permanently deleted'
+    });
+  } catch (error) {
+    console.error('Delete unified user error:', error);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+};
+
 exports.getSingleUser = async (req, res) => {
   try {
     const typeParam = req.query.recordType || req.query.type;
@@ -284,6 +305,25 @@ exports.getSingleUser = async (req, res) => {
 
     if (!recordType) {
       return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (recordType === 'STUDENT') {
+      const student = await Student.findById(req.params.id)
+        .populate('centerId', 'centerName centerCode city state name')
+        .lean();
+
+      if (!student) {
+        return res.status(404).json({ success: false, message: 'Student not found' });
+      }
+
+      const summary = normalizeStudentListRecord(student);
+
+      return res.json({
+        success: true,
+        userType: summary.userType,
+        recordType: summary.recordType,
+        summary
+      });
     }
 
     if (recordType === 'ADMIN') {
@@ -322,9 +362,19 @@ exports.getSingleUser = async (req, res) => {
       });
     }
 
-    const studentProfile = await Student.findOne({ userId: user._id }).lean();
+    const studentProfile = await Student.findOne({ userId: user._id, ...ACTIVE_STUDENT }).lean();
 
-    const summary = normalizeUserRecord(user, studentProfile);
+    if (!studentProfile) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student profile not found or was removed'
+      });
+    }
+
+    const summary = normalizeStudentListRecord({
+      ...studentProfile,
+      userId: user
+    });
 
     res.json({
       success: true,
@@ -352,6 +402,28 @@ exports.updateUnifiedUser = async (req, res) => {
         success: false,
         message: 'Request body is empty. Send at least one field to update.',
         updatableFields: getUpdatableFieldsForType(recordType === 'ADMIN' ? 'ADMIN' : 'USER')
+      });
+    }
+
+    if (recordType === 'STUDENT') {
+      const student = await Student.findById(req.params.id);
+      if (!student) {
+        return res.status(404).json({ success: false, message: 'Student not found' });
+      }
+
+      await applyBatchOnlyStudentUpdate(student, req.body);
+
+      const refreshed = await Student.findById(student._id)
+        .populate('centerId', 'centerName centerCode city state name')
+        .lean();
+      const summary = normalizeStudentListRecord(refreshed);
+
+      return res.json({
+        success: true,
+        message: 'Student updated successfully',
+        userType: summary.userType,
+        recordType: summary.recordType,
+        summary
       });
     }
 
@@ -403,9 +475,19 @@ exports.updateUnifiedUser = async (req, res) => {
 
     const student =
       studentProfile ||
-      (await Student.findOne({ userId: user._id }).lean());
+      (await Student.findOne({ userId: user._id, ...ACTIVE_STUDENT }).lean());
 
-    const summary = normalizeUserRecord(populated, student);
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student profile not found or was removed'
+      });
+    }
+
+    const summary = normalizeStudentListRecord({
+      ...student,
+      userId: populated
+    });
 
     res.json({
       success: true,
