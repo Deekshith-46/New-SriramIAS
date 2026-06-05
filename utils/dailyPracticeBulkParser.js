@@ -2,7 +2,7 @@ const XLSX = require('xlsx');
 const {
   BULK_TEMPLATE_HEADERS,
   CORRECT_ANSWER_OPTIONS
-} = require('./dailyPracticeConstants');
+} = require('./currentAffairEnums');
 
 const normalizeHeader = (value) =>
   String(value || '')
@@ -19,10 +19,24 @@ const HEADER_ALIASES = {
   optionb: 'optionB',
   optionc: 'optionC',
   optiond: 'optionD',
+  option1: 'optionA',
+  option2: 'optionB',
+  option3: 'optionC',
+  option4: 'optionD',
   correctanswer: 'correctAnswer',
   answer: 'correctAnswer',
   explanation: 'explanation'
 };
+
+const REQUIRED_FIELDS = [
+  'questionNumber',
+  'question',
+  'optionA',
+  'optionB',
+  'optionC',
+  'optionD',
+  'correctAnswer'
+];
 
 const mapRow = (row) => {
   const mapped = {};
@@ -50,8 +64,9 @@ const normalizeCorrectAnswer = (value) => {
   if (raw === 'OPTION D' || raw === 'D') return 'D';
 
   const index = Number(raw);
-  if (!Number.isNaN(index) && index >= 0 && index <= 3) {
-    return CORRECT_ANSWER_OPTIONS[index];
+  if (!Number.isNaN(index)) {
+    if (index >= 1 && index <= 4) return CORRECT_ANSWER_OPTIONS[index - 1];
+    if (index >= 0 && index <= 3) return CORRECT_ANSWER_OPTIONS[index];
   }
 
   return null;
@@ -60,10 +75,6 @@ const normalizeCorrectAnswer = (value) => {
 const validateQuestionRow = (row, rowIndex) => {
   const errors = [];
   const line = rowIndex + 2;
-
-  if (!row.questionNumber && row.questionNumber !== 0) {
-    errors.push({ row: line, field: 'questionNumber', message: 'questionNumber is required' });
-  }
 
   if (!row.question) {
     errors.push({ row: line, field: 'question', message: 'question is required' });
@@ -80,7 +91,7 @@ const validateQuestionRow = (row, rowIndex) => {
     errors.push({
       row: line,
       field: 'correctAnswer',
-      message: 'correctAnswer must be A, B, C, or D'
+      message: 'correctAnswer must be A, B, C, D, or 1–4'
     });
   }
 
@@ -90,7 +101,10 @@ const validateQuestionRow = (row, rowIndex) => {
 
   return {
     data: {
-      questionNumber: Number(row.questionNumber),
+      questionNumber:
+        row.questionNumber !== undefined && row.questionNumber !== ''
+          ? Number(row.questionNumber)
+          : rowIndex + 1,
       question: String(row.question).trim(),
       optionA: String(row.optionA).trim(),
       optionB: String(row.optionB).trim(),
@@ -102,7 +116,35 @@ const validateQuestionRow = (row, rowIndex) => {
   };
 };
 
-const parseBulkQuestionFile = (file) => {
+const assertRequiredColumns = (rows) => {
+  if (!rows.length) return;
+
+  const presentFields = new Set();
+  rows.forEach((row) => {
+    Object.keys(row).forEach((key) => {
+      const alias = HEADER_ALIASES[normalizeHeader(key)];
+      if (alias) presentFields.add(alias);
+    });
+  });
+
+  const missing = REQUIRED_FIELDS.filter((field) => !presentFields.has(field));
+  if (missing.length) {
+    const error = new Error(
+      `Missing required columns: ${missing.join(', ')}. Expected: ${BULK_TEMPLATE_HEADERS.join(', ')}`
+    );
+    error.statusCode = 400;
+    throw error;
+  }
+};
+
+/** Renumber questions sequentially by row order (fixes gaps, duplicates, wrong numbers). */
+const normalizeQuestionNumberSeries = (questions, startFrom = 1) =>
+  questions.map((q, index) => ({
+    ...q,
+    questionNumber: startFrom + index
+  }));
+
+const parseBulkQuestionFile = (file, { startFrom = 1 } = {}) => {
   const ext = file.originalname.split('.').pop().toLowerCase();
   let rows = [];
 
@@ -127,6 +169,8 @@ const parseBulkQuestionFile = (file) => {
     throw error;
   }
 
+  assertRequiredColumns(rows);
+
   const questions = [];
   const errors = [];
 
@@ -148,30 +192,30 @@ const parseBulkQuestionFile = (file) => {
     throw error;
   }
 
-  return questions;
+  return normalizeQuestionNumberSeries(questions, startFrom);
 };
 
 const buildCsvTemplate = () => {
   const sampleRows = [
     {
-      questionNumber: 1,
-      question: 'What is the capital of India?',
-      optionA: 'Mumbai',
-      optionB: 'New Delhi',
-      optionC: 'Kolkata',
-      optionD: 'Chennai',
-      correctAnswer: 'B',
-      explanation: 'New Delhi is the capital of India'
+      'Question No': 1,
+      Question: 'Sample question',
+      'Option 1': 'Option A',
+      'Option 2': 'Option B',
+      'Option 3': 'Option C',
+      'Option 4': 'Option D',
+      'Correct Answer': 1,
+      Explanation: 'Optional explanation'
     },
     {
-      questionNumber: 2,
-      question: 'Which river is the longest in India?',
-      optionA: 'Yamuna',
-      optionB: 'Godavari',
-      optionC: 'Ganga',
-      optionD: 'Narmada',
-      correctAnswer: 'C',
-      explanation: 'Ganga is the longest river in India'
+      'Question No': 2,
+      Question: 'Second sample question',
+      'Option 1': 'Yes',
+      'Option 2': 'No',
+      'Option 3': 'Maybe',
+      'Option 4': 'N/A',
+      'Correct Answer': 2,
+      Explanation: ''
     }
   ];
 
@@ -185,6 +229,7 @@ const buildCsvTemplate = () => {
 
 module.exports = {
   parseBulkQuestionFile,
+  normalizeQuestionNumberSeries,
   buildCsvTemplate,
   normalizeCorrectAnswer
 };

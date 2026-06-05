@@ -47,7 +47,6 @@ const options = {
             pdfUrl: { type: 'string', nullable: true },
             imageUrl: { type: 'string', nullable: true },
             status: { type: 'boolean' },
-            isDeleted: { type: 'boolean' },
             createdBy: { type: 'string' },
             createdAt: { type: 'string', format: 'date-time' },
             updatedAt: { type: 'string', format: 'date-time' }
@@ -233,13 +232,13 @@ const options = {
         },
         delete: {
           tags: ['Current Affairs'],
-          summary: 'Soft delete current affair',
+          summary: 'Permanently delete current affair',
           security: [{ bearerAuth: [] }],
           parameters: [
             { name: 'id', in: 'path', required: true, schema: { type: 'string' } }
           ],
           responses: {
-            200: { description: 'Soft deleted' },
+            200: { description: 'Permanently deleted (returns last snapshot)' },
             404: { description: 'Not found' }
           }
         }

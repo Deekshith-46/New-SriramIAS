@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "ca-cms-2025-sriram-ias",
     "name": "Sriram IAS - Current Affairs CMS",
-    "description": "# Current Affairs Management — Admin CMS\n\nBase path: `{{baseUrl}}/api/current-affairs`\n\n## Quick setup\n\n1. Import **CURRENT_AFFAIRS_POSTMAN_ENVIRONMENT.json** (or Production variant).\n2. Select environment: **Sriram IAS - Current Affairs (Local)**.\n3. Set `superAdminEmail` / `superAdminPassword` to match your `.env` (`SUPER_ADMIN_EMAIL`, `SUPER_ADMIN_PASSWORD`).\n4. Run **0. Setup → Health Check**.\n5. Run **1. Auth → Login Super Admin** — saves `authToken` automatically.\n6. For file uploads, pick a PDF in the **pdf** form-data field on create/update requests.\n7. Run create requests — `currentAffairId` is saved for Get / Update / Delete / Status.\n\n## Categories\n\n| UI | API value |\n|----|-----------|\n| Current Affairs | CURRENT_AFFAIRS |\n| Monthly Magazine | MONTHLY_MAGAZINE |\n| Infographics | INFOGRAPHICS |\n| Monthly Recap | MONTHLY_RECAP |\n| Daily Practice Questions | DAILY_PRACTICE_QUESTIONS |\n\n## PDF rules\n\n- Required: MONTHLY_MAGAZINE, INFOGRAPHICS, MONTHLY_RECAP\n- Optional: CURRENT_AFFAIRS, DAILY_PRACTICE_QUESTIONS\n- Max size: 10 MB | MIME: application/pdf | Field name: `pdf`",
+    "description": "# Current Affairs Management — Admin CMS\n\nBase path: `{{baseUrl}}/api/current-affairs`\n\n## Quick setup\n\n1. Import **CURRENT_AFFAIRS_POSTMAN_ENVIRONMENT.json** (or Production variant).\n2. Select environment: **Sriram IAS - Current Affairs (Local)**.\n3. Set `superAdminEmail` / `superAdminPassword` to match your `.env` (`SUPER_ADMIN_EMAIL`, `SUPER_ADMIN_PASSWORD`).\n4. Run **0. Setup → Health Check**.\n5. Run **1. Auth → Login Super Admin** — saves `authToken` automatically.\n6. For file uploads, pick a PDF in the **pdf** form-data field on create/update requests.\n7. Run create requests — `currentAffairId` is saved for Get / Update / Delete / Status.\n\n## Categories\n\n| UI | API value |\n|----|-----------|\n| Current Affairs | CURRENT_AFFAIRS |\n| Monthly Magazine | MONTHLY_MAGAZINE |\n| Infographics | INFOGRAPHICS |\n| Monthly Recap | MONTHLY_RECAP |\n| Daily Practice Questions | DAILY_PRACTICE_QUESTIONS |\n\n## Field rules\n\n| Category | Fields |\n|----------|--------|\n| CURRENT_AFFAIRS | title + pdf only (no year/month) |\n| MONTHLY_MAGAZINE | title + year + month + pdf |\n| INFOGRAPHICS / MONTHLY_RECAP | title + year + month + pdf |\n| DAILY_PRACTICE_QUESTIONS | Use **DAILY_PRACTICE_QUESTIONS_POSTMAN_COLLECTION.json** → POST `/daily-practice` |\n\nPDF required for all PDF categories. Max 10 MB. Field name: `pdf`",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -251,7 +251,7 @@
               "mode": "formdata",
               "formdata": [
                 { "key": "category", "value": "MONTHLY_MAGAZINE", "type": "text" },
-                { "key": "magazineName", "value": "Vision IAS June Edition", "type": "text" },
+                { "key": "title", "value": "Vision IAS June Edition", "type": "text" },
                 { "key": "year", "value": "{{year}}", "type": "text" },
                 { "key": "month", "value": "{{month}}", "type": "text" },
                 { "key": "pdf", "description": "Required — select a PDF file (max 10 MB)", "type": "file", "src": [] }
@@ -290,7 +290,7 @@
               "code": 201,
               "_postman_previewlanguage": "json",
               "header": [{ "key": "Content-Type", "value": "application/json" }],
-              "body": "{\n  \"success\": true,\n  \"message\": \"Current affairs created successfully\",\n  \"data\": {\n    \"_id\": \"665a10000000000000000001\",\n    \"category\": \"MONTHLY_MAGAZINE\",\n    \"title\": \"Vision IAS June Edition\",\n    \"magazineName\": \"Vision IAS June Edition\",\n    \"year\": 2025,\n    \"month\": \"June\",\n    \"pdfUrl\": \"/uploads/current-affairs/1717000000000-vision-june.pdf\",\n    \"status\": true,\n    \"isDeleted\": false\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Current affairs created successfully\",\n  \"data\": {\n    \"_id\": \"665a10000000000000000001\",\n    \"category\": \"MONTHLY_MAGAZINE\",\n    \"title\": \"Vision IAS June Edition\",\n    \"title\": \"Vision IAS June Edition\",\n    \"year\": 2026,\n    \"month\": \"June\",\n    \"pdfUrl\": \"/uploads/current-affairs/1717000000000-vision-june.pdf\",\n    \"status\": true\n  }\n}"
             }
           ]
         },
@@ -360,7 +360,7 @@
           ]
         },
         {
-          "name": "Create - Current Affairs (PDF optional)",
+          "name": "Create - Current Affairs",
           "request": {
             "method": "POST",
             "header": [],
@@ -369,44 +369,11 @@
               "formdata": [
                 { "key": "category", "value": "CURRENT_AFFAIRS", "type": "text" },
                 { "key": "title", "value": "Union Budget Highlights", "type": "text" },
-                { "key": "year", "value": "{{year}}", "type": "text" },
-                { "key": "month", "value": "{{month}}", "type": "text" },
-                { "key": "description", "value": "Daily current affairs summary for June 2025.", "type": "text" },
-                { "key": "pdf", "description": "Optional", "type": "file", "src": [], "disabled": true }
+                { "key": "pdf", "description": "Required — PDF max 10 MB", "type": "file", "src": [] }
               ]
             },
-            "url": "{{baseUrl}}/api/current-affairs"
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "if (pm.response.code === 201) {",
-                  "  pm.environment.set('currentAffairId', pm.response.json().data._id);",
-                  "}"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Create - Daily Practice Questions (PDF optional)",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                { "key": "category", "value": "DAILY_PRACTICE_QUESTIONS", "type": "text" },
-                { "key": "title", "value": "June Daily Practice Set 1", "type": "text" },
-                { "key": "year", "value": "{{year}}", "type": "text" },
-                { "key": "month", "value": "{{month}}", "type": "text" },
-                { "key": "description", "value": "Daily practice MCQs for prelims preparation.", "type": "text" }
-              ]
-            },
-            "url": "{{baseUrl}}/api/current-affairs"
+            "url": "{{baseUrl}}/api/current-affairs",
+            "description": "CURRENT_AFFAIRS needs only **title** + **pdf**. No year/month."
           },
           "event": [
             {
@@ -431,7 +398,7 @@
               "mode": "formdata",
               "formdata": [
                 { "key": "category", "value": "MONTHLY_MAGAZINE", "type": "text" },
-                { "key": "magazineName", "value": "Test Magazine", "type": "text" },
+                { "key": "title", "value": "Test Magazine", "type": "text" },
                 { "key": "year", "value": "2025", "type": "text" },
                 { "key": "month", "value": "June", "type": "text" }
               ]
@@ -486,7 +453,7 @@
                 { "key": "category", "value": "{{category}}" },
                 { "key": "year", "value": "{{year}}" },
                 { "key": "month", "value": "{{month}}" },
-                { "key": "search", "value": "", "description": "Search title / magazineName / description" },
+                { "key": "search", "value": "", "description": "Search title / paperName / description" },
                 { "key": "status", "value": "true" },
                 { "key": "sortBy", "value": "createdAt" },
                 { "key": "sortOrder", "value": "desc" }
@@ -520,7 +487,7 @@
               "code": 200,
               "_postman_previewlanguage": "json",
               "header": [{ "key": "Content-Type", "value": "application/json" }],
-              "body": "{\n  \"success\": true,\n  \"message\": \"Current affairs fetched successfully\",\n  \"count\": 1,\n  \"total\": 1,\n  \"page\": 1,\n  \"limit\": 10,\n  \"totalPages\": 1,\n  \"hasNextPage\": false,\n  \"hasPrevPage\": false,\n  \"data\": [\n    {\n      \"_id\": \"665a10000000000000000001\",\n      \"category\": \"MONTHLY_MAGAZINE\",\n      \"magazineName\": \"Vision IAS June Edition\",\n      \"year\": 2025,\n      \"month\": \"June\",\n      \"pdfUrl\": \"/uploads/current-affairs/1717000000000-vision-june.pdf\",\n      \"status\": true\n    }\n  ]\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Current affairs fetched successfully\",\n  \"count\": 1,\n  \"total\": 1,\n  \"page\": 1,\n  \"limit\": 10,\n  \"totalPages\": 1,\n  \"hasNextPage\": false,\n  \"hasPrevPage\": false,\n  \"data\": [\n    {\n      \"_id\": \"665a10000000000000000001\",\n      \"category\": \"MONTHLY_MAGAZINE\",\n      \"title\": \"Vision IAS June Edition\",\n      \"year\": 2026,\n      \"month\": \"June\",\n      \"pdfUrl\": \"/uploads/current-affairs/1717000000000-vision-june.pdf\",\n      \"status\": true\n    }\n  ]\n}"
             }
           ]
         },
@@ -542,13 +509,13 @@
           }
         },
         {
-          "name": "Get By ID",
+          "name": "Get By ID (Edit — full existing data)",
           "request": {
             "auth": { "type": "noauth" },
             "method": "GET",
             "header": [],
             "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}",
-            "description": "Uses `currentAffairId` from create or list response."
+            "description": "Returns **all fields** for the Edit form plus `editableFields` list.\n\nCURRENT_AFFAIRS: title, pdfUrl, status (no year/month)\nMONTHLY_MAGAZINE / INFOGRAPHICS / MONTHLY_RECAP: title, year, month, pdfUrl, status\nDAILY_PRACTICE: use Daily Practice collection — includes questions[]"
           },
           "event": [
             {
@@ -556,9 +523,12 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Record found', function () {",
+                  "pm.test('Edit payload returned', function () {",
                   "  pm.response.to.have.status(200);",
-                  "  pm.expect(pm.response.json().data._id).to.eql(pm.environment.get('currentAffairId'));",
+                  "  const d = pm.response.json().data;",
+                  "  pm.expect(d._id).to.be.a('string');",
+                  "  pm.expect(d.editableFields).to.be.an('array');",
+                  "  pm.expect(d.category).to.be.a('string');",
                   "});"
                 ]
               }
@@ -571,19 +541,18 @@
       "name": "4. Update & Status",
       "item": [
         {
-          "name": "Update (text only, keep PDF)",
+          "name": "Update CURRENT_AFFAIRS (title only)",
           "request": {
             "method": "PUT",
             "header": [],
             "body": {
               "mode": "formdata",
               "formdata": [
-                { "key": "title", "value": "Updated Title", "type": "text" },
-                { "key": "description", "value": "Updated description text.", "type": "text" }
+                { "key": "title", "value": "Updated Union Budget Highlights", "type": "text" }
               ]
             },
             "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}",
-            "description": "Does not upload new PDF — existing pdfUrl is preserved."
+            "description": "Partial update — send only fields you change. Response returns **full record** with editableFields."
           },
           "event": [
             {
@@ -591,9 +560,11 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Updated successfully', function () {",
+                  "pm.test('Full record returned', function () {",
                   "  pm.response.to.have.status(200);",
-                  "  pm.expect(pm.response.json().success).to.be.true;",
+                  "  const d = pm.response.json().data;",
+                  "  pm.expect(d.editableFields).to.be.an('array');",
+                  "  pm.expect(d.title).to.eql('Updated Union Budget Highlights');",
                   "});"
                 ]
               }
@@ -601,18 +572,49 @@
           ]
         },
         {
-          "name": "Update (replace PDF)",
+          "name": "Update CURRENT_AFFAIRS (replace PDF only)",
           "request": {
             "method": "PUT",
             "header": [],
             "body": {
               "mode": "formdata",
               "formdata": [
-                { "key": "title", "value": "Updated With New PDF", "type": "text" },
-                { "key": "pdf", "description": "Select new PDF to replace old file", "type": "file", "src": [] }
+                { "key": "pdf", "description": "Select new PDF", "type": "file", "src": [] }
+              ]
+            },
+            "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}",
+            "description": "PDF-only update — title unchanged."
+          }
+        },
+        {
+          "name": "Update MONTHLY_MAGAZINE (title + year + month)",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "title", "value": "Vision IAS July Edition", "type": "text" },
+                { "key": "year", "value": "2026", "type": "text" },
+                { "key": "month", "value": "July", "type": "text" }
               ]
             },
             "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}"
+          }
+        },
+        {
+          "name": "Update INFOGRAPHICS / MONTHLY_RECAP (single field)",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "title", "value": "Updated Recap Title", "type": "text" }
+              ]
+            },
+            "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}",
+            "description": "Works for INFOGRAPHICS or MONTHLY_RECAP — update one or many fields."
           }
         },
         {
@@ -673,12 +675,12 @@
       "name": "5. Delete",
       "item": [
         {
-          "name": "Delete (Soft)",
+          "name": "Delete (Hard)",
           "request": {
             "method": "DELETE",
             "header": [],
             "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}",
-            "description": "Sets isDeleted=true. Record no longer appears in GET list."
+            "description": "Permanently deletes the record, associated questions, and Cloudinary PDF/images."
           },
           "event": [
             {
@@ -686,9 +688,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Soft deleted', function () {",
+                  "pm.test('Hard deleted', function () {",
                   "  pm.response.to.have.status(200);",
-                  "  pm.expect(pm.response.json().data.isDeleted).to.be.true;",
+                  "  pm.expect(pm.response.json().success).to.be.true;",
+                  "  pm.expect(pm.response.json().message).to.include('permanently deleted');",
                   "});"
                 ]
               }
@@ -709,7 +712,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Not found after soft delete', function () {",
+                  "pm.test('Not found after hard delete', function () {",
                   "  pm.response.to.have.status(404);",
                   "});"
                 ]

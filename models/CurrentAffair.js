@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const { CATEGORY_LIST, MONTHS } = require('../utils/currentAffairConstants');
+const { MAINS_CATEGORY_LIST } = require('../utils/currentAffairEnums');
 
 const currentAffairSchema = new mongoose.Schema(
   {
@@ -17,13 +18,11 @@ const currentAffairSchema = new mongoose.Schema(
       trim: true
     },
     year: {
-      type: Number,
-      required: [true, 'Year is required']
+      type: Number
     },
     month: {
       type: String,
-      enum: MONTHS,
-      required: [true, 'Month is required']
+      enum: MONTHS
     },
     description: {
       type: String,
@@ -31,7 +30,7 @@ const currentAffairSchema = new mongoose.Schema(
     },
     mainsCategory: {
       type: String,
-      enum: ['Prelims', 'Mains', 'Both']
+      enum: MAINS_CATEGORY_LIST
     },
     paperName: {
       type: String,
@@ -64,6 +63,11 @@ const currentAffairSchema = new mongoose.Schema(
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User'
+    },
+    updatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
     }
   },
   {

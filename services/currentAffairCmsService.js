@@ -9,7 +9,12 @@ const {
   deleteCloudinaryPdf,
   formatCurrentAffairResponse
 } = require('../utils/currentAffairHelpers');
+const {
+  formatCurrentAffairForEdit,
+  sanitizeUpdatePayload
+} = require('../utils/currentAffairEditHelpers');
 const { buildPaginationResponse } = require('../middleware/resourceMiddleware');
+const { deleteCloudinaryImage, syncSectionRange } = require('./dailyPracticeService');
 
 const buildListQuery = ({ category, year, month, search, status }) => {
   const query = {};
@@ -35,6 +40,7 @@ const buildListQuery = ({ category, year, month, search, status }) => {
     query.$or = [
       { title: regex },
       { magazineName: regex },
+      { paperName: regex },
       { description: regex }
     ];
   }
@@ -42,21 +48,39 @@ const buildListQuery = ({ category, year, month, search, status }) => {
   return query;
 };
 
+const loadQuestionsForPaper = async (paperId) => {
+  const questions = await CurrentAffairQuestion.find({ currentAffairId: paperId })
+    .sort({ questionNumber: 1 })
+    .lean();
+  return { questions, questionCount: questions.length };
+};
+
+const buildEditResponse = async (doc) => {
+  if (!doc) return null;
+
+  let paper = doc;
+  let extras = {};
+  if (doc.category === CATEGORIES.DAILY_PRACTICE_QUESTIONS) {
+    await syncSectionRange(doc._id);
+    paper = (await CurrentAffair.findById(doc._id)) || doc;
+    extras = await loadQuestionsForPaper(doc._id);
+  }
+
+  return formatCurrentAffairForEdit(paper, extras);
+};
+
 const createCurrentAffair = async (payload, file, createdBy) => {
   const data = {
     category: payload.category,
-    year: payload.year,
-    month: payload.month,
     description: payload.description || undefined,
     status: payload.status !== undefined ? payload.status : true,
-    createdBy: createdBy || undefined
+    createdBy: createdBy || undefined,
+    title: payload.title
   };
 
-  if (payload.category === CATEGORIES.MONTHLY_MAGAZINE) {
-    data.magazineName = payload.magazineName;
-    data.title = payload.magazineName;
-  } else {
-    data.title = payload.title;
+  if (payload.category !== CATEGORIES.CURRENT_AFFAIRS) {
+    if (payload.year !== undefined) data.year = payload.year;
+    if (payload.month !== undefined) data.month = payload.month;
   }
 
   if (file) {
@@ -71,7 +95,7 @@ const createCurrentAffair = async (payload, file, createdBy) => {
   }
 
   const currentAffair = await CurrentAffair.create(data);
-  return formatCurrentAffairResponse(currentAffair);
+  return buildEditResponse(currentAffair);
 };
 
 const getAllCurrentAffairs = async (queryParams, pagination, sort) => {
@@ -83,11 +107,44 @@ const getAllCurrentAffairs = async (queryParams, pagination, sort) => {
       .skip(pagination.skip)
       .limit(pagination.limit)
       .populate('createdBy', 'name email role')
+      .populate('updatedBy', 'name email role')
       .lean(),
     CurrentAffair.countDocuments(query)
   ]);
 
-  const formattedItems = items.map((item) => formatCurrentAffairResponse(item));
+  const dailyPracticeIds = items
+    .filter((item) => item.category === CATEGORIES.DAILY_PRACTICE_QUESTIONS)
+    .map((item) => item._id);
+
+  let formattedItems;
+  if (dailyPracticeIds.length) {
+    const allQuestions = await CurrentAffairQuestion.find({
+      currentAffairId: { $in: dailyPracticeIds }
+    })
+      .sort({ questionNumber: 1 })
+      .lean();
+
+    const questionsByPaper = allQuestions.reduce((acc, question) => {
+      const key = String(question.currentAffairId);
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(question);
+      return acc;
+    }, {});
+
+    formattedItems = items.map((item) => {
+      if (item.category !== CATEGORIES.DAILY_PRACTICE_QUESTIONS) {
+        return formatCurrentAffairResponse(item);
+      }
+
+      const paperQuestions = questionsByPaper[String(item._id)] || [];
+      return formatCurrentAffairForEdit(item, {
+        questions: paperQuestions,
+        questionCount: paperQuestions.length
+      });
+    });
+  } else {
+    formattedItems = items.map((item) => formatCurrentAffairResponse(item));
+  }
 
   return buildPaginationResponse(
     formattedItems,
@@ -98,10 +155,9 @@ const getAllCurrentAffairs = async (queryParams, pagination, sort) => {
 };
 
 const getCurrentAffairById = async (id) => {
-  const currentAffair = await CurrentAffair.findById(id).populate(
-    'createdBy',
-    'name email role'
-  );
+  const currentAffair = await CurrentAffair.findOne({ _id: id })
+    .populate('createdBy', 'name email role')
+    .populate('updatedBy', 'name email role');
 
   if (!currentAffair) {
     const error = new Error('Current affair not found');
@@ -109,11 +165,11 @@ const getCurrentAffairById = async (id) => {
     throw error;
   }
 
-  return formatCurrentAffairResponse(currentAffair);
+  return buildEditResponse(currentAffair);
 };
 
-const updateCurrentAffair = async (id, payload, file) => {
-  const currentAffair = await CurrentAffair.findById(id);
+const updateCurrentAffair = async (id, payload, file, updatedBy) => {
+  const currentAffair = await CurrentAffair.findOne({ _id: id });
 
   if (!currentAffair) {
     const error = new Error('Current affair not found');
@@ -121,58 +177,86 @@ const updateCurrentAffair = async (id, payload, file) => {
     throw error;
   }
 
-  const nextCategory = payload.category || currentAffair.category;
+  const category = currentAffair.category;
+  const updates = sanitizeUpdatePayload(payload, category);
 
-  if (payload.category !== undefined) {
-    currentAffair.category = payload.category;
+  if (updates.category !== undefined && updates.category !== category) {
+    const error = new Error('Category cannot be changed on update');
+    error.statusCode = 400;
+    throw error;
+  }
+  delete updates.category;
+
+  if (updates.title !== undefined) {
+    currentAffair.title = updates.title;
   }
 
-  if (payload.year !== undefined) {
-    currentAffair.year = payload.year;
+  if (updates.year !== undefined) {
+    currentAffair.year = updates.year;
   }
 
-  if (payload.month !== undefined) {
-    currentAffair.month = payload.month;
+  if (updates.month !== undefined) {
+    currentAffair.month = updates.month;
   }
 
-  if (payload.description !== undefined) {
-    currentAffair.description = payload.description;
+  if (updates.description !== undefined) {
+    currentAffair.description = updates.description;
   }
 
-  if (payload.status !== undefined) {
-    currentAffair.status = payload.status;
+  if (updates.status !== undefined) {
+    currentAffair.status = updates.status;
   }
 
-  if (nextCategory === CATEGORIES.MONTHLY_MAGAZINE) {
-    if (payload.magazineName !== undefined) {
-      currentAffair.magazineName = payload.magazineName;
-      currentAffair.title = payload.magazineName;
+  if (category === CATEGORIES.DAILY_PRACTICE_QUESTIONS) {
+    if (updates.paperName !== undefined) {
+      currentAffair.paperName = updates.paperName;
+      currentAffair.title = updates.paperName;
     }
-  } else if (payload.title !== undefined) {
-    currentAffair.title = payload.title;
+    if (updates.mainsCategory !== undefined) {
+      currentAffair.mainsCategory = updates.mainsCategory;
+    }
+    if (updates.date !== undefined) {
+      currentAffair.date = new Date(updates.date);
+    }
+    if (updates.sectionFrom !== undefined) {
+      currentAffair.sectionFrom = updates.sectionFrom;
+    }
+    if (updates.sectionTo !== undefined) {
+      currentAffair.sectionTo = updates.sectionTo;
+    }
+  }
+
+  if (category === CATEGORIES.CURRENT_AFFAIRS) {
+    currentAffair.year = null;
+    currentAffair.month = null;
+    currentAffair.description = null;
   }
 
   if (file) {
-    await deleteCloudinaryPdf(currentAffair.pdfPublicId);
+    if (currentAffair.pdfPublicId) {
+      await deleteCloudinaryPdf(currentAffair.pdfPublicId);
+    }
     const uploaded = await uploadPdfToCloudinary(file);
     currentAffair.pdfUrl = uploaded.pdfUrl;
     currentAffair.pdfPublicId = uploaded.pdfPublicId;
     currentAffair.imageUrl = uploaded.imageUrl;
-  } else if (
-    PDF_REQUIRED_CATEGORIES.includes(nextCategory) &&
-    !currentAffair.pdfUrl
-  ) {
-    const error = new Error('PDF file is required for this category');
-    error.statusCode = 400;
-    throw error;
+  }
+
+  if (updatedBy) {
+    currentAffair.updatedBy = updatedBy;
   }
 
   await currentAffair.save();
-  return formatCurrentAffairResponse(currentAffair);
+
+  const refreshed = await CurrentAffair.findById(id)
+    .populate('createdBy', 'name email role')
+    .populate('updatedBy', 'name email role');
+
+  return buildEditResponse(refreshed);
 };
 
 const deleteCurrentAffair = async (id) => {
-  const currentAffair = await CurrentAffair.findById(id);
+  const currentAffair = await CurrentAffair.findOne({ _id: id });
 
   if (!currentAffair) {
     const error = new Error('Current affair not found');
@@ -180,24 +264,36 @@ const deleteCurrentAffair = async (id) => {
     throw error;
   }
 
-  const formatted = formatCurrentAffairResponse(currentAffair);
+  const deletedSnapshot = await buildEditResponse(currentAffair);
 
   if (currentAffair.pdfPublicId) {
     await deleteCloudinaryPdf(currentAffair.pdfPublicId);
   }
 
+  const questions = await CurrentAffairQuestion.find({ currentAffairId: id })
+    .select('imagePublicId')
+    .lean();
+
+  await Promise.all(
+    questions.map((q) => deleteCloudinaryImage(q.imagePublicId))
+  );
   await CurrentAffairQuestion.deleteMany({ currentAffairId: id });
   await CurrentAffair.deleteOne({ _id: id });
 
-  return formatted;
+  return deletedSnapshot;
 };
 
-const updateStatus = async (id, status) => {
-  const currentAffair = await CurrentAffair.findByIdAndUpdate(
-    id,
-    { status },
+const updateStatus = async (id, status, updatedBy) => {
+  const update = { status };
+  if (updatedBy) update.updatedBy = updatedBy;
+
+  const currentAffair = await CurrentAffair.findOneAndUpdate(
+    { _id: id },
+    update,
     { new: true }
-  ).populate('createdBy', 'name email role');
+  )
+    .populate('createdBy', 'name email role')
+    .populate('updatedBy', 'name email role');
 
   if (!currentAffair) {
     const error = new Error('Current affair not found');
@@ -205,7 +301,7 @@ const updateStatus = async (id, status) => {
     throw error;
   }
 
-  return formatCurrentAffairResponse(currentAffair);
+  return buildEditResponse(currentAffair);
 };
 
 module.exports = {
@@ -214,5 +310,6 @@ module.exports = {
   getCurrentAffairById,
   updateCurrentAffair,
   deleteCurrentAffair,
-  updateStatus
+  updateStatus,
+  buildEditResponse
 };

@@ -33,11 +33,14 @@ const deleteCloudinaryPdf = async (publicId) => {
   }
 };
 
-const getCreatedById = (req) => {
+const getActorId = (req) => {
   if (req.user?._id) return req.user._id;
   if (req.adminAccess?._id) return req.adminAccess._id;
   return null;
 };
+
+const getCreatedById = (req) => getActorId(req);
+const getUpdatedById = (req) => getActorId(req);
 
 const formatCurrentAffairResponse = (doc) => {
   if (!doc) return null;
@@ -56,5 +59,6 @@ module.exports = {
   uploadPdfToCloudinary,
   deleteCloudinaryPdf,
   getCreatedById,
+  getUpdatedById,
   formatCurrentAffairResponse
 };

@@ -86,7 +86,32 @@ const handleQuestionImageUpload = (req, res, next) => {
   });
 };
 
+const handleDailyPracticeCreate = (req, res, next) => {
+  if (!req.is('multipart/form-data')) {
+    return next();
+  }
+
+  bulkUpload(req, res, (err) => {
+    if (!err) return next();
+
+    if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: [{ field: 'file', message: 'File size must not exceed 15 MB' }]
+      });
+    }
+
+    return res.status(400).json({
+      success: false,
+      message: 'Validation failed',
+      errors: [{ field: 'file', message: err.message }]
+    });
+  });
+};
+
 module.exports = {
   handleBulkUpload,
+  handleDailyPracticeCreate,
   handleQuestionImageUpload
 };

@@ -1,5 +1,5 @@
 const currentAffairCmsService = require('../services/currentAffairCmsService');
-const { getCreatedById } = require('../utils/currentAffairHelpers');
+const { getCreatedById, getUpdatedById } = require('../utils/currentAffairHelpers');
 
 const createCurrentAffair = async (req, res) => {
   try {
@@ -68,7 +68,8 @@ const updateCurrentAffair = async (req, res) => {
     const data = await currentAffairCmsService.updateCurrentAffair(
       req.params.id,
       req.body,
-      req.file
+      req.file,
+      getUpdatedById(req)
     );
 
     return res.status(200).json({
@@ -91,7 +92,7 @@ const deleteCurrentAffair = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: 'Current affair deleted successfully',
+      message: 'Current affair permanently deleted',
       data
     });
   } catch (error) {
@@ -107,7 +108,8 @@ const updateStatus = async (req, res) => {
   try {
     const data = await currentAffairCmsService.updateStatus(
       req.params.id,
-      req.body.status
+      req.body.status,
+      getUpdatedById(req)
     );
 
     return res.status(200).json({

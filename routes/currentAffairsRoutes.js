@@ -22,10 +22,14 @@ const {
   createDailyPracticePaper,
   bulkUploadQuestions,
   getQuestionsByPaper,
-  addQuestionToPaper
+  addQuestionToPaper,
+  updateQuestionOnPaper,
+  deleteDailyPracticeSet,
+  deleteQuestionFromPaper
 } = require('../controllers/dailyPracticeController');
 const {
   handleBulkUpload,
+  handleDailyPracticeCreate,
   handleQuestionImageUpload
 } = require('../middleware/dailyPracticeUpload');
 
@@ -33,7 +37,13 @@ const adminAuth = cmsAdminAuth;
 
 router.get('/daily-practice/mains-categories', getMainsCategories);
 router.get('/daily-practice/questions/bulk-template', downloadBulkTemplate);
-router.post('/daily-practice', ...adminAuth, createDailyPracticePaper);
+router.post(
+  '/daily-practice',
+  ...adminAuth,
+  handleDailyPracticeCreate,
+  createDailyPracticePaper
+);
+router.delete('/daily-practice/:id', ...adminAuth, deleteDailyPracticeSet);
 
 router.get('/', paginate, getAllCurrentAffairs);
 
@@ -50,6 +60,13 @@ router.post(
   handleQuestionImageUpload,
   addQuestionToPaper
 );
+router.put(
+  '/:id/questions/:questionId',
+  ...adminAuth,
+  handleQuestionImageUpload,
+  updateQuestionOnPaper
+);
+router.delete('/:id/questions/:questionId', ...adminAuth, deleteQuestionFromPaper);
 
 router.get('/:id', getCurrentAffairById);
 

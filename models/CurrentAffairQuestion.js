@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { CORRECT_ANSWER_OPTIONS } = require('../utils/dailyPracticeConstants');
+const { CORRECT_ANSWER_OPTIONS } = require('../utils/currentAffairEnums');
 
 const currentAffairQuestionSchema = new mongoose.Schema(
   {
