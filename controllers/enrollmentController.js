@@ -1,4 +1,3 @@
-const Razorpay = require('razorpay');
 const crypto   = require('crypto');
 const Course          = require('../models/Course');
 const Enrollment      = require('../models/Enrollment');
@@ -6,11 +5,7 @@ const Transaction     = require('../models/Transaction');
 const InstallmentPlan = require('../models/InstallmentPlan');
 const Coupon          = require('../models/Coupon');
 const PaymentIntent   = require('../models/PaymentIntent');
-
-const razorpay = new Razorpay({
-  key_id:     process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET
-});
+const razorpay        = require('../config/razorpay');
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
