@@ -1,0 +1,121 @@
+{
+  "info": {
+    "_postman_id": "ca-category-only-2025",
+    "name": "Current Affairs — CURRENT_AFFAIRS Category",
+    "description": "Postman collection for **Current Affairs** category only.\n\nAPI: `POST /api/current-affairs`\n\nRequired fields: category, title, year, month, description\nPDF: optional\n\nSet `baseUrl` and `authToken` in collection variables before use.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "authToken", "value": "" },
+    { "key": "currentAffairId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Create - Current Affairs",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{authToken}}" }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "category", "value": "CURRENT_AFFAIRS", "type": "text" },
+            { "key": "title", "value": "Union Budget Highlights", "type": "text" },
+            { "key": "year", "value": "2025", "type": "text" },
+            { "key": "month", "value": "June", "type": "text" },
+            { "key": "description", "value": "Daily current affairs summary for June 2025.", "type": "text" },
+            { "key": "pdf", "description": "Optional PDF (max 10 MB)", "type": "file", "src": [] }
+          ]
+        },
+        "url": "{{baseUrl}}/api/current-affairs"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 201) {",
+              "  pm.collectionVariables.set('currentAffairId', pm.response.json().data._id);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get All - Current Affairs Category",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/current-affairs?category=CURRENT_AFFAIRS&page=1&limit=10",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "current-affairs"],
+          "query": [
+            { "key": "category", "value": "CURRENT_AFFAIRS" },
+            { "key": "page", "value": "1" },
+            { "key": "limit", "value": "10" },
+            { "key": "year", "value": "2025", "disabled": true },
+            { "key": "month", "value": "June", "disabled": true },
+            { "key": "search", "value": "", "disabled": true },
+            { "key": "status", "value": "true", "disabled": true }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get By ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}"
+      }
+    },
+    {
+      "name": "Update - Current Affairs",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{authToken}}" }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "title", "value": "Updated Current Affairs Title", "type": "text" },
+            { "key": "description", "value": "Updated description.", "type": "text" },
+            { "key": "pdf", "description": "Optional — only if replacing PDF", "type": "file", "src": [], "disabled": true }
+          ]
+        },
+        "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}"
+      }
+    },
+    {
+      "name": "Update Status",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{authToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": false\n}"
+        },
+        "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}/status"
+      }
+    },
+    {
+      "name": "Delete",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{authToken}}" }
+        ],
+        "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}"
+      }
+    }
+  ]
+}

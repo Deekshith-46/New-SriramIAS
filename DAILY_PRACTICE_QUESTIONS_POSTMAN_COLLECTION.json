@@ -1,0 +1,250 @@
+{
+  "info": {
+    "_postman_id": "dpq-ca-cms-2026",
+    "name": "Current Affairs — Daily Practice Questions",
+    "description": "APIs for **Daily Practice Questions** category UI.\n\n## Setup\n1. Set `baseUrl` = `http://localhost:5000`\n2. Run **Login Super Admin** → saves `authToken`\n3. Run **Create Daily Practice Paper** → saves `currentAffairId`\n4. For bulk upload, attach `.xlsx` or `.csv` to the `file` field\n\n## Endpoints\n| Action | Method | Path |\n|--------|--------|------|\n| Mains categories dropdown | GET | `/api/current-affairs/daily-practice/mains-categories` |\n| Download sample template | GET | `/api/current-affairs/daily-practice/questions/bulk-template` |\n| Create paper + questions | POST | `/api/current-affairs/daily-practice` |\n| Bulk upload questions | POST | `/api/current-affairs/:id/questions/bulk-upload` |\n| Get questions | GET | `/api/current-affairs/:id/questions` |\n| Add single question | POST | `/api/current-affairs/:id/questions` |",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "superAdminEmail", "value": "admin@sriram.com" },
+    { "key": "superAdminPassword", "value": "admin123" },
+    { "key": "authToken", "value": "" },
+    { "key": "currentAffairId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Login Super Admin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{superAdminEmail}}\",\n  \"password\": \"{{superAdminPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login-super-admin"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  pm.collectionVariables.set('authToken', pm.response.json().token);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Dropdowns & Template",
+      "item": [
+        {
+          "name": "Get Mains Categories",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/current-affairs/daily-practice/mains-categories",
+            "description": "Populates **Mains Category** dropdown (Prelims, Mains, Both)."
+          }
+        },
+        {
+          "name": "Download Sample Template (XLSX)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/current-affairs/daily-practice/questions/bulk-template",
+            "description": "Downloads `daily-practice-questions-template.xlsx`.\n\nColumns: questionNumber, question, optionA, optionB, optionC, optionD, correctAnswer, explanation"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Create Paper (Save button)",
+      "item": [
+        {
+          "name": "Create Daily Practice Paper + Questions",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mainsCategory\": \"Prelims\",\n  \"paperName\": \"Daily Practice Set 1\",\n  \"year\": 2026,\n  \"month\": \"June\",\n  \"date\": \"2026-06-01\",\n  \"sectionFrom\": 1,\n  \"sectionTo\": 3,\n  \"description\": \"June daily practice questions\",\n  \"questions\": [\n    {\n      \"questionNumber\": 1,\n      \"question\": \"What is the capital of India?\",\n      \"optionA\": \"Mumbai\",\n      \"optionB\": \"New Delhi\",\n      \"optionC\": \"Kolkata\",\n      \"optionD\": \"Chennai\",\n      \"correctAnswer\": \"B\",\n      \"explanation\": \"New Delhi is the capital of India\"\n    },\n    {\n      \"questionNumber\": 2,\n      \"question\": \"Which river is the longest in India?\",\n      \"optionA\": \"Yamuna\",\n      \"optionB\": \"Godavari\",\n      \"optionC\": \"Ganga\",\n      \"optionD\": \"Narmada\",\n      \"correctAnswer\": \"C\",\n      \"explanation\": \"Ganga is the longest river in India\"\n    },\n    {\n      \"questionNumber\": 3,\n      \"question\": \"When did India get independence?\",\n      \"optionA\": \"1945\",\n      \"optionB\": \"1947\",\n      \"optionC\": \"1950\",\n      \"optionD\": \"1952\",\n      \"correctAnswer\": \"B\",\n      \"explanation\": \"India got independence on 15 August 1947\"\n    }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/current-affairs/daily-practice",
+            "description": "Matches the UI **Save** flow with section From=1, To=3 and 3 manual questions."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data && json.data.paper && json.data.paper._id) {",
+                  "    pm.collectionVariables.set('currentAffairId', json.data.paper._id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Bulk Upload Questions",
+      "item": [
+        {
+          "name": "Bulk Upload (XLSX / CSV)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "description": "Required — .xlsx or .csv (max 15 MB). Use Download Sample Template first.",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "replace",
+                  "value": "false",
+                  "description": "Set true to replace all existing questions",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}/questions/bulk-upload",
+            "description": "Matches **Bulk Upload Questions → Import** modal.\n\nAllowed: XLSX, CSV | Max: 15 MB"
+          }
+        },
+        {
+          "name": "Bulk Upload (Replace existing)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": [] },
+                { "key": "replace", "value": "true", "type": "text" }
+              ]
+            },
+            "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}/questions/bulk-upload"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Questions",
+      "item": [
+        {
+          "name": "Get Questions by Paper",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}/questions"
+          }
+        },
+        {
+          "name": "Add Single Question (with optional image)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "questionNumber", "value": "4", "type": "text" },
+                { "key": "question", "value": "Who is known as the Father of the Indian Constitution?", "type": "text" },
+                { "key": "optionA", "value": "Mahatma Gandhi", "type": "text" },
+                { "key": "optionB", "value": "Jawaharlal Nehru", "type": "text" },
+                { "key": "optionC", "value": "Dr. B.R. Ambedkar", "type": "text" },
+                { "key": "optionD", "value": "Sardar Patel", "type": "text" },
+                { "key": "correctAnswer", "value": "C", "type": "text" },
+                { "key": "explanation", "value": "Dr. B.R. Ambedkar chaired the drafting committee.", "type": "text" },
+                {
+                  "key": "image",
+                  "description": "Optional — JPG, PNG, WEBP | Max 5 MB",
+                  "type": "file",
+                  "src": [],
+                  "disabled": true
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}/questions"
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Paper CRUD",
+      "item": [
+        {
+          "name": "Get Paper By ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}"
+          }
+        },
+        {
+          "name": "Get All Daily Practice Papers",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/current-affairs?category=DAILY_PRACTICE_QUESTIONS&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "current-affairs"],
+              "query": [
+                { "key": "category", "value": "DAILY_PRACTICE_QUESTIONS" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": false\n}"
+            },
+            "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}/status"
+          }
+        },
+        {
+          "name": "Delete Paper (Hard)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}"
+          }
+        }
+      ]
+    }
+  ]
+}

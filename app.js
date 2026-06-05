@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const path = require('path');
 require('dotenv').config({ quiet: true });
 
 const connectDB = require('./config/db');
@@ -58,6 +59,7 @@ const attendanceRoutes = require('./routes/attendanceRoutes');
 const answerWritingRoutes = require('./routes/answerWritingRoutes');
 const portalFreeResourceRoutes = require('./routes/portalFreeResourceRoutes');
 const portalCurrentAffairsRoutes = require('./routes/portalCurrentAffairsRoutes');
+const currentAffairsRoutes = require('./routes/currentAffairsRoutes');
 const programRoutes = require('./routes/programRoutes');
 const academicCategoryRoutes = require('./routes/academicCategoryRoutes');
 const academicSubCategoryRoutes = require('./routes/academicSubCategoryRoutes');
@@ -80,6 +82,7 @@ const { getCentersDropdown } = require('./controllers/centerManagementController
 const { protect } = require('./middleware/authMiddleware');
 const { requireSuperAdmin } = require('./middleware/requireSuperAdmin');
 const { superAdminAuth } = require('./middleware/superAdminAuth');
+const { swaggerUi, swaggerSpec } = require('./config/swaggerCurrentAffairs');
 
 const app = express();
 
@@ -96,6 +99,7 @@ app.use(express.json({
   }
 })); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Rate limiting for OTP endpoints
 const otpLimiter = rateLimit({
@@ -188,6 +192,9 @@ app.use('/api/resources/filters', filterRoutes); // Dynamic Filters
 app.use('/api/resources/files', resourceFileRoutes); // Resources (PDFs, Study Material)
 app.use('/api/resources/mock-tests', mockTestRoutes); // Mock Tests
 app.use('/api/resources/questions', questionRoutes); // Questions
+
+// Current Affairs CMS (admin)
+app.use('/api/current-affairs', currentAffairsRoutes);
 
 // Portal UI — two tabs (CMS unchanged at /api/resources/*)
 app.use('/api/portal/current-affairs', portalCurrentAffairsRoutes);
@@ -301,6 +308,8 @@ app.get('/health', (req, res) => {
 app.get('/api/health', (req, res) => {
   res.json(healthPayload());
 });
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Root endpoint
 app.get('/', (req, res) => {

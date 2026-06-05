@@ -1,0 +1,723 @@
+{
+  "info": {
+    "_postman_id": "ca-cms-2025-sriram-ias",
+    "name": "Sriram IAS - Current Affairs CMS",
+    "description": "# Current Affairs Management — Admin CMS\n\nBase path: `{{baseUrl}}/api/current-affairs`\n\n## Quick setup\n\n1. Import **CURRENT_AFFAIRS_POSTMAN_ENVIRONMENT.json** (or Production variant).\n2. Select environment: **Sriram IAS - Current Affairs (Local)**.\n3. Set `superAdminEmail` / `superAdminPassword` to match your `.env` (`SUPER_ADMIN_EMAIL`, `SUPER_ADMIN_PASSWORD`).\n4. Run **0. Setup → Health Check**.\n5. Run **1. Auth → Login Super Admin** — saves `authToken` automatically.\n6. For file uploads, pick a PDF in the **pdf** form-data field on create/update requests.\n7. Run create requests — `currentAffairId` is saved for Get / Update / Delete / Status.\n\n## Categories\n\n| UI | API value |\n|----|-----------|\n| Current Affairs | CURRENT_AFFAIRS |\n| Monthly Magazine | MONTHLY_MAGAZINE |\n| Infographics | INFOGRAPHICS |\n| Monthly Recap | MONTHLY_RECAP |\n| Daily Practice Questions | DAILY_PRACTICE_QUESTIONS |\n\n## PDF rules\n\n- Required: MONTHLY_MAGAZINE, INFOGRAPHICS, MONTHLY_RECAP\n- Optional: CURRENT_AFFAIRS, DAILY_PRACTICE_QUESTIONS\n- Max size: 10 MB | MIME: application/pdf | Field name: `pdf`",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{authToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.environment.get('baseUrl') && pm.collectionVariables.get('baseUrl')) {",
+          "  pm.environment.set('baseUrl', pm.collectionVariables.get('baseUrl'));",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "authToken", "value": "" },
+    { "key": "currentAffairId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. Setup",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/health",
+            "description": "Verify server is running before testing Current Affairs APIs."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('API is OK', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.status).to.eql('OK');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "GET",
+                "url": "{{baseUrl}}/api/health"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"status\": \"OK\",\n  \"message\": \"Sriram IAS Backend is running\",\n  \"timestamp\": \"2025-06-01T10:00:00.000Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Swagger Docs (browser)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api-docs",
+            "description": "Open in Postman or browser for interactive API docs."
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Login Super Admin",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{superAdminEmail}}\",\n  \"password\": \"{{superAdminPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login-super-admin",
+            "description": "Uses credentials from `.env`: SUPER_ADMIN_EMAIL / SUPER_ADMIN_PASSWORD.\n\nSaves token to `authToken`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login successful', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.true;",
+                  "  pm.expect(json.token).to.be.a('string');",
+                  "  pm.environment.set('authToken', json.token);",
+                  "  pm.collectionVariables.set('authToken', json.token);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"admin@sriram.com\",\n  \"password\": \"admin123\"\n}"
+                },
+                "url": "{{baseUrl}}/api/auth/login-super-admin"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"user\": {\n    \"id\": \"665900000000000000000001\",\n    \"name\": \"Super Admin\",\n    \"email\": \"admin@sriram.com\",\n    \"role\": \"super_admin\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login Center Admin",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{centerAdminEmail}}\",\n  \"password\": \"{{centerAdminPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login",
+            "description": "Legacy center admin login. Set centerAdminEmail / centerAdminPassword in environment."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.token) {",
+                  "    pm.environment.set('authToken', json.token);",
+                  "    pm.collectionVariables.set('authToken', json.token);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login Admin Access",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"officialEmail\": \"{{adminAccessEmail}}\",\n  \"password\": \"{{adminAccessPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login-admin-access",
+            "description": "Dynamic admin user login. If response has requiresOtp=true, run Verify Admin Access OTP next."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.token) {",
+                  "  pm.environment.set('authToken', json.token);",
+                  "  pm.collectionVariables.set('authToken', json.token);",
+                  "}",
+                  "if (json.adminAccessId) {",
+                  "  pm.environment.set('adminAccessId', json.adminAccessId);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify Admin Access OTP",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"adminAccessId\": \"{{adminAccessId}}\",\n  \"otp\": \"{{adminAccessOtp}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login-admin-access/verify-otp"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.token) {",
+                  "    pm.environment.set('authToken', json.token);",
+                  "    pm.collectionVariables.set('authToken', json.token);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Create (form-data)",
+      "item": [
+        {
+          "name": "Create - Monthly Magazine",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "category", "value": "MONTHLY_MAGAZINE", "type": "text" },
+                { "key": "magazineName", "value": "Vision IAS June Edition", "type": "text" },
+                { "key": "year", "value": "{{year}}", "type": "text" },
+                { "key": "month", "value": "{{month}}", "type": "text" },
+                { "key": "pdf", "description": "Required — select a PDF file (max 10 MB)", "type": "file", "src": [] }
+              ]
+            },
+            "url": "{{baseUrl}}/api/current-affairs",
+            "description": "PDF is **required** for this category."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Created successfully', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.true;",
+                  "  pm.expect(json.data.category).to.eql('MONTHLY_MAGAZINE');",
+                  "  pm.expect(json.data.pdfUrl).to.be.a('string');",
+                  "  pm.environment.set('currentAffairId', json.data._id);",
+                  "  pm.collectionVariables.set('currentAffairId', json.data._id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "method": "POST",
+                "url": "{{baseUrl}}/api/current-affairs"
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Current affairs created successfully\",\n  \"data\": {\n    \"_id\": \"665a10000000000000000001\",\n    \"category\": \"MONTHLY_MAGAZINE\",\n    \"title\": \"Vision IAS June Edition\",\n    \"magazineName\": \"Vision IAS June Edition\",\n    \"year\": 2025,\n    \"month\": \"June\",\n    \"pdfUrl\": \"/uploads/current-affairs/1717000000000-vision-june.pdf\",\n    \"status\": true,\n    \"isDeleted\": false\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create - Infographics",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "category", "value": "INFOGRAPHICS", "type": "text" },
+                { "key": "title", "value": "Economy Infographics", "type": "text" },
+                { "key": "year", "value": "{{year}}", "type": "text" },
+                { "key": "month", "value": "{{month}}", "type": "text" },
+                { "key": "pdf", "description": "Required", "type": "file", "src": [] }
+              ]
+            },
+            "url": "{{baseUrl}}/api/current-affairs"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  pm.environment.set('currentAffairId', json.data._id);",
+                  "  pm.collectionVariables.set('currentAffairId', json.data._id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create - Monthly Recap",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "category", "value": "MONTHLY_RECAP", "type": "text" },
+                { "key": "title", "value": "June Monthly Recap", "type": "text" },
+                { "key": "year", "value": "{{year}}", "type": "text" },
+                { "key": "month", "value": "{{month}}", "type": "text" },
+                { "key": "pdf", "type": "file", "src": [] }
+              ]
+            },
+            "url": "{{baseUrl}}/api/current-affairs"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  pm.environment.set('currentAffairId', json.data._id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create - Current Affairs (PDF optional)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "category", "value": "CURRENT_AFFAIRS", "type": "text" },
+                { "key": "title", "value": "Union Budget Highlights", "type": "text" },
+                { "key": "year", "value": "{{year}}", "type": "text" },
+                { "key": "month", "value": "{{month}}", "type": "text" },
+                { "key": "description", "value": "Daily current affairs summary for June 2025.", "type": "text" },
+                { "key": "pdf", "description": "Optional", "type": "file", "src": [], "disabled": true }
+              ]
+            },
+            "url": "{{baseUrl}}/api/current-affairs"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  pm.environment.set('currentAffairId', pm.response.json().data._id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create - Daily Practice Questions (PDF optional)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "category", "value": "DAILY_PRACTICE_QUESTIONS", "type": "text" },
+                { "key": "title", "value": "June Daily Practice Set 1", "type": "text" },
+                { "key": "year", "value": "{{year}}", "type": "text" },
+                { "key": "month", "value": "{{month}}", "type": "text" },
+                { "key": "description", "value": "Daily practice MCQs for prelims preparation.", "type": "text" }
+              ]
+            },
+            "url": "{{baseUrl}}/api/current-affairs"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  pm.environment.set('currentAffairId', pm.response.json().data._id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create - Validation Error (missing PDF)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "category", "value": "MONTHLY_MAGAZINE", "type": "text" },
+                { "key": "magazineName", "value": "Test Magazine", "type": "text" },
+                { "key": "year", "value": "2025", "type": "text" },
+                { "key": "month", "value": "June", "type": "text" }
+              ]
+            },
+            "url": "{{baseUrl}}/api/current-affairs",
+            "description": "Expect 400 — PDF required for MONTHLY_MAGAZINE."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Validation failed as expected', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "  pm.expect(pm.response.json().success).to.be.false;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "400 Validation Error",
+              "originalRequest": { "method": "POST", "url": "{{baseUrl}}/api/current-affairs" },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Validation failed\",\n  \"errors\": [\n    {\n      \"field\": \"pdf\",\n      \"message\": \"PDF file is required for this category\"\n    }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Read",
+      "item": [
+        {
+          "name": "Get All (paginated + filters)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/current-affairs?page=1&limit=10&category={{category}}&year={{year}}&month={{month}}&search=&status=true&sortBy=createdAt&sortOrder=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "current-affairs"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "category", "value": "{{category}}" },
+                { "key": "year", "value": "{{year}}" },
+                { "key": "month", "value": "{{month}}" },
+                { "key": "search", "value": "", "description": "Search title / magazineName / description" },
+                { "key": "status", "value": "true" },
+                { "key": "sortBy", "value": "createdAt" },
+                { "key": "sortOrder", "value": "desc" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('List fetched', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.true;",
+                  "  pm.expect(json.data).to.be.an('array');",
+                  "  if (json.data.length > 0) {",
+                  "    pm.environment.set('currentAffairId', json.data[0]._id);",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 Paginated",
+              "originalRequest": { "method": "GET", "url": "{{baseUrl}}/api/current-affairs?page=1&limit=10" },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Current affairs fetched successfully\",\n  \"count\": 1,\n  \"total\": 1,\n  \"page\": 1,\n  \"limit\": 10,\n  \"totalPages\": 1,\n  \"hasNextPage\": false,\n  \"hasPrevPage\": false,\n  \"data\": [\n    {\n      \"_id\": \"665a10000000000000000001\",\n      \"category\": \"MONTHLY_MAGAZINE\",\n      \"magazineName\": \"Vision IAS June Edition\",\n      \"year\": 2025,\n      \"month\": \"June\",\n      \"pdfUrl\": \"/uploads/current-affairs/1717000000000-vision-june.pdf\",\n      \"status\": true\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get All (no filters)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/current-affairs?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "current-affairs"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get By ID",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}",
+            "description": "Uses `currentAffairId` from create or list response."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Record found', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().data._id).to.eql(pm.environment.get('currentAffairId'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Update & Status",
+      "item": [
+        {
+          "name": "Update (text only, keep PDF)",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "title", "value": "Updated Title", "type": "text" },
+                { "key": "description", "value": "Updated description text.", "type": "text" }
+              ]
+            },
+            "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}",
+            "description": "Does not upload new PDF — existing pdfUrl is preserved."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Updated successfully', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update (replace PDF)",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "title", "value": "Updated With New PDF", "type": "text" },
+                { "key": "pdf", "description": "Select new PDF to replace old file", "type": "file", "src": [] }
+              ]
+            },
+            "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}"
+          }
+        },
+        {
+          "name": "Update Status - Disable",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": false\n}"
+            },
+            "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}/status"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status updated', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().data.status).to.be.false;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 Status Updated",
+              "originalRequest": {
+                "method": "PATCH",
+                "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}/status"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Current affair status updated successfully\",\n  \"data\": {\n    \"_id\": \"665a10000000000000000001\",\n    \"status\": false\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Status - Enable",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}/status"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Delete",
+      "item": [
+        {
+          "name": "Delete (Soft)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}",
+            "description": "Sets isDeleted=true. Record no longer appears in GET list."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Soft deleted', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().data.isDeleted).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get By ID (after delete - expect 404)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Not found after soft delete', function () {",
+                  "  pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
