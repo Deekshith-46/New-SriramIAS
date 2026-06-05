@@ -11,6 +11,7 @@ const { isValidObjectId } = require('./contentIdGenerator');
 
 const MAINS_CATEGORY = 'MAINS_ANSWER_WRITING';
 const ENROLLMENT_ACTIVE = { status: 'ACTIVE', isDeleted: false };
+const PUBLISHED_TEST = { isDeleted: false, publishStatus: 'PUBLISHED' };
 
 const resolvePassMarks = (test) => {
   const total = Number(test?.totalMarks) || 0;
@@ -37,9 +38,10 @@ const getBatchIdsForFacultySubject = async (facultySubjectId) => {
     .distinct('_id');
 };
 
-const countAssignedStudents = async (facultySubjectId) => {
+/** Distinct assigned student userIds for a faculty subject (batch enrollments). */
+const getAssignedStudentUserIds = async (facultySubjectId) => {
   const batchIds = await getBatchIdsForFacultySubject(facultySubjectId);
-  if (!batchIds.length) return 0;
+  if (!batchIds.length) return [];
 
   const rows = await BatchEnrollment.aggregate([
     { $match: { batch: { $in: batchIds }, ...ENROLLMENT_ACTIVE } },
@@ -53,31 +55,19 @@ const countAssignedStudents = async (facultySubjectId) => {
     },
     { $unwind: '$studentDoc' },
     { $match: { 'studentDoc.userId': { $ne: null } } },
-    { $group: { _id: '$studentDoc.userId' } },
-    { $count: 'total' }
+    { $group: { _id: '$studentDoc.userId' } }
   ]);
 
-  return rows[0]?.total || 0;
+  return rows.map((r) => r._id);
 };
 
-const getSubmissionStatsForTests = async (testIds) => {
-  if (!testIds.length) return new Map();
+const countAssignedStudents = async (facultySubjectId) => {
+  const ids = await getAssignedStudentUserIds(facultySubjectId);
+  return ids.length;
+};
 
-  const oids = testIds.map((id) => new mongoose.Types.ObjectId(id));
-  const rows = await MainsAnswerWritingSubmission.aggregate([
-    { $match: { mainsAnswerWritingId: { $in: oids } } },
-    {
-      $group: {
-        _id: '$mainsAnswerWritingId',
-        uploadedAnswerSheets: { $sum: 1 },
-        evaluatedCount: {
-          $sum: { $cond: [{ $eq: ['$submissionStatus', 'evaluated'] }, 1, 0] }
-        }
-      }
-    }
-  ]);
-
-  return new Map(
+const mapSubmissionStats = (rows) =>
+  new Map(
     rows.map((r) => {
       const uploaded = r.uploadedAnswerSheets || 0;
       const evaluated = r.evaluatedCount || 0;
@@ -93,6 +83,128 @@ const getSubmissionStatsForTests = async (testIds) => {
       ];
     })
   );
+
+const emptyStatsForTests = (testIds) =>
+  new Map(
+    testIds.map((id) => [
+      String(id),
+      {
+        uploadedAnswerSheets: 0,
+        evaluatedCount: 0,
+        pendingCount: 0,
+        evaluationPercentage: 0
+      }
+    ])
+  );
+
+/** Submission counts scoped to assigned students when assignedStudentIds is an array. */
+const getSubmissionStatsForTests = async (testIds, assignedStudentIds = undefined) => {
+  if (!testIds.length) return new Map();
+  if (Array.isArray(assignedStudentIds) && assignedStudentIds.length === 0) {
+    return emptyStatsForTests(testIds);
+  }
+
+  const oids = testIds.map((id) => new mongoose.Types.ObjectId(id));
+  const match = { mainsAnswerWritingId: { $in: oids } };
+  if (Array.isArray(assignedStudentIds) && assignedStudentIds.length) {
+    match.studentId = { $in: assignedStudentIds };
+  }
+
+  const rows = await MainsAnswerWritingSubmission.aggregate([
+    { $match: match },
+    {
+      $group: {
+        _id: '$mainsAnswerWritingId',
+        uploadedAnswerSheets: { $sum: 1 },
+        evaluatedCount: {
+          $sum: { $cond: [{ $eq: ['$submissionStatus', 'evaluated'] }, 1, 0] }
+        }
+      }
+    }
+  ]);
+
+  return mapSubmissionStats(rows);
+};
+
+const getPdfDownloadCountsForTests = async (testIds, assignedStudentIds = undefined) => {
+  if (!testIds.length) return new Map();
+  if (Array.isArray(assignedStudentIds) && assignedStudentIds.length === 0) {
+    return new Map(testIds.map((id) => [String(id), 0]));
+  }
+
+  const match = {
+    mainsAnswerWritingId: { $in: testIds.map((id) => new mongoose.Types.ObjectId(id)) }
+  };
+  if (Array.isArray(assignedStudentIds) && assignedStudentIds.length) {
+    match.studentId = { $in: assignedStudentIds };
+  }
+
+  const rows = await MainsAnswerWritingPdfDownload.aggregate([
+    { $match: match },
+    { $group: { _id: '$mainsAnswerWritingId', count: { $sum: 1 } } }
+  ]);
+
+  return new Map(rows.map((d) => [String(d._id), d.count]));
+};
+
+const deriveEvaluationStatus = ({ uploadedAnswerSheets = 0, evaluatedCount = 0 }) => {
+  if (uploadedAnswerSheets === 0) return 'Not Started';
+  if (evaluatedCount >= uploadedAnswerSheets) return 'Completed';
+  return 'In Progress';
+};
+
+const isNullTopicId = (topicId) =>
+  topicId === null || topicId === undefined || topicId === '';
+
+/** Legacy tests may have no topicId; attribute them to topics on the faculty subject. */
+const getTopicKeysForTest = (test, fsTopicIds) => {
+  if (!isNullTopicId(test.topicId)) return [String(test.topicId)];
+  if (fsTopicIds.length) return fsTopicIds.map((id) => String(id));
+  return ['_none'];
+};
+
+const formatTestListItem = (test) => ({
+  testId: test._id,
+  mainsAnswerWritingId: test.mainsAnswerWritingId,
+  testName: test.testName,
+  uploadedDate: test.createdAt,
+  scheduleDate: test.scheduleDate
+});
+
+const addTestToTopicMaps = (test, keys, testsByTopic, testsListByTopic) => {
+  const item = formatTestListItem(test);
+  keys.forEach((key) => {
+    testsByTopic.set(key, (testsByTopic.get(key) || 0) + 1);
+    if (!testsListByTopic.has(key)) testsListByTopic.set(key, []);
+    testsListByTopic.get(key).push(item);
+  });
+};
+
+/** Topic filter including legacy rows (topicId null) on faculty subjects that list this topic. */
+const buildTopicTestsFilter = async (topicId) => {
+  const topicOid = new mongoose.Types.ObjectId(topicId);
+  const facultySubjects = await FacultySubject.find({
+    topics: topicOid,
+    categories: MAINS_CATEGORY,
+    status: 'ACTIVE',
+    ...NOT_DELETED
+  })
+    .select('_id')
+    .lean();
+
+  if (!facultySubjects.length) {
+    return { topicId: topicOid };
+  }
+
+  return {
+    $or: [
+      { topicId: topicOid },
+      {
+        facultySubjectId: { $in: facultySubjects.map((f) => f._id) },
+        $or: [{ topicId: null }, { topicId: { $exists: false } }]
+      }
+    ]
+  };
 };
 
 const findMainsFacultySubject = async (facultySubjectId) => {
@@ -109,10 +221,7 @@ const findMainsFacultySubject = async (facultySubjectId) => {
 
 /** Level 1 — latest evaluation progress cards */
 const getLatestEvaluationProgress = async (limit = 5) => {
-  const tests = await SubjectMainsAnswerWriting.find({
-    isDeleted: false,
-    publishStatus: 'PUBLISHED'
-  })
+  const tests = await SubjectMainsAnswerWriting.find(PUBLISHED_TEST)
     .sort({ updatedAt: -1 })
     .limit(limit)
     .populate({
@@ -124,17 +233,44 @@ const getLatestEvaluationProgress = async (limit = 5) => {
 
   if (!tests.length) return [];
 
-  const testIds = tests.map((t) => t._id);
-  const statsMap = await getSubmissionStatsForTests(testIds);
   const assignedCache = new Map();
+  const assignedUserIdsCache = new Map();
+  const statsByTestId = new Map();
+
+  const testsByFs = new Map();
+  tests.forEach((test) => {
+    const fsId = String(test.facultySubjectId?._id || test.facultySubjectId);
+    if (!testsByFs.has(fsId)) testsByFs.set(fsId, []);
+    testsByFs.get(fsId).push(test);
+  });
+
+  await Promise.all(
+    [...testsByFs.entries()].map(async ([fsId, fsTests]) => {
+      const userIds = await getAssignedStudentUserIds(fsId);
+      assignedUserIdsCache.set(fsId, userIds);
+      assignedCache.set(fsId, userIds.length);
+      const statsMap = await getSubmissionStatsForTests(
+        fsTests.map((t) => t._id),
+        userIds
+      );
+      fsTests.forEach((t) => {
+        statsByTestId.set(
+          String(t._id),
+          statsMap.get(String(t._id)) || {
+            uploadedAnswerSheets: 0,
+            evaluatedCount: 0,
+            pendingCount: 0,
+            evaluationPercentage: 0
+          }
+        );
+      });
+    })
+  );
 
   const cards = [];
   for (const test of tests) {
     const fsId = String(test.facultySubjectId?._id || test.facultySubjectId);
-    if (!assignedCache.has(fsId)) {
-      assignedCache.set(fsId, await countAssignedStudents(fsId));
-    }
-    const stats = statsMap.get(String(test._id)) || {
+    const stats = statsByTestId.get(String(test._id)) || {
       uploadedAnswerSheets: 0,
       evaluatedCount: 0,
       pendingCount: 0,
@@ -194,7 +330,8 @@ const listMainsFacultySubjects = async ({ search = '', page = 1, limit = 20, sor
           {
             $match: {
               $expr: { $eq: ['$facultySubjectId', '$$fsId'] },
-              isDeleted: false
+              isDeleted: false,
+              publishStatus: 'PUBLISHED'
             }
           },
           { $project: { updatedAt: 1, topicId: 1 } }
@@ -261,23 +398,33 @@ const getFacultySubjectDetails = async (facultySubjectId) => {
   const fs = await findMainsFacultySubject(facultySubjectId);
   if (!fs) return null;
 
-  const topicIds = (fs.topics || []).map((id) => new mongoose.Types.ObjectId(id));
   const tests = await SubjectMainsAnswerWriting.find({
     facultySubjectId: fs._id,
-    isDeleted: false
+    ...PUBLISHED_TEST
   })
-    .select('topicId updatedAt')
+    .select('_id mainsAnswerWritingId topicId testName createdAt updatedAt scheduleDate')
+    .sort({ createdAt: -1 })
     .lean();
 
-  const testsByTopic = new Map();
+  const topicIdSet = new Set((fs.topics || []).map((id) => String(id)));
   tests.forEach((t) => {
-    const key = t.topicId ? String(t.topicId) : '_none';
-    testsByTopic.set(key, (testsByTopic.get(key) || 0) + 1);
+    if (t.topicId) topicIdSet.add(String(t.topicId));
   });
 
+  const fsTopicIds = (fs.topics || []).map((id) => String(id));
+  const testsByTopic = new Map();
+  const testsListByTopic = new Map();
+  tests.forEach((t) => {
+    addTestToTopicMaps(t, getTopicKeysForTest(t, fsTopicIds), testsByTopic, testsListByTopic);
+  });
+
+  const topicOids = [...topicIdSet]
+    .filter((id) => id !== '_none' && isValidObjectId(id))
+    .map((id) => new mongoose.Types.ObjectId(id));
+
   let topics = [];
-  if (topicIds.length) {
-    topics = await Topic.find({ _id: { $in: topicIds }, ...NOT_DELETED })
+  if (topicOids.length) {
+    topics = await Topic.find({ _id: { $in: topicOids }, ...NOT_DELETED })
       .select('_id topicId topicName')
       .sort({ topicName: 1 })
       .lean();
@@ -291,10 +438,10 @@ const getFacultySubjectDetails = async (facultySubjectId) => {
     facultySubjectName: formatFacultySubjectLabel(fs.subjectName, fs.teacher?.teacherName),
     subjectName,
     teacherName: fs.teacher?.teacherName || '',
-    topicsCount: topicIds.length,
+    topicsCount: topics.length,
     testsPdfCount: tests.length,
     cards: {
-      topics: topicIds.length,
+      topics: topics.length,
       testsPdfs: tests.length,
       subject: subjectName
     },
@@ -302,7 +449,8 @@ const getFacultySubjectDetails = async (facultySubjectId) => {
       topicId: t._id,
       topicCode: t.topicId,
       topicName: t.topicName,
-      testsPdfCount: testsByTopic.get(String(t._id)) || 0
+      testsPdfCount: testsByTopic.get(String(t._id)) || 0,
+      tests: testsListByTopic.get(String(t._id)) || []
     }))
   };
 };
@@ -314,10 +462,8 @@ const getTopicTests = async (topicId, { search = '', page = 1, limit = 10 }) => 
   const topic = await Topic.findOne({ _id: topicId, ...NOT_DELETED }).lean();
   if (!topic) return { notFound: true };
 
-  const filter = {
-    topicId: new mongoose.Types.ObjectId(topicId),
-    isDeleted: false
-  };
+  const topicFilter = await buildTopicTestsFilter(topicId);
+  const filter = { ...PUBLISHED_TEST, ...topicFilter };
 
   if (search.trim()) {
     filter.testName = new RegExp(escapeRegex(search.trim()), 'i');
@@ -345,16 +491,12 @@ const getTopicTests = async (topicId, { search = '', page = 1, limit = 10 }) => 
 
   const testIds = tests.map((t) => t._id);
   const fsId = tests[0].facultySubjectId;
-  const [statsMap, studentsAssigned, downloadCounts] = await Promise.all([
-    getSubmissionStatsForTests(testIds),
-    countAssignedStudents(fsId),
-    MainsAnswerWritingPdfDownload.aggregate([
-      { $match: { mainsAnswerWritingId: { $in: testIds } } },
-      { $group: { _id: '$mainsAnswerWritingId', count: { $sum: 1 } } }
-    ])
+  const assignedUserIds = await getAssignedStudentUserIds(fsId);
+  const [statsMap, downloadMap] = await Promise.all([
+    getSubmissionStatsForTests(testIds, assignedUserIds),
+    getPdfDownloadCountsForTests(testIds, assignedUserIds)
   ]);
-
-  const downloadMap = new Map(downloadCounts.map((d) => [String(d._id), d.count]));
+  const studentsAssigned = assignedUserIds.length;
 
   const fs = await FacultySubject.findById(fsId)
     .populate('teacher', 'teacherName')
@@ -363,7 +505,8 @@ const getTopicTests = async (topicId, { search = '', page = 1, limit = 10 }) => 
   const rows = tests.map((t) => {
     const stats = statsMap.get(String(t._id)) || {
       uploadedAnswerSheets: 0,
-      evaluatedCount: 0
+      evaluatedCount: 0,
+      pendingCount: 0
     };
     return {
       testId: t._id,
@@ -372,7 +515,11 @@ const getTopicTests = async (topicId, { search = '', page = 1, limit = 10 }) => 
       uploadedDate: t.createdAt,
       studentsAssigned,
       pdfDownloads: downloadMap.get(String(t._id)) || 0,
-      answerSheetUploads: stats.uploadedAnswerSheets
+      answerSheetsUploaded: stats.uploadedAnswerSheets,
+      answerSheetUploads: stats.uploadedAnswerSheets,
+      evaluatedCount: stats.evaluatedCount,
+      pendingCount: stats.pendingCount,
+      evaluationStatus: deriveEvaluationStatus(stats)
     };
   });
 
@@ -463,28 +610,23 @@ const getTestResults = async (
   const totalMarks = test.totalMarks;
   const fsId = test.facultySubjectId?._id || test.facultySubjectId;
   const batchIds = await getBatchIdsForFacultySubject(fsId);
+  const assignedUserIds = await getAssignedStudentUserIds(fsId);
+  const studentsAssigned = assignedUserIds.length;
 
-  const [studentsAssigned, pdfDownloads, submissionAgg] = await Promise.all([
-    countAssignedStudents(fsId),
-    MainsAnswerWritingPdfDownload.countDocuments({ mainsAnswerWritingId: test._id }),
-    MainsAnswerWritingSubmission.aggregate([
-      { $match: { mainsAnswerWritingId: test._id } },
-      {
-        $group: {
-          _id: null,
-          uploaded: { $sum: 1 },
-          evaluated: {
-            $sum: { $cond: [{ $eq: ['$submissionStatus', 'evaluated'] }, 1, 0] }
-          }
-        }
-      }
-    ])
+  const [pdfDownloadMap, submissionStatsMap] = await Promise.all([
+    getPdfDownloadCountsForTests([test._id], assignedUserIds),
+    getSubmissionStatsForTests([test._id], assignedUserIds)
   ]);
 
-  const subStats = submissionAgg[0] || { uploaded: 0, evaluated: 0 };
-  const uploaded = subStats.uploaded || 0;
-  const evaluated = subStats.evaluated || 0;
-  const pending = Math.max(0, uploaded - evaluated);
+  const pdfDownloads = pdfDownloadMap.get(String(test._id)) || 0;
+  const scopedStats = submissionStatsMap.get(String(test._id)) || {
+    uploadedAnswerSheets: 0,
+    evaluatedCount: 0,
+    pendingCount: 0
+  };
+  const uploaded = scopedStats.uploadedAnswerSheets;
+  const evaluated = scopedStats.evaluatedCount;
+  const pending = scopedStats.pendingCount;
 
   if (!batchIds.length) {
     return {
@@ -494,9 +636,7 @@ const getTestResults = async (
         downloads: pdfDownloads,
         uploaded: 0,
         evaluated: 0,
-        pending: 0,
-        uploadProgressPercent: 0,
-        evaluationProgressPercent: 0
+        pending: 0
       },
       resultCards: { totalStudents: 0, evaluated: 0, passed: 0, failed: 0 },
       analytics: computeAnalytics([], passMarks, totalMarks),
@@ -542,6 +682,9 @@ const getTestResults = async (
               foreignField: '_id',
               as: 'evaluator'
             }
+          },
+          {
+            $unwind: { path: '$evaluator', preserveNullAndEmptyArrays: true }
           },
           { $limit: 1 }
         ],
@@ -600,6 +743,16 @@ const getTestResults = async (
     });
   }
 
+  enrollmentPipeline.push({
+    $group: {
+      _id: '$userId',
+      studentName: { $first: '$studentName' },
+      registerNumber: { $first: '$registerNumber' },
+      userId: { $first: '$userId' },
+      submission: { $first: '$submission' }
+    }
+  });
+
   const allRows = await BatchEnrollment.aggregate(enrollmentPipeline);
 
   const evaluatedForRank = allRows
@@ -628,7 +781,7 @@ const getTestResults = async (
     else if (marks >= passMarks) passFailStatus = 'Passed';
     else passFailStatus = 'Failed';
 
-    const evaluator = sub?.evaluator?.[0];
+    const evaluatorName = sub?.evaluator?.fullName || '';
 
     return {
       studentId: row.userId,
@@ -638,7 +791,7 @@ const getTestResults = async (
       marks: isEvaluated ? `${marks}/${totalMarks}` : '—',
       marksValue: marks,
       rank: isEvaluated ? rankMap.get(String(row.userId)) ?? '—' : '—',
-      evaluatedBy: evaluator?.fullName || '—',
+      evaluatedBy: evaluatorName || '—',
       evaluationDate: sub?.evaluatedAt
         ? sub.evaluatedAt.toISOString().slice(0, 10)
         : '—',
@@ -660,10 +813,7 @@ const getTestResults = async (
       downloads: pdfDownloads,
       uploaded,
       evaluated,
-      pending,
-      uploadProgressPercent:
-        studentsAssigned > 0 ? Math.round((uploaded / studentsAssigned) * 100) : 0,
-      evaluationProgressPercent: uploaded > 0 ? Math.round((evaluated / uploaded) * 100) : 0
+      pending
     },
     resultCards: {
       totalStudents: studentsAssigned,

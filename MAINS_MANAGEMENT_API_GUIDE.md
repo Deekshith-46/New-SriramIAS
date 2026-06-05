@@ -95,11 +95,18 @@ Base path: `/api/mains-management`
     "facultySubjectName": "Economy by Suresh",
     "cards": { "topics": 1, "testsPdfs": 1, "subject": "Economy" },
     "topics": [
-      { "topicId": "...", "topicName": "Macroeconomics", "testsPdfCount": 1 }
+      {
+        "topicId": "...",
+        "topicName": "Macroeconomics",
+        "testsPdfCount": 1,
+        "tests": [{ "testId": "...", "testName": "Indian Economy Grand Test", "uploadedDate": "..." }]
+      }
     ]
   }
 }
 ```
+
+Tests are grouped under a topic when `SubjectMainsAnswerWriting.topicId` matches the topic `_id`, **or** when `topicId` is null/missing and the topic is listed on the faculty subject’s `topics[]` (legacy CMS rows).
 
 ---
 
@@ -118,11 +125,19 @@ Base path: `/api/mains-management`
       "uploadedDate": "2026-05-27T...",
       "studentsAssigned": 226,
       "pdfDownloads": 218,
-      "answerSheetUploads": 200
+      "answerSheetsUploaded": 200,
+      "answerSheetUploads": 200,
+      "evaluatedCount": 174,
+      "pendingCount": 26,
+      "evaluationStatus": "In Progress"
     }
   ]
 }
 ```
+
+`evaluationStatus`: `Not Started` | `In Progress` | `Completed` (from assigned students’ uploads/evaluations).
+
+`pdfDownloads` = rows in `MainsAnswerWritingPdfDownload` for the test (unique per student via track-pdf-download), scoped to assigned students.
 
 ---
 
@@ -139,7 +154,9 @@ Base path: `/api/mains-management`
 | `failed` | Evaluated, marks < passMarks |
 | `pending` / `pending_evaluation` | Submitted, not evaluated |
 
-Response includes `evaluationSummary`, `resultCards`, `analytics`, paginated `students` with rank (ties handled: same marks → same rank).
+Response includes `evaluationSummary` (counts only — no progress bar percentages), `resultCards`, `analytics`, paginated `students` with rank (ties handled: same marks → same rank).
+
+All submission/download/evaluation counts are scoped to **assigned students** (distinct `Student.userId` from ACTIVE batch enrollments). Duplicate batch enrollments are collapsed to one row per student.
 
 ---
 
