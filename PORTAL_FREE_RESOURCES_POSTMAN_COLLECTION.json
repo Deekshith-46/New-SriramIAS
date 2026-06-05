@@ -8,8 +8,8 @@
     { "key": "baseUrl", "value": "http://localhost:5000" },
     { "key": "studentToken", "value": "" },
     { "key": "typeId", "value": "", "description": "Free Resources tab: categoryId (NCERT, PYQ, etc.)" },
-    { "key": "subjectId", "value": "" },
-    { "key": "classId", "value": "" },
+    { "key": "subject", "value": "", "description": "NCERT text filter e.g. History" },
+    { "key": "class", "value": "", "description": "NCERT text filter e.g. 10th" },
     { "key": "subCategoryId", "value": "" },
     { "key": "paperId", "value": "" },
     { "key": "yearId", "value": "" },
@@ -103,13 +103,13 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/api/portal/free-resources/resources?typeId={{typeId}}&subjectId={{subjectId}}&classId={{classId}}",
+              "raw": "{{baseUrl}}/api/portal/free-resources/resources?typeId={{typeId}}&subject={{subject}}&class={{class}}",
               "host": ["{{baseUrl}}"],
               "path": ["api", "portal", "free-resources", "resources"],
               "query": [
                 { "key": "typeId", "value": "{{typeId}}" },
-                { "key": "subjectId", "value": "{{subjectId}}" },
-                { "key": "classId", "value": "{{classId}}" }
+                { "key": "subject", "value": "{{subject}}" },
+                { "key": "class", "value": "{{class}}" }
               ]
             }
           }

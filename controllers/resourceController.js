@@ -1,33 +1,243 @@
 const Resource = require('../models/Resource');
+const mongoose = require('mongoose');
+const Filter = require('../models/Filter');
+const SubCategory = require('../models/SubCategory');
 const uploadToCloudinary = require('../utils/uploadToCloudinary');
 const cloudinary = require('../config/cloudinary');
 const { paginate, buildPaginationResponse } = require('../middleware/resourceMiddleware');
+const { normalizeResourceStatus } = require('../utils/resourceConstants');
+const {
+  formatCmsResourceResponse,
+  getCategoryKind,
+  resolveResourceKind,
+  getTitleFieldKey,
+  resolveResourceTitle,
+  toRefId
+} = require('../utils/resourceResponseFormatter');
+
+const escapeRegex = (value) => String(value).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const textEqualsFilter = (value) => ({
+  $regex: new RegExp(`^${escapeRegex(value)}$`, 'i')
+});
+
+/** NCERT list: support text (subject, class) or legacy filter IDs (subjectId, classId). */
+const applyNcertListFilters = async (filter, query = {}) => {
+  const { subjectId, classId, subject, class: className } = query;
+
+  if (subject) {
+    filter.subject = textEqualsFilter(subject);
+  } else if (subjectId && mongoose.Types.ObjectId.isValid(subjectId)) {
+    const row = await Filter.findById(subjectId).select('value type').lean();
+    if (row?.type === 'SUBJECT' && row.value) {
+      filter.subject = textEqualsFilter(row.value);
+    }
+  }
+
+  if (className) {
+    filter.class = textEqualsFilter(className);
+  } else if (classId && mongoose.Types.ObjectId.isValid(classId)) {
+    const row = await Filter.findById(classId).select('value type').lean();
+    if (row?.type === 'CLASS' && row.value) {
+      filter.class = textEqualsFilter(row.value);
+    }
+  }
+};
+
+const normalizeBodyId = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+  const raw = Array.isArray(value) ? value[0] : value;
+  const trimmed = String(raw).trim();
+  return trimmed || null;
+};
+
+const populateCmsResource = (query) =>
+  query
+    .populate('categoryId', 'name slug moduleType')
+    .populate('subCategoryId', 'name')
+    .populate('paperId', 'value type')
+    .populate('yearId', 'value type')
+    .populate('monthId', 'value type')
+    .populate('currentAffairsTypeId', 'value type');
+
+const isPopulatedRef = (field) =>
+  field && typeof field === 'object' && (field.name != null || field.value != null);
+
+const ensureCmsResourceRefs = async (doc) => {
+  if (!doc) return doc;
+
+  const lookups = [];
+
+  if (doc.subCategoryId && !isPopulatedRef(doc.subCategoryId)) {
+    lookups.push(
+      SubCategory.findById(doc.subCategoryId)
+        .select('name')
+        .then((row) => {
+          if (row) doc.subCategoryId = row;
+        })
+    );
+  }
+  if (doc.paperId && !isPopulatedRef(doc.paperId)) {
+    lookups.push(
+      Filter.findById(doc.paperId)
+        .select('value type')
+        .then((row) => {
+          if (row) doc.paperId = row;
+        })
+    );
+  }
+  if (doc.yearId && !isPopulatedRef(doc.yearId)) {
+    lookups.push(
+      Filter.findById(doc.yearId)
+        .select('value type')
+        .then((row) => {
+          if (row) doc.yearId = row;
+        })
+    );
+  }
+  if (doc.monthId && !isPopulatedRef(doc.monthId)) {
+    lookups.push(
+      Filter.findById(doc.monthId)
+        .select('value type')
+        .then((row) => {
+          if (row) doc.monthId = row;
+        })
+    );
+  }
+  if (doc.currentAffairsTypeId && !isPopulatedRef(doc.currentAffairsTypeId)) {
+    lookups.push(
+      Filter.findById(doc.currentAffairsTypeId)
+        .select('value type')
+        .then((row) => {
+          if (row) doc.currentAffairsTypeId = row;
+        })
+    );
+  }
+
+  await Promise.all(lookups);
+  return doc;
+};
+
+const loadCmsResourceById = async (id) => {
+  const doc = await populateCmsResource(Resource.findById(id));
+  return ensureCmsResourceRefs(doc);
+};
+
+/** Read form-data id fields (multer / Postman key variants). */
+const readFormId = (body, ...keys) => {
+  for (const key of keys) {
+    const value = normalizeBodyId(body[key]);
+    if (value) return value;
+  }
+  const entries = Object.entries(body || {});
+  for (const key of keys) {
+    const match = entries.find(([k]) => k.toLowerCase() === key.toLowerCase());
+    if (match) {
+      const value = normalizeBodyId(match[1]);
+      if (value) return value;
+    }
+  }
+  return null;
+};
+
+/** Always add paperId, paper, yearId, year to CMS create/update response for PYQ. */
+const attachPyqFieldsToResponse = async (data, resource, extras = {}) => {
+  const paperOid = resource?.paperId || extras.paperId;
+  const yearOid = resource?.yearId || extras.yearId;
+  if (!paperOid && !yearOid && !extras.paper && !extras.year) return data;
+
+  const next = { ...data };
+
+  const resolveLabel = async (field, id, preset) => {
+    if (preset) return preset;
+    if (isPopulatedRef(field)) return field.value;
+    const idStr = toRefId(id);
+    if (!idStr) return undefined;
+    const row = await Filter.findById(idStr).select('value type').lean();
+    return row?.value;
+  };
+
+  if (paperOid) {
+    const paperIdStr = toRefId(paperOid) || toRefId(extras.paperId);
+    if (paperIdStr) next.paperId = paperIdStr;
+    const paper = await resolveLabel(resource?.paperId, paperOid, extras.paper);
+    if (paper) next.paper = paper;
+  }
+
+  if (yearOid) {
+    const yearIdStr = toRefId(yearOid) || toRefId(extras.yearId);
+    if (yearIdStr) next.yearId = yearIdStr;
+    const year = await resolveLabel(resource?.yearId, yearOid, extras.year);
+    if (year) next.year = year;
+  }
+
+  return next;
+};
+
+/** Study Material — subCategoryId + subCategory label. */
+const attachStudyMaterialFieldsToResponse = async (data, resource, extras = {}) => {
+  const subOid = resource?.subCategoryId || extras.subCategoryId;
+  if (!subOid && !extras.subCategory) return data;
+
+  const next = { ...data };
+  const subIdStr = toRefId(subOid) || toRefId(extras.subCategoryId);
+  if (subIdStr) next.subCategoryId = subIdStr;
+
+  if (extras.subCategory) {
+    next.subCategory = extras.subCategory;
+  } else if (isPopulatedRef(resource?.subCategoryId)) {
+    next.subCategory = resource.subCategoryId.name;
+  } else if (subIdStr) {
+    const row = await SubCategory.findById(subIdStr).select('name').lean();
+    if (row?.name) next.subCategory = row.name;
+  }
+
+  return next;
+};
 
 // ==================== RESOURCE CONTROLLERS ====================
 
 exports.createResource = async (req, res) => {
   try {
-    const { 
-      title, 
-      description, 
-      categoryId, 
-      subCategoryId, 
-      subjectId, 
-      classId, 
-      paperId, 
+    const body = req.body || {};
+    const {
+      bookName,
+      paperName,
+      materialName,
+      title,
+      description,
+      categoryId,
+      subCategoryId,
+      subject,
+      class: className,
+      paperId,
       yearId,
       monthId,
       typeId,
       resourceType,
       fileSize,
-      fileType
-    } = req.body;
+      fileType,
+      status
+    } = body;
 
-    // Validate required fields
-    if (!title || !categoryId) {
+    let ncertSubject = null;
+    let ncertClass = null;
+    let pyqPaperLabel = null;
+    let pyqYearLabel = null;
+    let studyMainsCategoryLabel = null;
+    const resolvedStatus = normalizeResourceStatus(status);
+
+    if (status !== undefined && status !== null && status !== '' && !resolvedStatus) {
       return res.status(400).json({
         success: false,
-        message: 'Title and categoryId are required'
+        message: 'status must be Active, In Active, or Draft'
+      });
+    }
+
+    if (!categoryId) {
+      return res.status(400).json({
+        success: false,
+        message: 'categoryId is required'
       });
     }
 
@@ -42,7 +252,7 @@ exports.createResource = async (req, res) => {
     // Module-specific validation
     const ResourceCategory = require('../models/ResourceCategory');
     const category = await ResourceCategory.findById(categoryId);
-    
+
     if (!category) {
       return res.status(404).json({
         success: false,
@@ -50,53 +260,133 @@ exports.createResource = async (req, res) => {
       });
     }
 
-    // Validate filter combinations based on category
-    const categoryName = category.name.toLowerCase();
-    const isCurrentAffairs = category.moduleType === 'CURRENT_AFFAIRS';
+    const kind = getCategoryKind(category);
+    const resolvedSubCategoryId = readFormId(body, 'subCategoryId', 'subcategoryId');
+    const resolvedPaperId = readFormId(body, 'paperId', 'paper_id');
+    const resolvedYearId = readFormId(body, 'yearId', 'year_id');
+    const resolvedMonthId = readFormId(body, 'monthId', 'month_id');
+    const resolvedTypeId = readFormId(body, 'typeId', 'type_id');
 
-    if (isCurrentAffairs) {
-      if (!yearId) {
+    const isPyqUpload = Boolean(
+      resolvedSubCategoryId && resolvedPaperId && resolvedYearId
+    );
+    const effectiveKind = isPyqUpload ? 'PYQ' : kind;
+    const resolvedTitle = resolveResourceTitle(body, effectiveKind);
+
+    if (kind === 'PYQ' && !isPyqUpload) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'PYQ upload requires subCategoryId, paperId, and yearId in form-data (check all three are enabled in Postman)'
+      });
+    }
+
+    if (!resolvedTitle) {
+      return res.status(400).json({
+        success: false,
+        message: `${getTitleFieldKey(effectiveKind)} is required`
+      });
+    }
+
+    if (effectiveKind === 'CURRENT_AFFAIRS') {
+      if (!resolvedYearId) {
         return res.status(400).json({
           success: false,
           message: 'Current affairs resources require yearId'
         });
       }
-    } else if (categoryName.includes('ncert')) {
-      // NCERT should only have subjectId and classId
-      if (paperId || yearId) {
+    } else if (effectiveKind === 'NCERT') {
+      if (resolvedPaperId || resolvedYearId) {
         return res.status(400).json({
           success: false,
           message: 'NCERT resources should not have paperId or yearId'
         });
       }
-    } else if (categoryName.includes('previous year') || categoryName.includes('pyq')) {
-      // PYQ should have subCategoryId, paperId, and yearId
-      if (!subCategoryId) {
+      ncertSubject = (subject || '').trim();
+      ncertClass = (className || '').trim();
+
+      if (!ncertSubject || !ncertClass) {
+        return res.status(400).json({
+          success: false,
+          message: 'NCERT resources require subject and class text values'
+        });
+      }
+    } else if (effectiveKind === 'PYQ') {
+      if (!resolvedSubCategoryId) {
         return res.status(400).json({
           success: false,
           message: 'PYQ resources require subCategoryId (Prelims/Mains)'
         });
       }
-      if (!paperId || !yearId) {
+      if (!resolvedPaperId || !resolvedYearId) {
         return res.status(400).json({
           success: false,
           message: 'PYQ resources require paperId and yearId'
         });
       }
-      if (subjectId || classId) {
+      if (resolvedPaperId === resolvedYearId) {
         return res.status(400).json({
           success: false,
-          message: 'PYQ resources should not have subjectId or classId'
+          message:
+            'paperId and yearId must be different — use _id from Create Papers API for paperId and Create Years API for yearId'
         });
       }
-    } else if (categoryName.includes('study material')) {
-      // Study Material should only have subCategoryId
-      if (subjectId || classId || paperId || yearId) {
+      if (subject || className) {
+        return res.status(400).json({
+          success: false,
+          message: 'PYQ resources should not have subject or class fields'
+        });
+      }
+
+      const [paperFilter, yearFilter] = await Promise.all([
+        Filter.findById(resolvedPaperId).select('value type').lean(),
+        Filter.findById(resolvedYearId).select('value type').lean()
+      ]);
+
+      if (!paperFilter) {
+        return res.status(400).json({
+          success: false,
+          message:
+            'Invalid paperId — create a PAPER filter first (Create Papers for Prelims and Mains) and use its _id'
+        });
+      }
+      if (!yearFilter) {
+        return res.status(400).json({
+          success: false,
+          message:
+            'Invalid yearId — create a YEAR filter first (Create Years for PYQ) and use its _id'
+        });
+      }
+
+      pyqPaperLabel = paperFilter.value;
+      pyqYearLabel = yearFilter.value;
+    } else if (kind === 'STUDY_MATERIAL' || effectiveKind === 'STUDY_MATERIAL') {
+      if (!resolvedSubCategoryId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Study material requires subCategoryId (Mains Category)'
+        });
+      }
+      if (subject || className || resolvedPaperId || resolvedYearId) {
         return res.status(400).json({
           success: false,
           message: 'Study materials should only have subCategoryId'
         });
       }
+
+      const subCategoryRow = await SubCategory.findById(resolvedSubCategoryId).select('name').lean();
+      if (!subCategoryRow) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid subCategoryId — create Mains Category first and use its _id'
+        });
+      }
+      studyMainsCategoryLabel = subCategoryRow.name;
+    } else if (resolvedSubCategoryId && (resolvedPaperId || resolvedYearId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'PYQ upload requires subCategoryId, paperId, and yearId together'
+      });
     }
 
     // Upload file to Cloudinary (PDFs use 'raw' resource type)
@@ -120,17 +410,28 @@ exports.createResource = async (req, res) => {
     }
 
     const resource = new Resource({
-      title,
+      title: resolvedTitle,
       description,
       categoryId,
-      subCategoryId: subCategoryId || null,
-      // Module-specific filter IDs
-      subjectId: subjectId || null,  // For NCERT
-      classId: classId || null,       // For NCERT
-      paperId: paperId || null,       // For PYQ
-      yearId: yearId || null,         // For PYQ / Current Affairs
-      monthId: monthId || null,
-      currentAffairsTypeId: typeId || null,
+      subCategoryId: resolvedSubCategoryId,
+      subject: ncertSubject,
+      class: ncertClass,
+      paperId:
+        resolvedPaperId && mongoose.Types.ObjectId.isValid(resolvedPaperId)
+          ? resolvedPaperId
+          : null,
+      yearId:
+        resolvedYearId && mongoose.Types.ObjectId.isValid(resolvedYearId)
+          ? resolvedYearId
+          : null,
+      monthId:
+        resolvedMonthId && mongoose.Types.ObjectId.isValid(resolvedMonthId)
+          ? resolvedMonthId
+          : null,
+      currentAffairsTypeId:
+        resolvedTypeId && mongoose.Types.ObjectId.isValid(resolvedTypeId)
+          ? resolvedTypeId
+          : null,
       resourceType: resourceType || 'PDF',
       fileUrl: {
         url: fileResult.url,
@@ -139,16 +440,36 @@ exports.createResource = async (req, res) => {
       thumbnail: thumbnailData,
       fileSize: fileSize || null,
       fileType: fileType || 'pdf',
+      status: resolvedStatus,
       createdBy: req.user._id,
       centerId: req.user.center || null
     });
 
     await resource.save();
 
+    const populated = await loadCmsResourceById(resource._id);
+    let data = formatCmsResourceResponse(populated, category);
+
+    if (effectiveKind === 'PYQ' || kind === 'PYQ') {
+      data = await attachPyqFieldsToResponse(data, populated, {
+        paperId: resolvedPaperId,
+        yearId: resolvedYearId,
+        paper: pyqPaperLabel,
+        year: pyqYearLabel
+      });
+    }
+
+    if (effectiveKind === 'STUDY_MATERIAL' || kind === 'STUDY_MATERIAL') {
+      data = await attachStudyMaterialFieldsToResponse(data, populated, {
+        subCategoryId: resolvedSubCategoryId,
+        subCategory: studyMainsCategoryLabel
+      });
+    }
+
     res.status(201).json({
       success: true,
       message: 'Resource created successfully',
-      data: resource
+      data
     });
   } catch (error) {
     res.status(500).json({
@@ -160,13 +481,12 @@ exports.createResource = async (req, res) => {
 
 exports.getResources = async (req, res) => {
   try {
-    const { 
-      categoryId, 
-      subCategoryId, 
-      subjectId, 
-      classId, 
-      paperId, 
+    const {
+      categoryId,
+      subCategoryId,
+      paperId,
       yearId,
+      status: statusQuery,
       isActive,
       search,
       page = 1,
@@ -185,13 +505,29 @@ exports.getResources = async (req, res) => {
     // Apply module-specific filters
     if (categoryId) filter.categoryId = categoryId;
     if (subCategoryId) filter.subCategoryId = subCategoryId;
-    if (subjectId) filter.subjectId = subjectId;  // NCERT
-    if (classId) filter.classId = classId;         // NCERT
-    if (paperId) filter.paperId = paperId;         // PYQ
-    if (yearId) filter.yearId = yearId;            // PYQ
-    
-    // Always filter active by default
-    filter.isActive = isActive !== undefined ? isActive === 'true' : true;
+    await applyNcertListFilters(filter, req.query);
+    if (paperId) filter.paperId = paperId;
+    if (yearId) filter.yearId = yearId;
+
+    if (statusQuery) {
+      const normalized = String(statusQuery).trim().toUpperCase();
+      if (normalized === 'ALL') {
+        // admin: no status filter
+      } else {
+        const resolved = normalizeResourceStatus(statusQuery);
+        if (!resolved) {
+          return res.status(400).json({
+            success: false,
+            message: 'status must be Active, In Active, Draft, or ALL'
+          });
+        }
+        filter.status = resolved;
+      }
+    } else if (isActive !== undefined) {
+      filter.isActive = isActive === 'true';
+    } else {
+      filter.isActive = true;
+    }
 
     // Search by title or description
     if (search) {
@@ -210,20 +546,23 @@ exports.getResources = async (req, res) => {
 
     // Execute query with pagination
     const [resources, total] = await Promise.all([
-      Resource.find(filter)
-        .populate('categoryId', 'name slug')
-        .populate('subCategoryId', 'name')
-        .populate('subjectId', 'value type')
-        .populate('classId', 'value type')
-        .populate('paperId', 'value type')
-        .populate('yearId', 'value type')
+      populateCmsResource(Resource.find(filter))
         .sort(sort)
         .skip(skip)
         .limit(parseInt(limit)),
       Resource.countDocuments(filter)
     ]);
 
-    res.json(buildPaginationResponse(resources, total, parseInt(page), parseInt(limit)));
+    await Promise.all(resources.map((resource) => ensureCmsResourceRefs(resource)));
+
+    res.json(
+      buildPaginationResponse(
+        resources.map((resource) => formatCmsResourceResponse(resource)),
+        total,
+        parseInt(page),
+        parseInt(limit)
+      )
+    );
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -234,9 +573,7 @@ exports.getResources = async (req, res) => {
 
 exports.getResourceById = async (req, res) => {
   try {
-    const resource = await Resource.findById(req.params.id)
-      .populate('categoryId', 'name slug')
-      .populate('subCategoryId', 'name');
+    const resource = await loadCmsResourceById(req.params.id);
 
     if (!resource) {
       return res.status(404).json({
@@ -251,7 +588,7 @@ exports.getResourceById = async (req, res) => {
 
     res.json({
       success: true,
-      data: resource
+      data: formatCmsResourceResponse(resource)
     });
   } catch (error) {
     res.status(500).json({
@@ -272,12 +609,33 @@ exports.updateResource = async (req, res) => {
       });
     }
 
+    const ResourceCategory = require('../models/ResourceCategory');
+    const category = await ResourceCategory.findById(resource.categoryId);
+    const categoryName = (category?.name || '').toLowerCase();
+    const kind = getCategoryKind(category);
+    const isNcert = categoryName.includes('ncert');
+
+    const titleFieldKey = getTitleFieldKey(kind);
+    const hasTitleUpdate =
+      req.body.bookName !== undefined ||
+      req.body.paperName !== undefined ||
+      req.body.materialName !== undefined ||
+      req.body.title !== undefined;
+
+    const resolvedTitle = hasTitleUpdate
+      ? resolveResourceTitle(req.body, kind)
+      : resource.title;
+
+    if (hasTitleUpdate && !resolvedTitle) {
+      return res.status(400).json({
+        success: false,
+        message: `${titleFieldKey} is required`
+      });
+    }
+
     const updates = {
-      title: req.body.title || resource.title,
+      title: resolvedTitle || resource.title,
       description: req.body.description || resource.description,
-      // Module-specific filter IDs
-      subjectId: req.body.subjectId !== undefined ? req.body.subjectId : resource.subjectId,
-      classId: req.body.classId !== undefined ? req.body.classId : resource.classId,
       paperId: req.body.paperId !== undefined ? req.body.paperId : resource.paperId,
       yearId: req.body.yearId !== undefined ? req.body.yearId : resource.yearId,
       monthId: req.body.monthId !== undefined ? req.body.monthId : resource.monthId,
@@ -285,9 +643,28 @@ exports.updateResource = async (req, res) => {
         req.body.typeId !== undefined ? req.body.typeId : resource.currentAffairsTypeId,
       resourceType: req.body.resourceType || resource.resourceType,
       fileSize: req.body.fileSize || resource.fileSize,
-      fileType: req.body.fileType || resource.fileType,
-      isActive: req.body.isActive !== undefined ? req.body.isActive : resource.isActive
+      fileType: req.body.fileType || resource.fileType
     };
+
+    if (req.body.status !== undefined) {
+      const resolvedStatus = normalizeResourceStatus(req.body.status, null);
+      if (!resolvedStatus) {
+        return res.status(400).json({
+          success: false,
+          message: 'status must be Active, In Active, or Draft'
+        });
+      }
+      updates.status = resolvedStatus;
+    } else if (req.body.isActive !== undefined) {
+      updates.status = req.body.isActive === true || req.body.isActive === 'true' ? 'ACTIVE' : 'INACTIVE';
+    }
+
+    if (isNcert) {
+      updates.subject =
+        req.body.subject !== undefined ? String(req.body.subject).trim() : resource.subject;
+      updates.class =
+        req.body.class !== undefined ? String(req.body.class).trim() : resource.class;
+    }
 
     // Upload new file if provided
     if (req.files && req.files.file) {
@@ -329,10 +706,29 @@ exports.updateResource = async (req, res) => {
     Object.assign(resource, updates);
     await resource.save();
 
+    const updated = await loadCmsResourceById(resource._id);
+    const updatedCategory = await ResourceCategory.findById(resource.categoryId);
+    const updatedKind = getCategoryKind(updatedCategory);
+
+    let data = formatCmsResourceResponse(updated, updatedCategory);
+
+    if (updatedKind === 'PYQ') {
+      data = await attachPyqFieldsToResponse(data, updated, {
+        paperId: readFormId(req.body || {}, 'paperId', 'paper_id'),
+        yearId: readFormId(req.body || {}, 'yearId', 'year_id')
+      });
+    }
+
+    if (updatedKind === 'STUDY_MATERIAL') {
+      data = await attachStudyMaterialFieldsToResponse(data, updated, {
+        subCategoryId: readFormId(req.body || {}, 'subCategoryId', 'subcategoryId')
+      });
+    }
+
     res.json({
       success: true,
       message: 'Resource updated successfully',
-      data: resource
+      data
     });
   } catch (error) {
     res.status(500).json({

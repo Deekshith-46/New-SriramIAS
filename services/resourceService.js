@@ -12,13 +12,19 @@ const {
   CATEGORY_NAME_HINTS,
   FREE_RESOURCE_FILTER_KEYS
 } = require('../utils/resourceConstants');
+const {
+  formatPortalResourceCard,
+  formatPortalMockTestCard,
+  formatPortalCurrentAffairsCard,
+  formatPortalResourceDetail,
+  formatMockTestQuestion,
+  compact
+} = require('../utils/resourceResponseFormatter');
 const cache = require('../utils/resourcePortalCache');
 
 const RESOURCE_POPULATE = [
   { path: 'categoryId', select: 'name moduleType' },
   { path: 'subCategoryId', select: 'name' },
-  { path: 'subjectId', select: 'value type' },
-  { path: 'classId', select: 'value type' },
   { path: 'paperId', select: 'value type' },
   { path: 'yearId', select: 'value type' },
   { path: 'monthId', select: 'value type' },
@@ -84,6 +90,12 @@ const dedupeFilters = (filters) => {
   });
 };
 
+const escapeRegex = (value) => String(value).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const textEqualsFilter = (value) => ({
+  $regex: new RegExp(`^${escapeRegex(value)}$`, 'i')
+});
+
 const getCategoryIdsByModule = async (moduleType) => {
   const cats = await ResourceCategory.find({ moduleType, ...activeCategoryFilter() })
     .select('_id')
@@ -123,59 +135,11 @@ const groupFiltersByType = (filters) =>
     return acc;
   }, {});
 
-const formatCurrentAffairsCard = (doc) => ({
-  _id: doc._id,
-  title: doc.title,
-  pdfUrl: doc.fileUrl?.url || null,
-  thumbnail: doc.thumbnail?.url || null,
-  year: doc.yearId?.value || null,
-  month: doc.monthId?.value || null,
-  type: doc.currentAffairsTypeId?.value || null,
-  downloads: doc.downloads || 0
-});
+const formatCurrentAffairsCard = formatPortalCurrentAffairsCard;
+const formatFreeResourceCard = formatPortalResourceCard;
+const formatMockTestCard = formatPortalMockTestCard;
 
-const formatFreeResourceCard = (doc) => ({
-  _id: doc._id,
-  itemType: 'file',
-  title: doc.title,
-  pdfUrl: doc.fileUrl?.url || null,
-  thumbnail: doc.thumbnail?.url || null,
-  subject: doc.subjectId?.value || null,
-  class: doc.classId?.value || null,
-  type: doc.categoryId?.name || null,
-  subCategory: doc.subCategoryId?.name || null,
-  paper: doc.paperId?.value || null,
-  year: doc.yearId?.value || null,
-  downloads: doc.downloads || 0
-});
-
-const formatMockTestCard = (doc) => ({
-  _id: doc._id,
-  itemType: 'mock_test',
-  title: doc.title,
-  pdfUrl: null,
-  thumbnail: null,
-  subject: doc.subjectId?.value || null,
-  class: null,
-  type: doc.categoryId?.name || null,
-  subCategory: doc.subCategoryId?.name || null,
-  paper: doc.paperId?.value || null,
-  year: doc.yearId?.value || null,
-  duration: doc.duration,
-  totalMarks: doc.totalMarks,
-  passingMarks: doc.passingMarks,
-  questionCount: doc.questionIds?.length || 0,
-  downloads: 0
-});
-
-const formatResourceDetail = (doc, formatter) => ({
-  ...formatter(doc),
-  description: doc.description,
-  resourceType: doc.resourceType || 'PDF',
-  fileType: doc.fileType,
-  fileSize: doc.fileSize,
-  categoryId: doc.categoryId?._id || doc.categoryId
-});
+const formatResourceDetail = (doc, formatter) => formatPortalResourceDetail(doc, formatter);
 
 // ——— Current Affairs (portal tab) ———
 
@@ -257,26 +221,8 @@ const getCurrentAffairsResources = async (query = {}) => {
 
 // ——— Free Resources (portal tab) ———
 
-const loadSubjectClassFilters = async (category) => {
-  if (!category) return { subjects: [], classes: [] };
-
-  const filters = await Filter.find({
-    categoryId: category._id,
-    isActive: true,
-    type: { $in: [FILTER_TYPES.SUBJECT, FILTER_TYPES.CLASS] }
-  })
-    .sort({ type: 1, value: 1 })
-    .lean();
-
-  const grouped = groupFiltersByType(filters);
-  return {
-    subjects: grouped[FILTER_TYPES.SUBJECT] || [],
-    classes: grouped[FILTER_TYPES.CLASS] || []
-  };
-};
-
 const getFreeResourcesFilters = async (query = {}) => {
-  const cacheKey = cache.buildKey('portal:fr:filters:v2', query);
+  const cacheKey = cache.buildKey('portal:fr:filters:v3', query);
   const cached = cache.get(cacheKey);
   if (cached) return cached;
 
@@ -285,20 +231,9 @@ const getFreeResourcesFilters = async (query = {}) => {
     .sort({ name: 1 })
     .lean();
 
-  let subjectClassSource = await findNcertCategory(types);
-  if (query.typeId) {
-    const selected = await findFreeResourcesCategory(query.typeId);
-    if (selected && getCategoryKind(selected) === 'NCERT') {
-      subjectClassSource = selected;
-    }
-  }
-
-  const { subjects, classes } = await loadSubjectClassFilters(subjectClassSource);
   const ncertCategory = await findNcertCategory(types);
 
   const payload = {
-    subjects,
-    classes,
     ncertTypeId: ncertCategory?._id || null,
     types: types.map((c) => ({
       _id: c._id,
@@ -342,8 +277,6 @@ const getFreeResourcesDynamicFilters = async (typeId) => {
     typeName: category.name,
     kind,
     filters: filterKeys,
-    subjects: grouped[FILTER_TYPES.SUBJECT] || [],
-    classes: grouped[FILTER_TYPES.CLASS] || [],
     subCategories: subCategories.map((s) => ({ _id: s._id, name: s.name })),
     papers: grouped[FILTER_TYPES.PAPER] || [],
     years: grouped[FILTER_TYPES.YEAR] || []
@@ -363,8 +296,8 @@ const buildFreeResourcesResourceFilter = async (query = {}) => {
   const filter = { isActive: true, categoryId: category._id };
   const kind = getCategoryKind(category);
 
-  if (query.subjectId) filter.subjectId = query.subjectId;
-  if (query.classId) filter.classId = query.classId;
+  if (query.subject) filter.subject = textEqualsFilter(query.subject);
+  if (query.class) filter.class = textEqualsFilter(query.class);
   if (query.subCategoryId) filter.subCategoryId = query.subCategoryId;
   if (query.paperId) filter.paperId = query.paperId;
   if (query.yearId) filter.yearId = query.yearId;
@@ -460,19 +393,12 @@ const getMockTestDetail = async (id) => {
 
   if (!mockTest?.categoryId || !isFreeResourcesCategory(mockTest.categoryId)) return null;
 
-  return {
-    ...formatMockTestCard(mockTest),
-    description: mockTest.description,
-    resourceType: 'MOCK_TEST',
+  return compact({
+    ...formatPortalMockTestCard(mockTest),
+    description: mockTest.description || undefined,
     categoryId: mockTest.categoryId._id,
-    questions: (mockTest.questionIds || []).map((q) => ({
-      _id: q._id,
-      question: q.question,
-      options: q.options,
-      marks: q.marks,
-      negativeMarks: q.negativeMarks
-    }))
-  };
+    questions: (mockTest.questionIds || []).map((q) => formatMockTestQuestion(q, false))
+  });
 };
 
 const getCurrentAffairsById = (id) =>
@@ -540,8 +466,8 @@ const buildPortalResourceQuery = async (query = {}) => {
     moduleType,
     categoryId,
     subCategoryId,
-    subjectId,
-    classId,
+    subject,
+    class: className,
     paperId,
     yearId,
     monthId,
@@ -560,8 +486,8 @@ const buildPortalResourceQuery = async (query = {}) => {
   }
 
   if (subCategoryId) filter.subCategoryId = subCategoryId;
-  if (subjectId) filter.subjectId = subjectId;
-  if (classId) filter.classId = classId;
+  if (subject) filter.subject = textEqualsFilter(subject);
+  if (className) filter.class = textEqualsFilter(className);
   if (paperId) filter.paperId = paperId;
   if (yearId) filter.yearId = yearId;
   if (monthId) filter.monthId = monthId;

@@ -2,6 +2,10 @@ const MockTest = require('../models/MockTest');
 const Question = require('../models/Question');
 const Result = require('../models/Result');
 const { buildPaginationResponse } = require('../middleware/resourceMiddleware');
+const {
+  formatMockTestCmsResponse,
+  formatMockTestQuestion
+} = require('../utils/resourceResponseFormatter');
 
 // ==================== MOCK TEST CONTROLLERS ====================
 
@@ -71,17 +75,16 @@ exports.createMockTest = async (req, res) => {
     // Step 4: Return with populated questions for API consistency
     const populatedTest = await MockTest.findById(mockTest._id)
       .populate('questionIds')
-      .populate('categoryId', 'name')
-      .populate('subCategoryId', 'name');
+      .populate('categoryId', 'name moduleType')
+      .populate('subCategoryId', 'name')
+      .populate('paperId', 'value type')
+      .populate('yearId', 'value type')
+      .populate('subjectId', 'value type');
 
     res.status(201).json({
       success: true,
       message: 'Mock test created successfully',
-      data: {
-        ...populatedTest.toObject(),
-        questions: populatedTest.questionIds,
-        questionIds: undefined
-      }
+      data: formatMockTestCmsResponse(populatedTest, { includeQuestions: true, isAdmin: true })
     });
   } catch (error) {
     res.status(500).json({
@@ -154,7 +157,14 @@ exports.getMockTests = async (req, res) => {
       MockTest.countDocuments(filter)
     ]);
 
-    res.json(buildPaginationResponse(mockTests, total, parseInt(page), parseInt(limit)));
+    res.json(
+      buildPaginationResponse(
+        mockTests.map((test) => formatMockTestCmsResponse(test)),
+        total,
+        parseInt(page),
+        parseInt(limit)
+      )
+    );
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -165,15 +175,13 @@ exports.getMockTests = async (req, res) => {
 
 exports.getMockTestById = async (req, res) => {
   try {
-    const { includeQuestions } = req.query;
-    
-    // Always populate questions by default
-    let query = MockTest.findById(req.params.id)
-      .populate('categoryId', 'name')
+    const mockTest = await MockTest.findById(req.params.id)
+      .populate('categoryId', 'name moduleType')
       .populate('subCategoryId', 'name')
+      .populate('paperId', 'value type')
+      .populate('yearId', 'value type')
+      .populate('subjectId', 'value type')
       .populate('questionIds');
-
-    const mockTest = await query;
 
     if (!mockTest) {
       return res.status(404).json({
@@ -182,43 +190,12 @@ exports.getMockTestById = async (req, res) => {
       });
     }
 
-    // Transform response to show 'questions' instead of 'questionIds'
-    const responseData = mockTest.toObject();
-    
-    // SECURITY: Filter questions based on user role
-    if (mockTest.questionIds && Array.isArray(mockTest.questionIds)) {
-      responseData.questions = mockTest.questionIds.map(q => {
-        // Base fields everyone can see
-        const questionObj = {
-          _id: q._id,
-          question: q.question,
-          options: q.options,
-          marks: q.marks,
-          negativeMarks: q.negativeMarks,
-          isActive: q.isActive,
-          createdBy: q.createdBy,
-          createdAt: q.createdAt,
-          updatedAt: q.updatedAt,
-          __v: q.__v
-        };
-
-        // ONLY admins can see correctAnswer and explanation
-        const isAdmin = req.user && (req.user.role === 'super_admin' || req.user.role === 'center_admin');
-        
-        if (isAdmin) {
-          questionObj.correctAnswer = q.correctAnswer;
-          questionObj.explanation = q.explanation;
-        }
-
-        return questionObj;
-      });
-    }
-    
-    delete responseData.questionIds;
+    const isAdmin =
+      req.user && (req.user.role === 'super_admin' || req.user.role === 'center_admin');
 
     res.json({
       success: true,
-      data: responseData
+      data: formatMockTestCmsResponse(mockTest, { includeQuestions: true, isAdmin })
     });
   } catch (error) {
     res.status(500).json({
@@ -272,10 +249,18 @@ exports.updateMockTest = async (req, res) => {
     Object.assign(mockTest, updates);
     await mockTest.save();
 
+    const updated = await MockTest.findById(mockTest._id)
+      .populate('categoryId', 'name moduleType')
+      .populate('subCategoryId', 'name')
+      .populate('paperId', 'value type')
+      .populate('yearId', 'value type')
+      .populate('subjectId', 'value type')
+      .populate('questionIds');
+
     res.json({
       success: true,
       message: 'Mock test updated successfully',
-      data: mockTest
+      data: formatMockTestCmsResponse(updated, { includeQuestions: true, isAdmin: true })
     });
   } catch (error) {
     res.status(500).json({
@@ -358,7 +343,7 @@ exports.addQuestion = async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'Question added successfully',
-      data: question
+      data: formatMockTestQuestion(question, true)
     });
   } catch (error) {
     res.status(500).json({

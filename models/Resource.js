@@ -28,18 +28,18 @@ const resourceSchema = new mongoose.Schema({
     ref: 'SubCategory',
     default: null
   },
-  // Module-specific filter references (only applicable filters used per module)
-  // NCERT: subjectId + classId
+  // Module-specific fields (only applicable per module)
+  // NCERT: subject + class (plain text)
   // PYQ: paperId + yearId
   // Study Material: none (only categoryId + subCategoryId)
-  subjectId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Filter',
+  subject: {
+    type: String,
+    trim: true,
     default: null
   },
-  classId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Filter',
+  class: {
+    type: String,
+    trim: true,
     default: null
   },
   paperId: {
@@ -74,6 +74,12 @@ const resourceSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  status: {
+    type: String,
+    enum: ['ACTIVE', 'INACTIVE', 'DRAFT'],
+    default: 'ACTIVE',
+    index: true
+  },
   isActive: {
     type: Boolean,
     default: true
@@ -90,8 +96,15 @@ const resourceSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // Indexes for faster queries (module-specific)
-resourceSchema.index({ categoryId: 1, subjectId: 1, classId: 1 }); // NCERT
+resourceSchema.index({ categoryId: 1, subject: 1, class: 1 }); // NCERT
 resourceSchema.index({ categoryId: 1, subCategoryId: 1, paperId: 1, yearId: 1 }); // PYQ
 resourceSchema.index({ categoryId: 1, yearId: 1, monthId: 1, currentAffairsTypeId: 1 }); // Current Affairs
+resourceSchema.index({ status: 1, isActive: 1 });
+
+resourceSchema.pre('save', function syncResourceStatus() {
+  if (this.status) {
+    this.isActive = this.status === 'ACTIVE';
+  }
+});
 
 module.exports = mongoose.model('Resource', resourceSchema);

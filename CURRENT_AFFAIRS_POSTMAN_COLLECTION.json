@@ -1,0 +1,413 @@
+{
+  "info": {
+    "name": "Current Affairs",
+    "description": "Current Affairs only — Portal (student read) + Admin CMS (test-categories, test-contents, test-papers). No Free Resources.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "BASE_URL", "value": "http://localhost:5000" },
+    { "key": "SuperAdminEmail", "value": "" },
+    { "key": "SuperAdminPass", "value": "" },
+    { "key": "SuperAdminToken", "value": "" },
+    { "key": "studentToken", "value": "" },
+    { "key": "contentCategoryId", "value": "", "description": "TestCategory type=CONTENT (e.g. Daily Current Affairs)" },
+    { "key": "examCategoryId", "value": "", "description": "TestCategory type=EXAM (e.g. Daily Practice)" },
+    { "key": "yearId", "value": "", "description": "Portal filter: year value e.g. 2026" },
+    { "key": "monthId", "value": "", "description": "Portal filter: month number 1-12" },
+    { "key": "caTypeId", "value": "", "description": "Portal filter: TestCategory _id (typeId)" },
+    { "key": "contentId", "value": "", "description": "TestContent _id (PDF resource)" },
+    { "key": "paperId", "value": "", "description": "TestPaper _id (exam resource)" },
+    { "key": "resourceId", "value": "", "description": "Content or paper _id for portal detail/view/download" }
+  ],
+  "item": [
+    {
+      "name": "Admin Login",
+      "item": [
+        {
+          "name": "Super Admin Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{SuperAdminEmail}}\",\n  \"password\": \"{{SuperAdminPass}}\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/auth/login-super-admin"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Portal — Current Affairs (Student)",
+      "item": [
+        {
+          "name": "GET Filters (years, months, types)",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/api/portal/current-affairs/filters"
+          },
+          "response": []
+        },
+        {
+          "name": "GET Resources (by filter IDs)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/portal/current-affairs/resources?yearId={{yearId}}&monthId={{monthId}}&typeId={{caTypeId}}",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "portal", "current-affairs", "resources"],
+              "query": [
+                { "key": "yearId", "value": "{{yearId}}" },
+                { "key": "monthId", "value": "{{monthId}}" },
+                { "key": "typeId", "value": "{{caTypeId}}" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Resources (by label: year & month)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/portal/current-affairs/resources?year=2026&month=April&typeId={{caTypeId}}",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "portal", "current-affairs", "resources"],
+              "query": [
+                { "key": "year", "value": "2026" },
+                { "key": "month", "value": "April" },
+                { "key": "typeId", "value": "{{caTypeId}}" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET By ID",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/api/portal/current-affairs/{{resourceId}}"
+          },
+          "response": []
+        },
+        {
+          "name": "GET View PDF",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}", "disabled": true }],
+            "url": "{{BASE_URL}}/api/portal/current-affairs/{{resourceId}}/view"
+          },
+          "response": []
+        },
+        {
+          "name": "GET Download PDF",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}", "disabled": true }],
+            "url": "{{BASE_URL}}/api/portal/current-affairs/{{resourceId}}/download"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin — Categories (Test Types)",
+      "item": [
+        {
+          "name": "POST Create CONTENT Category (Daily CA / Magazine)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{SuperAdminToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "name", "value": "Daily Current Affairs", "type": "text" },
+                { "key": "type", "value": "CONTENT", "type": "text" },
+                { "key": "description", "value": "Daily current affairs PDFs", "type": "text" },
+                { "key": "image", "type": "file", "src": [] }
+              ]
+            },
+            "url": "{{BASE_URL}}/api/test-categories"
+          },
+          "response": []
+        },
+        {
+          "name": "POST Create EXAM Category (Daily Practice Test)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{SuperAdminToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "name", "value": "Daily Practice Questions", "type": "text" },
+                { "key": "type", "value": "EXAM", "type": "text" },
+                { "key": "description", "value": "Daily practice test papers", "type": "text" },
+                { "key": "image", "type": "file", "src": [] }
+              ]
+            },
+            "url": "{{BASE_URL}}/api/test-categories"
+          },
+          "response": []
+        },
+        {
+          "name": "GET All Categories",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/api/test-categories"
+          },
+          "response": []
+        },
+        {
+          "name": "GET Category By ID",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/api/test-categories/{{contentCategoryId}}"
+          },
+          "response": []
+        },
+        {
+          "name": "PUT Update Category",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{SuperAdminToken}}", "type": "string" }]
+            },
+            "method": "PUT",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "name", "value": "Daily Current Affairs", "type": "text" },
+                { "key": "status", "value": "ACTIVE", "type": "text" }
+              ]
+            },
+            "url": "{{BASE_URL}}/api/test-categories/{{contentCategoryId}}"
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE Category",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{SuperAdminToken}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "url": "{{BASE_URL}}/api/test-categories/{{contentCategoryId}}"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin — Content PDFs",
+      "item": [
+        {
+          "name": "POST Upload PDF Content",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{SuperAdminToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "categoryId", "value": "{{contentCategoryId}}", "type": "text" },
+                { "key": "title", "value": "April Current Affairs 2026", "type": "text" },
+                { "key": "year", "value": "2026", "type": "text" },
+                { "key": "month", "value": "4", "type": "text", "description": "1-12 or month name" },
+                { "key": "description", "value": "Current affairs for April 2026", "type": "text" },
+                { "key": "file", "type": "file", "src": [] }
+              ]
+            },
+            "url": "{{BASE_URL}}/api/test-contents"
+          },
+          "response": []
+        },
+        {
+          "name": "GET All Contents",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/api/test-contents"
+          },
+          "response": []
+        },
+        {
+          "name": "GET Contents by Category",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/test-contents?categoryId={{contentCategoryId}}",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "test-contents"],
+              "query": [{ "key": "categoryId", "value": "{{contentCategoryId}}" }]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Contents by Year & Month",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/test-contents?year=2026&month=4&categoryId={{contentCategoryId}}",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "test-contents"],
+              "query": [
+                { "key": "year", "value": "2026" },
+                { "key": "month", "value": "4" },
+                { "key": "categoryId", "value": "{{contentCategoryId}}" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Content Filters",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/api/test-contents/filters"
+          },
+          "response": []
+        },
+        {
+          "name": "GET Content By ID",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/api/test-contents/{{contentId}}"
+          },
+          "response": []
+        },
+        {
+          "name": "PUT Update Content",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{SuperAdminToken}}", "type": "string" }]
+            },
+            "method": "PUT",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "title", "value": "April Current Affairs 2026 (Updated)", "type": "text" },
+                { "key": "file", "type": "file", "src": [] }
+              ]
+            },
+            "url": "{{BASE_URL}}/api/test-contents/{{contentId}}"
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE Content",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{SuperAdminToken}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "url": "{{BASE_URL}}/api/test-contents/{{contentId}}"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin — Exam Papers",
+      "item": [
+        {
+          "name": "POST Create Exam Paper",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{SuperAdminToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryId\": \"{{examCategoryId}}\",\n  \"title\": \"Daily CA Practice — 3 June 2026\",\n  \"year\": 2026,\n  \"month\": \"6\",\n  \"duration\": 30,\n  \"totalMarks\": 50,\n  \"date\": \"2026-06-03\",\n  \"description\": \"Daily practice paper\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/test-papers"
+          },
+          "response": []
+        },
+        {
+          "name": "GET Paper Filters",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/api/test-papers/filters"
+          },
+          "response": []
+        },
+        {
+          "name": "GET All Papers",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/api/test-papers"
+          },
+          "response": []
+        },
+        {
+          "name": "GET Papers by Category & Year",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/test-papers?categoryId={{examCategoryId}}&year=2026",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "test-papers"],
+              "query": [
+                { "key": "categoryId", "value": "{{examCategoryId}}" },
+                { "key": "year", "value": "2026" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Paper By ID",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/api/test-papers/{{paperId}}"
+          },
+          "response": []
+        },
+        {
+          "name": "PUT Update Paper",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{SuperAdminToken}}", "type": "string" }]
+            },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Daily CA Practice — Updated\",\n  \"duration\": 45\n}"
+            },
+            "url": "{{BASE_URL}}/api/test-papers/{{paperId}}"
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE Paper",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{SuperAdminToken}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "url": "{{BASE_URL}}/api/test-papers/{{paperId}}"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

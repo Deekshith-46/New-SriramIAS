@@ -1,0 +1,2876 @@
+{
+  "info": {
+    "_postman_id": "75305958-3eb6-4cbf-b6c6-4a4162f66dee",
+    "name": "Free Resource Copy",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "46595446"
+  },
+  "item": [
+    {
+      "name": "Admin Login",
+      "item": [
+        {
+          "name": "Super Admin Login Copy",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"{{SuperAdminEmail}}\",\r\n  \"password\": \"{{SuperAdminPass}}\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/auth/login-super-admin",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login-super-admin"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Free Resource Copy",
+      "item": [
+        {
+          "name": "Categories",
+          "item": [
+            {
+              "name": "Create Categories",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{SuperAdminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "name",
+                      "value": "Previous Year Question Papers",
+                      "type": "text",
+                      "uuid": "0b8c6a33-6526-47e0-8e3c-ccf5dfd44299"
+                    },
+                    {
+                      "key": "description",
+                      "value": "Previous Year Question Papers for all classes",
+                      "type": "text",
+                      "uuid": "08492b6d-4318-4c32-b655-d9da521333aa"
+                    },
+                    {
+                      "key": "thumbnail",
+                      "type": "file",
+                      "uuid": "5b4ed055-a518-4cd5-a6e1-bfd99386ee25",
+                      "src": "postman-cloud:///1f132713-b4de-4550-b82a-2b14b7611b0d"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/resources/categories",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "resources",
+                    "categories"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Categories",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{SuperAdminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "name",
+                      "value": "Previous Year Question Papers",
+                      "type": "text",
+                      "uuid": "0b8c6a33-6526-47e0-8e3c-ccf5dfd44299"
+                    },
+                    {
+                      "key": "description",
+                      "value": "Previous Year Question Papers for all classes",
+                      "type": "text",
+                      "uuid": "08492b6d-4318-4c32-b655-d9da521333aa"
+                    },
+                    {
+                      "key": "thumbnail",
+                      "type": "file",
+                      "uuid": "5b4ed055-a518-4cd5-a6e1-bfd99386ee25",
+                      "src": "postman-cloud:///1f132713-b4de-4550-b82a-2b14b7611b0d"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/resources/categories",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "resources",
+                    "categories"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Categories By ID",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{SuperAdminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "name",
+                      "value": "Previous Year Question Papers",
+                      "type": "text",
+                      "uuid": "0b8c6a33-6526-47e0-8e3c-ccf5dfd44299"
+                    },
+                    {
+                      "key": "description",
+                      "value": "Previous Year Question Papers for all classes",
+                      "type": "text",
+                      "uuid": "08492b6d-4318-4c32-b655-d9da521333aa"
+                    },
+                    {
+                      "key": "thumbnail",
+                      "type": "file",
+                      "uuid": "5b4ed055-a518-4cd5-a6e1-bfd99386ee25",
+                      "src": "postman-cloud:///1f132713-b4de-4550-b82a-2b14b7611b0d"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/resources/categories/69e1ee859980f3d774514a3f",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "resources",
+                    "categories",
+                    "69e1ee859980f3d774514a3f"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Category",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{SuperAdminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "name",
+                      "value": "Previous Year Question Papers",
+                      "type": "text",
+                      "uuid": "0b8c6a33-6526-47e0-8e3c-ccf5dfd44299"
+                    },
+                    {
+                      "key": "description",
+                      "value": "Previous Year Question Papers for all classes",
+                      "type": "text",
+                      "uuid": "08492b6d-4318-4c32-b655-d9da521333aa"
+                    },
+                    {
+                      "key": "thumbnail",
+                      "type": "file",
+                      "uuid": "5b4ed055-a518-4cd5-a6e1-bfd99386ee25",
+                      "src": "postman-cloud:///1f132713-b4de-4550-b82a-2b14b7611b0d"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/resources/categories/69e1ee859980f3d774514a3f",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "resources",
+                    "categories",
+                    "69e1ee859980f3d774514a3f"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Category",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{SuperAdminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "name",
+                      "value": "Previous Year Question Papers",
+                      "type": "text",
+                      "uuid": "0b8c6a33-6526-47e0-8e3c-ccf5dfd44299"
+                    },
+                    {
+                      "key": "description",
+                      "value": "Previous Year Question Papers for all classes",
+                      "type": "text",
+                      "uuid": "08492b6d-4318-4c32-b655-d9da521333aa"
+                    },
+                    {
+                      "key": "thumbnail",
+                      "type": "file",
+                      "uuid": "5b4ed055-a518-4cd5-a6e1-bfd99386ee25",
+                      "src": "postman-cloud:///1f132713-b4de-4550-b82a-2b14b7611b0d"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/resources/categories/69e1ee859980f3d774514a3f",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "resources",
+                    "categories",
+                    "69e1ee859980f3d774514a3f"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "NCERT Details",
+          "item": [
+            {
+              "name": "Upload NCERT Resource",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{SuperAdminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "title",
+                      "value": "NCERT History Class 10",
+                      "type": "text",
+                      "uuid": "5b35e784-35cc-486d-a63d-a17b3877e28a"
+                    },
+                    {
+                      "key": "description",
+                      "value": "India and the Contemporary World - III",
+                      "type": "text",
+                      "uuid": "5429f074-a2dc-410a-a979-ef9c5de2fe98"
+                    },
+                    {
+                      "key": "categoryId",
+                      "value": "69e1ee859980f3d774514a3f",
+                      "type": "text",
+                      "uuid": "56c0ad12-f3d2-4f4c-9161-6c9d9ab5ab16"
+                    },
+                    {
+                      "key": "subjectId",
+                      "value": "69e1f7f29c1a8ad9671491de",
+                      "type": "text",
+                      "uuid": "64a2c080-2f94-441b-b203-8c2a8de67d8b"
+                    },
+                    {
+                      "key": "classId",
+                      "value": "69e1f8409c1a8ad9671491e1",
+                      "type": "text",
+                      "uuid": "ccdeb635-5b42-4142-b0f5-d5679d9d9ff1"
+                    },
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "uuid": "f89b9698-8944-47cd-a2cc-8da6910cebfb",
+                      "src": "postman-cloud:///1f132741-086a-4250-9cbb-396c5fb502ff"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/resources/files",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "resources",
+                    "files"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get all History books for Class 10",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{SuperAdminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "title",
+                      "value": "NCERT History Class 10",
+                      "type": "text",
+                      "uuid": "5b35e784-35cc-486d-a63d-a17b3877e28a"
+                    },
+                    {
+                      "key": "description",
+                      "value": "India and the Contemporary World - III",
+                      "type": "text",
+                      "uuid": "5429f074-a2dc-410a-a979-ef9c5de2fe98"
+                    },
+                    {
+                      "key": "categoryId",
+                      "value": "69e1ee859980f3d774514a3f",
+                      "type": "text",
+                      "uuid": "56c0ad12-f3d2-4f4c-9161-6c9d9ab5ab16"
+                    },
+                    {
+                      "key": "subjectId",
+                      "value": "69e1f7f29c1a8ad9671491de",
+                      "type": "text",
+                      "uuid": "64a2c080-2f94-441b-b203-8c2a8de67d8b"
+                    },
+                    {
+                      "key": "classId",
+                      "value": "69e1f8409c1a8ad9671491e1",
+                      "type": "text",
+                      "uuid": "ccdeb635-5b42-4142-b0f5-d5679d9d9ff1"
+                    },
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "uuid": "f89b9698-8944-47cd-a2cc-8da6910cebfb",
+                      "src": "postman-cloud:///1f132741-086a-4250-9cbb-396c5fb502ff"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/resources/files?categoryId=69e1ee859980f3d774514a3f&subjectId=69e1f7f29c1a8ad9671491de&classId=69e1f8409c1a8ad9671491e1",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "resources",
+                    "files"
+                  ],
+                  "query": [
+                    {
+                      "key": "categoryId",
+                      "value": "69e1ee859980f3d774514a3f"
+                    },
+                    {
+                      "key": "subjectId",
+                      "value": "69e1f7f29c1a8ad9671491de"
+                    },
+                    {
+                      "key": "classId",
+                      "value": "69e1f8409c1a8ad9671491e1"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get all Class 10 books (all subjects)",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{SuperAdminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "title",
+                      "value": "NCERT History Class 10",
+                      "type": "text",
+                      "uuid": "5b35e784-35cc-486d-a63d-a17b3877e28a"
+                    },
+                    {
+                      "key": "description",
+                      "value": "India and the Contemporary World - III",
+                      "type": "text",
+                      "uuid": "5429f074-a2dc-410a-a979-ef9c5de2fe98"
+                    },
+                    {
+                      "key": "categoryId",
+                      "value": "69e1ee859980f3d774514a3f",
+                      "type": "text",
+                      "uuid": "56c0ad12-f3d2-4f4c-9161-6c9d9ab5ab16"
+                    },
+                    {
+                      "key": "subjectId",
+                      "value": "69e1f7f29c1a8ad9671491de",
+                      "type": "text",
+                      "uuid": "64a2c080-2f94-441b-b203-8c2a8de67d8b"
+                    },
+                    {
+                      "key": "classId",
+                      "value": "69e1f8409c1a8ad9671491e1",
+                      "type": "text",
+                      "uuid": "ccdeb635-5b42-4142-b0f5-d5679d9d9ff1"
+                    },
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "uuid": "f89b9698-8944-47cd-a2cc-8da6910cebfb",
+                      "src": "postman-cloud:///1f132741-086a-4250-9cbb-396c5fb502ff"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/resources/files?categoryId=69e1ee859980f3d774514a3f&classId=69e1f8409c1a8ad9671491e1",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "resources",
+                    "files"
+                  ],
+                  "query": [
+                    {
+                      "key": "categoryId",
+                      "value": "69e1ee859980f3d774514a3f"
+                    },
+                    {
+                      "key": "classId",
+                      "value": "69e1f8409c1a8ad9671491e1"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get all History books (all classes)",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{SuperAdminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "title",
+                      "value": "NCERT History Class 10",
+                      "type": "text",
+                      "uuid": "5b35e784-35cc-486d-a63d-a17b3877e28a"
+                    },
+                    {
+                      "key": "description",
+                      "value": "India and the Contemporary World - III",
+                      "type": "text",
+                      "uuid": "5429f074-a2dc-410a-a979-ef9c5de2fe98"
+                    },
+                    {
+                      "key": "categoryId",
+                      "value": "69e1ee859980f3d774514a3f",
+                      "type": "text",
+                      "uuid": "56c0ad12-f3d2-4f4c-9161-6c9d9ab5ab16"
+                    },
+                    {
+                      "key": "subjectId",
+                      "value": "69e1f7f29c1a8ad9671491de",
+                      "type": "text",
+                      "uuid": "64a2c080-2f94-441b-b203-8c2a8de67d8b"
+                    },
+                    {
+                      "key": "classId",
+                      "value": "69e1f8409c1a8ad9671491e1",
+                      "type": "text",
+                      "uuid": "ccdeb635-5b42-4142-b0f5-d5679d9d9ff1"
+                    },
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "uuid": "f89b9698-8944-47cd-a2cc-8da6910cebfb",
+                      "src": "postman-cloud:///1f132741-086a-4250-9cbb-396c5fb502ff"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/resources/files?categoryId=69e1ee859980f3d774514a3f&subject=History",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "resources",
+                    "files"
+                  ],
+                  "query": [
+                    {
+                      "key": "categoryId",
+                      "value": "69e1ee859980f3d774514a3f"
+                    },
+                    {
+                      "key": "subject",
+                      "value": "History"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get specific resource by its ID",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{SuperAdminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "title",
+                      "value": "NCERT History Class 10",
+                      "type": "text",
+                      "uuid": "5b35e784-35cc-486d-a63d-a17b3877e28a"
+                    },
+                    {
+                      "key": "description",
+                      "value": "India and the Contemporary World - III",
+                      "type": "text",
+                      "uuid": "5429f074-a2dc-410a-a979-ef9c5de2fe98"
+                    },
+                    {
+                      "key": "categoryId",
+                      "value": "69e1ee859980f3d774514a3f",
+                      "type": "text",
+                      "uuid": "56c0ad12-f3d2-4f4c-9161-6c9d9ab5ab16"
+                    },
+                    {
+                      "key": "subjectId",
+                      "value": "69e1f7f29c1a8ad9671491de",
+                      "type": "text",
+                      "uuid": "64a2c080-2f94-441b-b203-8c2a8de67d8b"
+                    },
+                    {
+                      "key": "classId",
+                      "value": "69e1f8409c1a8ad9671491e1",
+                      "type": "text",
+                      "uuid": "ccdeb635-5b42-4142-b0f5-d5679d9d9ff1"
+                    },
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "uuid": "f89b9698-8944-47cd-a2cc-8da6910cebfb",
+                      "src": "postman-cloud:///1f132741-086a-4250-9cbb-396c5fb502ff"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/resources/files/69e1faf256740604d05d846a",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "resources",
+                    "files",
+                    "69e1faf256740604d05d846a"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update NCERT Resource",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{SuperAdminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "bookName",
+                      "value": "NCERT History Class 10 (Updated)",
+                      "type": "text",
+                      "description": "NCERT title field (bookName or title)"
+                    },
+                    {
+                      "key": "title",
+                      "value": "NCERT History Class 10 (Updated)",
+                      "type": "text",
+                      "disabled": true,
+                      "description": "Alternative to bookName"
+                    },
+                    {
+                      "key": "description",
+                      "value": "India and the Contemporary World - III (revised)",
+                      "type": "text"
+                    },
+                    {
+                      "key": "subject",
+                      "value": "History",
+                      "type": "text",
+                      "description": "Plain text subject (not subjectId)"
+                    },
+                    {
+                      "key": "class",
+                      "value": "10",
+                      "type": "text",
+                      "description": "Plain text class (not classId)"
+                    },
+                    {
+                      "key": "categoryId",
+                      "value": "69e1ee859980f3d774514a3f",
+                      "type": "text",
+                      "disabled": true
+                    },
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "description": "Optional — new PDF replaces old file"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/resources/files/69e1faf256740604d05d846a",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "resources",
+                    "files",
+                    "69e1faf256740604d05d846a"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete NCERT Resource",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{SuperAdminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{BASE_URL}}/api/resources/files/69e1faf256740604d05d846a",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "resources",
+                    "files",
+                    "69e1faf256740604d05d846a"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "PYQ Details",
+          "item": [
+            {
+              "name": "Create SubCategory for PYQ",
+              "item": [
+                {
+                  "name": "Create SubCategories",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{SuperAdminToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"name\": \"Mains\",\r\n  \"categoryId\": \"69e1f14b894a018787fa4a8c\"\r\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{BASE_URL}}/api/resources/subcategories",
+                      "host": [
+                        "{{BASE_URL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "resources",
+                        "subcategories"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET SubCategories",
+                  "protocolProfileBehavior": {
+                    "disableBodyPruning": true
+                  },
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{SuperAdminToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"name\": \"Mains\",\r\n  \"categoryId\": \"69e1f14b894a018787fa4a8c\"\r\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{BASE_URL}}/api/resources/subcategories",
+                      "host": [
+                        "{{BASE_URL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "resources",
+                        "subcategories"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Update SubCategories",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{SuperAdminToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PUT",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"name\": \"Mains\",\r\n  \"categoryId\": \"69e1f14b894a018787fa4a8c\"\r\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{BASE_URL}}/api/resources/subcategories/69e1fcac56740604d05d846c",
+                      "host": [
+                        "{{BASE_URL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "resources",
+                        "subcategories",
+                        "69e1fcac56740604d05d846c"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Delete SubCategories",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{SuperAdminToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "DELETE",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"name\": \"Mains\",\r\n  \"categoryId\": \"69e1f14b894a018787fa4a8c\"\r\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{BASE_URL}}/api/resources/subcategories/69e1fcac56740604d05d846c",
+                      "host": [
+                        "{{BASE_URL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "resources",
+                        "subcategories",
+                        "69e1fcac56740604d05d846c"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Create PAPER Filters (Linked to SubCategory)",
+              "item": [
+                {
+                  "name": "Create Papers for Prelims and Mains",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{SuperAdminToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"type\": \"PAPER\", //PAPER & YEAR\r\n  \"value\": \"CSAT\",\r\n  \"categoryId\": \"69e1f14b894a018787fa4a8c\",\r\n  \"subCategoryId\": \"69e1fcac56740604d05d846c\"\r\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{BASE_URL}}/api/resources/filters",
+                      "host": [
+                        "{{BASE_URL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "resources",
+                        "filters"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Create Years for PYQ",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{SuperAdminToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"type\": \"YEAR\", //PAPER & YEAR\r\n  \"value\": \"2026\",\r\n  \"categoryId\": \"69e1f14b894a018787fa4a8c\"\r\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{BASE_URL}}/api/resources/filters",
+                      "host": [
+                        "{{BASE_URL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "resources",
+                        "filters"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Upload PYQ Resource",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{SuperAdminToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "title",
+                          "value": "UPSC Prelims 2024 CSAT",
+                          "type": "text",
+                          "uuid": "793b6fb0-f5d2-4023-b8c5-18e385878def"
+                        },
+                        {
+                          "key": "description",
+                          "value": "CSAT Previous Year Question Paper 2024",
+                          "type": "text",
+                          "uuid": "7987e651-0093-424b-8051-d7ff20c91142"
+                        },
+                        {
+                          "key": "categoryId",
+                          "value": "69e1f14b894a018787fa4a8c",
+                          "type": "text",
+                          "uuid": "ab039c8a-454a-40de-aa5b-ca8ae7245f93"
+                        },
+                        {
+                          "key": "subCategoryId",
+                          "value": "69e1fca556740604d05d846b",
+                          "type": "text",
+                          "uuid": "ec45b448-9e25-4d88-a5d8-16a335e91ec7"
+                        },
+                        {
+                          "key": "paperId",
+                          "value": "69e20812f1c664025026577f",
+                          "type": "text",
+                          "uuid": "1268eb70-e2c7-47cf-be52-b6618ee43506"
+                        },
+                        {
+                          "key": "yearId",
+                          "value": "69e208aef1c6640250265782",
+                          "type": "text",
+                          "uuid": "7625a362-c6b2-42ed-a608-b9a14110c92f"
+                        },
+                        {
+                          "key": "file",
+                          "type": "file",
+                          "uuid": "31aa5e0b-d329-4de8-99f4-384a3c1b1a1d",
+                          "src": "postman-cloud:///1f132741-086a-4250-9cbb-396c5fb502ff"
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "{{BASE_URL}}/api/resources/files",
+                      "host": [
+                        "{{BASE_URL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "resources",
+                        "files"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Get Prelims CSAT 2024 papers",
+                  "protocolProfileBehavior": {
+                    "disableBodyPruning": true
+                  },
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{SuperAdminToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"type\": \"YEAR\", //PAPER & YEAR\r\n  \"value\": \"2026\",\r\n  \"categoryId\": \"69e1fcac56740604d05d846c\",\r\n  \"moduleType\": \"PYQ\"\r\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{BASE_URL}}/api/resources/files?categoryId=69e1f14b894a018787fa4a8c&subCategoryId=69e1fca556740604d05d846b&paperId=69e20812f1c664025026577f&yearId=69e208aef1c6640250265782",
+                      "host": [
+                        "{{BASE_URL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "resources",
+                        "files"
+                      ],
+                      "query": [
+                        {
+                          "key": "categoryId",
+                          "value": "69e1f14b894a018787fa4a8c"
+                        },
+                        {
+                          "key": "subCategoryId",
+                          "value": "69e1fca556740604d05d846b"
+                        },
+                        {
+                          "key": "paperId",
+                          "value": "69e20812f1c664025026577f"
+                        },
+                        {
+                          "key": "yearId",
+                          "value": "69e208aef1c6640250265782"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Get Single Response",
+                  "protocolProfileBehavior": {
+                    "disableBodyPruning": true
+                  },
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{SuperAdminToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"type\": \"YEAR\", //PAPER & YEAR\r\n  \"value\": \"2026\",\r\n  \"categoryId\": \"69e1fcac56740604d05d846c\",\r\n  \"moduleType\": \"PYQ\"\r\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{BASE_URL}}/api/resources/files/69e20990f1c6640250265786",
+                      "host": [
+                        "{{BASE_URL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "resources",
+                        "files",
+                        "69e20990f1c6640250265786"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Update PYQ Resource",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{SuperAdminToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PUT",
+                    "header": [],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "title",
+                          "value": "UPSC Prelims 2024 CSAT details",
+                          "type": "text",
+                          "uuid": "793b6fb0-f5d2-4023-b8c5-18e385878def"
+                        },
+                        {
+                          "key": "description",
+                          "value": "CSAT Previous Year Question Paper 2024",
+                          "type": "text",
+                          "uuid": "7987e651-0093-424b-8051-d7ff20c91142",
+                          "disabled": true
+                        },
+                        {
+                          "key": "categoryId",
+                          "value": "69e1f14b894a018787fa4a8c",
+                          "type": "text",
+                          "uuid": "ab039c8a-454a-40de-aa5b-ca8ae7245f93",
+                          "disabled": true
+                        },
+                        {
+                          "key": "subCategoryId",
+                          "value": "69e1fca556740604d05d846b",
+                          "type": "text",
+                          "uuid": "ec45b448-9e25-4d88-a5d8-16a335e91ec7",
+                          "disabled": true
+                        },
+                        {
+                          "key": "paperId",
+                          "value": "69e20812f1c664025026577f",
+                          "type": "text",
+                          "uuid": "1268eb70-e2c7-47cf-be52-b6618ee43506",
+                          "disabled": true
+                        },
+                        {
+                          "key": "yearId",
+                          "value": "69e208aef1c6640250265782",
+                          "type": "text",
+                          "uuid": "7625a362-c6b2-42ed-a608-b9a14110c92f",
+                          "disabled": true
+                        },
+                        {
+                          "key": "file",
+                          "type": "file",
+                          "uuid": "31aa5e0b-d329-4de8-99f4-384a3c1b1a1d",
+                          "src": "postman-cloud:///1f132741-086a-4250-9cbb-396c5fb502ff"
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "{{BASE_URL}}/api/resources/files/69e20990f1c6640250265786",
+                      "host": [
+                        "{{BASE_URL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "resources",
+                        "files",
+                        "69e20990f1c6640250265786"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Delete PYQ Resource",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{SuperAdminToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "DELETE",
+                    "header": [],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "title",
+                          "value": "UPSC Prelims 2024 CSAT details",
+                          "type": "text",
+                          "uuid": "793b6fb0-f5d2-4023-b8c5-18e385878def"
+                        },
+                        {
+                          "key": "description",
+                          "value": "CSAT Previous Year Question Paper 2024",
+                          "type": "text",
+                          "uuid": "7987e651-0093-424b-8051-d7ff20c91142",
+                          "disabled": true
+                        },
+                        {
+                          "key": "categoryId",
+                          "value": "69e1f14b894a018787fa4a8c",
+                          "type": "text",
+                          "uuid": "ab039c8a-454a-40de-aa5b-ca8ae7245f93",
+                          "disabled": true
+                        },
+                        {
+                          "key": "subCategoryId",
+                          "value": "69e1fca556740604d05d846b",
+                          "type": "text",
+                          "uuid": "ec45b448-9e25-4d88-a5d8-16a335e91ec7",
+                          "disabled": true
+                        },
+                        {
+                          "key": "paperId",
+                          "value": "69e20812f1c664025026577f",
+                          "type": "text",
+                          "uuid": "1268eb70-e2c7-47cf-be52-b6618ee43506",
+                          "disabled": true
+                        },
+                        {
+                          "key": "yearId",
+                          "value": "69e208aef1c6640250265782",
+                          "type": "text",
+                          "uuid": "7625a362-c6b2-42ed-a608-b9a14110c92f",
+                          "disabled": true
+                        },
+                        {
+                          "key": "file",
+                          "type": "file",
+                          "uuid": "31aa5e0b-d329-4de8-99f4-384a3c1b1a1d",
+                          "src": "postman-cloud:///1f132741-086a-4250-9cbb-396c5fb502ff"
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "{{BASE_URL}}/api/resources/files/69e20990f1c6640250265786",
+                      "host": [
+                        "{{BASE_URL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "resources",
+                        "files",
+                        "69e20990f1c6640250265786"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Get all Prelims 2024 papers (all papers)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{SuperAdminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{BASE_URL}}/api/resources/files?categoryId=69e1f14b894a018787fa4a8c&subCategoryId=69e1fca556740604d05d846b&yearId=69e208aef1c6640250265782",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "resources",
+                    "files"
+                  ],
+                  "query": [
+                    {
+                      "key": "categoryId",
+                      "value": "69e1f14b894a018787fa4a8c"
+                    },
+                    {
+                      "key": "subCategoryId",
+                      "value": "69e1fca556740604d05d846b"
+                    },
+                    {
+                      "key": "yearId",
+                      "value": "69e208aef1c6640250265782"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get all Mains papers (all years)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{SuperAdminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{BASE_URL}}/api/resources/files?categoryId=69e1f14b894a018787fa4a8c&subCategoryId=69e1fca556740604d05d846b",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "resources",
+                    "files"
+                  ],
+                  "query": [
+                    {
+                      "key": "categoryId",
+                      "value": "69e1f14b894a018787fa4a8c"
+                    },
+                    {
+                      "key": "subCategoryId",
+                      "value": "69e1fca556740604d05d846b"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Delete Filters",
+          "item": [
+            {
+              "name": "Delete Filter",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{SuperAdminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{BASE_URL}}/api/resources/filters/69e205c756740604d05d8479",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "resources",
+                    "filters",
+                    "69e205c756740604d05d8479"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "FREE MOCK TEST MODULE",
+          "item": [
+            {
+              "name": "Create SubCategory for MOCK TEST",
+              "item": [
+                {
+                  "name": "Create SubCategories",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{SuperAdminToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"name\": \"Mains\",\r\n  \"categoryId\": \"69e1f111894a018787fa4a8a\"\r\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{BASE_URL}}/api/resources/subcategories",
+                      "host": [
+                        "{{BASE_URL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "resources",
+                        "subcategories"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET SubCategories",
+                  "protocolProfileBehavior": {
+                    "disableBodyPruning": true
+                  },
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{SuperAdminToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"name\": \"Mains\",\r\n  \"categoryId\": \"69e1f14b894a018787fa4a8c\"\r\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{BASE_URL}}/api/resources/subcategories",
+                      "host": [
+                        "{{BASE_URL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "resources",
+                        "subcategories"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Update SubCategories",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{SuperAdminToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PUT",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"name\": \"Mains\",\r\n  \"categoryId\": \"69e1f14b894a018787fa4a8c\"\r\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{BASE_URL}}/api/resources/subcategories/69e1fcac56740604d05d846c",
+                      "host": [
+                        "{{BASE_URL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "resources",
+                        "subcategories",
+                        "69e1fcac56740604d05d846c"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Delete SubCategories",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{SuperAdminToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "DELETE",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"name\": \"Mains\",\r\n  \"categoryId\": \"69e1f14b894a018787fa4a8c\"\r\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{BASE_URL}}/api/resources/subcategories/69e1fcac56740604d05d846c",
+                      "host": [
+                        "{{BASE_URL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "resources",
+                        "subcategories",
+                        "69e1fcac56740604d05d846c"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Create PAPER Filters",
+              "item": [
+                {
+                  "name": "Same Create PAPER of Mains and Prelims",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{SuperAdminToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"type\": \"PAPER\",\r\n  \"value\": \"GS Paper 1\",\r\n  \"categoryId\": \"69e1f111894a018787fa4a8a\",\r\n  \"subCategoryId\": \"69e20d447666a8a1c1ab7875\"\r\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{BASE_URL}}/api/resources/filters",
+                      "host": [
+                        "{{BASE_URL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "resources",
+                        "filters"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET  PAPER of Mains and Prelims",
+                  "protocolProfileBehavior": {
+                    "disableBodyPruning": true
+                  },
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{SuperAdminToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"type\": \"PAPER\",\r\n  \"value\": \"GS Paper 1\",\r\n  \"categoryId\": \"69e1f111894a018787fa4a8a\",\r\n  \"subCategoryId\": \"69e20d447666a8a1c1ab7875\"\r\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{BASE_URL}}/api/resources/filters",
+                      "host": [
+                        "{{BASE_URL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "resources",
+                        "filters"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Create Mock Test",
+              "item": [
+                {
+                  "name": "Create Mock Test",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{SuperAdminToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"title\": \"UPSC Prelims Mock Test 1\",\r\n  \"description\": \"Full length mock test\",\r\n  \"categoryId\": \"69e1f111894a018787fa4a8a\",\r\n  \"subCategoryId\": \"69e20d3d7666a8a1c1ab7874\",\r\n  \"paperId\": \"69e20ef07666a8a1c1ab7876\",\r\n  \"duration\": 45,\r\n  \"passingMarks\": 25,\r\n  \"questions\": [\r\n    {\r\n      \"question\": \"Who founded the Maurya Empire?\",\r\n      \"options\": [\"Chandragupta Maurya\", \"Ashoka\", \"Bindusara\", \"Bimbisara\"],\r\n      \"correctAnswer\": \"Chandragupta Maurya\",\r\n      \"explanation\": \"Chandragupta Maurya founded the Maurya Empire in 322 BCE after defeating the Nanda Dynasty.\",\r\n      \"marks\": 5,\r\n      \"negativeMarks\": 0.5\r\n    },\r\n    {\r\n      \"question\": \"Which article of the Indian Constitution deals with the Amendment procedure?\",\r\n      \"options\": [\"Article 352\", \"Article 360\", \"Article 368\", \"Article 370\"],\r\n      \"correctAnswer\": \"Article 368\",\r\n      \"explanation\": \"Article 368 in Part XX of the Constitution deals with the powers of Parliament to amend the Constitution.\",\r\n      \"marks\": 5,\r\n      \"negativeMarks\": 0.5\r\n    },\r\n    {\r\n      \"question\": \"The 'Fundamental Rights' in the Indian Constitution were inspired by which country?\",\r\n      \"options\": [\"USA\", \"UK\", \"USSR\", \"Ireland\"],\r\n      \"correctAnswer\": \"USA\",\r\n      \"explanation\": \"The Fundamental Rights are enshrined in Part III of the Constitution and were inspired by the Bill of Rights of the USA.\",\r\n      \"marks\": 5,\r\n      \"negativeMarks\": 0.5\r\n    },\r\n    {\r\n      \"question\": \"Which river is known as the 'Sorrow of Bihar'?\",\r\n      \"options\": [\"Ganga\", \"Kosi\", \"Son\", \"Gandak\"],\r\n      \"correctAnswer\": \"Kosi\",\r\n      \"explanation\": \"The Kosi River is known as the Sorrow of Bihar due to its frequent and devastating floods.\",\r\n      \"marks\": 5,\r\n      \"negativeMarks\": 0.5\r\n    },\r\n    {\r\n      \"question\": \"The 'Panchayati Raj' system was first adopted by which state?\",\r\n      \"options\": [\"Gujarat\", \"Rajasthan\", \"Maharashtra\", \"Andhra Pradesh\"],\r\n      \"correctAnswer\": \"Rajasthan\",\r\n      \"explanation\": \"Rajasthan was the first state to adopt Panchayati Raj on 2nd October 1959 in Nagaur district.\",\r\n      \"marks\": 5,\r\n      \"negativeMarks\": 0.5\r\n    },\r\n    {\r\n      \"question\": \"Who was the first Governor-General of independent India?\",\r\n      \"options\": [\"C. Rajagopalachari\", \"Lord Mountbatten\", \"Dr. Rajendra Prasad\", \"Jawaharlal Nehru\"],\r\n      \"correctAnswer\": \"Lord Mountbatten\",\r\n      \"explanation\": \"Lord Mountbatten served as the first Governor-General of independent India until June 1948.\",\r\n      \"marks\": 5,\r\n      \"negativeMarks\": 0.5\r\n    },\r\n    {\r\n      \"question\": \"Which planet is known as the 'Earth's Twin'?\",\r\n      \"options\": [\"Mars\", \"Venus\", \"Jupiter\", \"Saturn\"],\r\n      \"correctAnswer\": \"Venus\",\r\n      \"explanation\": \"Venus is often called Earth's twin because of its similar size, mass, and proximity to the Sun.\",\r\n      \"marks\": 5,\r\n      \"negativeMarks\": 0.5\r\n    },\r\n    {\r\n      \"question\": \"The 'Quit India Movement' was launched in response to which proposal?\",\r\n      \"options\": [\"Cabinet Mission Plan\", \"Cripps Proposals\", \"Simon Commission Report\", \"Wavell Plan\"],\r\n      \"correctAnswer\": \"Cripps Proposals\",\r\n      \"explanation\": \"The failure of the Cripps Mission in 1942 led Mahatma Gandhi to launch the Quit India Movement.\",\r\n      \"marks\": 5,\r\n      \"negativeMarks\": 0.5\r\n    },\r\n    {\r\n      \"question\": \"In the Indian economy, 'Repo Rate' is decided by?\",\r\n      \"options\": [\"SEBI\", \"Ministry of Finance\", \"RBI\", \"NITI Aayog\"],\r\n      \"correctAnswer\": \"RBI\",\r\n      \"explanation\": \"The Monetary Policy Committee of the Reserve Bank of India (RBI) decides the Repo Rate.\",\r\n      \"marks\": 5,\r\n      \"negativeMarks\": 0.5\r\n    },\r\n    {\r\n      \"question\": \"Who presided over the first session of the Indian National Congress?\",\r\n      \"options\": [\"A.O. Hume\", \"W.C. Bonnerjee\", \"Dadabhai Naoroji\", \"Badruddin Tyabji\"],\r\n      \"correctAnswer\": \"W.C. Bonnerjee\",\r\n      \"explanation\": \"Womesh Chandra Bonnerjee was the president of the first INC session held in Bombay in 1885.\",\r\n      \"marks\": 5,\r\n      \"negativeMarks\": 0.5\r\n    }\r\n  ]\r\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{BASE_URL}}/api/resources/mock-tests",
+                      "host": [
+                        "{{BASE_URL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "resources",
+                        "mock-tests"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Get Complete Full Test Details",
+                  "protocolProfileBehavior": {
+                    "disableBodyPruning": true
+                  },
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{SuperAdminToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"title\": \"UPSC Prelims Mock Test 1\",\r\n  \"description\": \"Full length mock test\",\r\n  \"categoryId\": \"69e1f111894a018787fa4a8a\",\r\n  \"subCategoryId\": \"69e20d3d7666a8a1c1ab7874\",\r\n  \"paperId\": \"69e20ef07666a8a1c1ab7876\",\r\n  \"duration\": 45,\r\n  \"passingMarks\": 25,\r\n  \"questions\": [\r\n    {\r\n      \"question\": \"Who founded the Maurya Empire?\",\r\n      \"options\": [\"Chandragupta Maurya\", \"Ashoka\", \"Bindusara\", \"Bimbisara\"],\r\n      \"correctAnswer\": \"Chandragupta Maurya\",\r\n      \"explanation\": \"Chandragupta Maurya founded the Maurya Empire in 322 BCE after defeating the Nanda Dynasty.\",\r\n      \"marks\": 5,\r\n      \"negativeMarks\": 0.5\r\n    },\r\n    {\r\n      \"question\": \"Which article of the Indian Constitution deals with the Amendment procedure?\",\r\n      \"options\": [\"Article 352\", \"Article 360\", \"Article 368\", \"Article 370\"],\r\n      \"correctAnswer\": \"Article 368\",\r\n      \"explanation\": \"Article 368 in Part XX of the Constitution deals with the powers of Parliament to amend the Constitution.\",\r\n      \"marks\": 5,\r\n      \"negativeMarks\": 0.5\r\n    },\r\n    {\r\n      \"question\": \"The 'Fundamental Rights' in the Indian Constitution were inspired by which country?\",\r\n      \"options\": [\"USA\", \"UK\", \"USSR\", \"Ireland\"],\r\n      \"correctAnswer\": \"USA\",\r\n      \"explanation\": \"The Fundamental Rights are enshrined in Part III of the Constitution and were inspired by the Bill of Rights of the USA.\",\r\n      \"marks\": 5,\r\n      \"negativeMarks\": 0.5\r\n    },\r\n    {\r\n      \"question\": \"Which river is known as the 'Sorrow of Bihar'?\",\r\n      \"options\": [\"Ganga\", \"Kosi\", \"Son\", \"Gandak\"],\r\n      \"correctAnswer\": \"Kosi\",\r\n      \"explanation\": \"The Kosi River is known as the Sorrow of Bihar due to its frequent and devastating floods.\",\r\n      \"marks\": 5,\r\n      \"negativeMarks\": 0.5\r\n    },\r\n    {\r\n      \"question\": \"The 'Panchayati Raj' system was first adopted by which state?\",\r\n      \"options\": [\"Gujarat\", \"Rajasthan\", \"Maharashtra\", \"Andhra Pradesh\"],\r\n      \"correctAnswer\": \"Rajasthan\",\r\n      \"explanation\": \"Rajasthan was the first state to adopt Panchayati Raj on 2nd October 1959 in Nagaur district.\",\r\n      \"marks\": 5,\r\n      \"negativeMarks\": 0.5\r\n    },\r\n    {\r\n      \"question\": \"Who was the first Governor-General of independent India?\",\r\n      \"options\": [\"C. Rajagopalachari\", \"Lord Mountbatten\", \"Dr. Rajendra Prasad\", \"Jawaharlal Nehru\"],\r\n      \"correctAnswer\": \"Lord Mountbatten\",\r\n      \"explanation\": \"Lord Mountbatten served as the first Governor-General of independent India until June 1948.\",\r\n      \"marks\": 5,\r\n      \"negativeMarks\": 0.5\r\n    },\r\n    {\r\n      \"question\": \"Which planet is known as the 'Earth's Twin'?\",\r\n      \"options\": [\"Mars\", \"Venus\", \"Jupiter\", \"Saturn\"],\r\n      \"correctAnswer\": \"Venus\",\r\n      \"explanation\": \"Venus is often called Earth's twin because of its similar size, mass, and proximity to the Sun.\",\r\n      \"marks\": 5,\r\n      \"negativeMarks\": 0.5\r\n    },\r\n    {\r\n      \"question\": \"The 'Quit India Movement' was launched in response to which proposal?\",\r\n      \"options\": [\"Cabinet Mission Plan\", \"Cripps Proposals\", \"Simon Commission Report\", \"Wavell Plan\"],\r\n      \"correctAnswer\": \"Cripps Proposals\",\r\n      \"explanation\": \"The failure of the Cripps Mission in 1942 led Mahatma Gandhi to launch the Quit India Movement.\",\r\n      \"marks\": 5,\r\n      \"negativeMarks\": 0.5\r\n    },\r\n    {\r\n      \"question\": \"In the Indian economy, 'Repo Rate' is decided by?\",\r\n      \"options\": [\"SEBI\", \"Ministry of Finance\", \"RBI\", \"NITI Aayog\"],\r\n      \"correctAnswer\": \"RBI\",\r\n      \"explanation\": \"The Monetary Policy Committee of the Reserve Bank of India (RBI) decides the Repo Rate.\",\r\n      \"marks\": 5,\r\n      \"negativeMarks\": 0.5\r\n    },\r\n    {\r\n      \"question\": \"Who presided over the first session of the Indian National Congress?\",\r\n      \"options\": [\"A.O. Hume\", \"W.C. Bonnerjee\", \"Dadabhai Naoroji\", \"Badruddin Tyabji\"],\r\n      \"correctAnswer\": \"W.C. Bonnerjee\",\r\n      \"explanation\": \"Womesh Chandra Bonnerjee was the president of the first INC session held in Bombay in 1885.\",\r\n      \"marks\": 5,\r\n      \"negativeMarks\": 0.5\r\n    }\r\n  ]\r\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{BASE_URL}}/api/resources/mock-tests/69e24028490aebec9f0bea45",
+                      "host": [
+                        "{{BASE_URL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "resources",
+                        "mock-tests",
+                        "69e24028490aebec9f0bea45"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Add Question to Existing Test",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{SuperAdminToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"question\": \"What is the capital of India?\",\r\n  \"options\": [\"New Delhi\", \"Mumbai\", \"Kolkata\", \"Chennai\"],\r\n  \"correctAnswer\": \"New Delhi\",\r\n  \"explanation\": \"New Delhi is the capital of India.\",\r\n  \"marks\": 2,\r\n  \"negativeMarks\": 0.5\r\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{BASE_URL}}/api/resources/mock-tests/69e24028490aebec9f0bea45/add-question",
+                      "host": [
+                        "{{BASE_URL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "resources",
+                        "mock-tests",
+                        "69e24028490aebec9f0bea45",
+                        "add-question"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Bulk Add Questions",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{SuperAdminToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"questions\": [\r\n  {\r\n    \"question\": \"Which layer of the atmosphere contains the Ozone layer?\",\r\n    \"options\": [\"Troposphere\", \"Stratosphere\", \"Mesosphere\", \"Exosphere\"],\r\n    \"correctAnswer\": \"Stratosphere\",\r\n    \"explanation\": \"The ozone layer is primarily found in the lower portion of the stratosphere, approximately 15 to 35 kilometers above Earth, and absorbs most of the Sun's harmful ultraviolet radiation.\",\r\n    \"marks\": 5,\r\n    \"negativeMarks\": 0.5\r\n  },\r\n  {\r\n    \"question\": \"The 'Global Gender Gap Report' is released by which organization?\",\r\n    \"options\": [\"World Bank\", \"UNDP\", \"World Economic Forum\", \"IMF\"],\r\n    \"correctAnswer\": \"World Economic Forum\",\r\n    \"explanation\": \"The World Economic Forum (WEF) publishes the Global Gender Gap Report annually to measure gender equality across four key dimensions.\",\r\n    \"marks\": 5,\r\n    \"negativeMarks\": 0.5\r\n  }\r\n]\r\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{BASE_URL}}/api/resources/mock-tests/69e24028490aebec9f0bea45/add-questions",
+                      "host": [
+                        "{{BASE_URL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "resources",
+                        "mock-tests",
+                        "69e24028490aebec9f0bea45",
+                        "add-questions"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Update Question",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{SuperAdminToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PUT",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n            \"question\": \"Which layer of the atmosphere contains the Ozone layer?\",\r\n            \"options\": [\r\n                \"Troposphere\",\r\n                \"Stratosphere\",\r\n                \"Mesosphere\",\r\n                \"Exosphere\"\r\n            ],\r\n            \"correctAnswer\": \"Stratosphere\",\r\n            \"explanation\": \"The ozone layer is primarily found in the lower portion of the stratosphere, approximately 15 to 35 kilometers above Earth.\",\r\n            \"marks\": 5,\r\n            \"negativeMarks\": 0.5\r\n        }",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{BASE_URL}}/api/resources/questions/69e241e48076f9fa15bf8d4c",
+                      "host": [
+                        "{{BASE_URL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "resources",
+                        "questions",
+                        "69e241e48076f9fa15bf8d4c"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Get Question by ID",
+                  "protocolProfileBehavior": {
+                    "disableBodyPruning": true
+                  },
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{SuperAdminToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n            \"question\": \"Which layer of the atmosphere contains the Ozone layer?\",\r\n            \"options\": [\r\n                \"Troposphere\",\r\n                \"Stratosphere\",\r\n                \"Mesosphere\",\r\n                \"Exosphere\"\r\n            ],\r\n            \"correctAnswer\": \"Stratosphere\",\r\n            \"explanation\": \"The ozone layer is primarily found in the lower portion of the stratosphere, approximately 15 to 35 kilometers above Earth.\",\r\n            \"marks\": 5,\r\n            \"negativeMarks\": 0.5\r\n        }",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{BASE_URL}}/api/resources/questions/69e241e48076f9fa15bf8d4c",
+                      "host": [
+                        "{{BASE_URL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "resources",
+                        "questions",
+                        "69e241e48076f9fa15bf8d4c"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Remove Question from Test",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{SuperAdminToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "DELETE",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n            \"question\": \"Which layer of the atmosphere contains the Ozone layer?\",\r\n            \"options\": [\r\n                \"Troposphere\",\r\n                \"Stratosphere\",\r\n                \"Mesosphere\",\r\n                \"Exosphere\"\r\n            ],\r\n            \"correctAnswer\": \"Stratosphere\",\r\n            \"explanation\": \"The ozone layer is primarily found in the lower portion of the stratosphere, approximately 15 to 35 kilometers above Earth.\",\r\n            \"marks\": 5,\r\n            \"negativeMarks\": 0.5\r\n        }",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{BASE_URL}}/api/resources/mock-tests/69e24028490aebec9f0bea45/question/69e241e48076f9fa15bf8d4c",
+                      "host": [
+                        "{{BASE_URL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "resources",
+                        "mock-tests",
+                        "69e24028490aebec9f0bea45",
+                        "question",
+                        "69e241e48076f9fa15bf8d4c"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Partial Update (PATCH) Question",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{SuperAdminToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PATCH",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n            \"question\": \"Which of the layer of the atmosphere will contains the Ozone layer?\"\r\n            \r\n        }",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{BASE_URL}}/api/resources/questions/69e241e48076f9fa15bf8d4c",
+                      "host": [
+                        "{{BASE_URL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "resources",
+                        "questions",
+                        "69e241e48076f9fa15bf8d4c"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "STUDY MATERIALS",
+          "item": [
+            {
+              "name": "Create SubCategory for Study Materials",
+              "item": [
+                {
+                  "name": "Create SubCategories",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{SuperAdminToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"name\": \"Interview\",\r\n  \"categoryId\": \"69e1f128894a018787fa4a8b\"\r\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{BASE_URL}}/api/resources/subcategories",
+                      "host": [
+                        "{{BASE_URL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "resources",
+                        "subcategories"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET SubCategories",
+                  "protocolProfileBehavior": {
+                    "disableBodyPruning": true
+                  },
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{SuperAdminToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"name\": \"Mains\",\r\n  \"categoryId\": \"69e1f14b894a018787fa4a8c\"\r\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{BASE_URL}}/api/resources/subcategories",
+                      "host": [
+                        "{{BASE_URL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "resources",
+                        "subcategories"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Update SubCategories",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{SuperAdminToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PUT",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"name\": \"Mains\",\r\n  \"categoryId\": \"69e1f14b894a018787fa4a8c\"\r\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{BASE_URL}}/api/resources/subcategories/69e1fcac56740604d05d846c",
+                      "host": [
+                        "{{BASE_URL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "resources",
+                        "subcategories",
+                        "69e1fcac56740604d05d846c"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Delete SubCategories",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{SuperAdminToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "DELETE",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"name\": \"Mains\",\r\n  \"categoryId\": \"69e1f14b894a018787fa4a8c\"\r\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{BASE_URL}}/api/resources/subcategories/69e1fcac56740604d05d846c",
+                      "host": [
+                        "{{BASE_URL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "resources",
+                        "subcategories",
+                        "69e1fcac56740604d05d846c"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Study Materials",
+              "item": [
+                {
+                  "name": "Upload Study Material",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{SuperAdminToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "title",
+                          "value": "Indian Polity Notes",
+                          "type": "text",
+                          "uuid": "22bfe7f9-d7f3-4fdb-9154-ae0646eb1527"
+                        },
+                        {
+                          "key": "description",
+                          "value": "Complete Polity Notes for Prelims",
+                          "type": "text",
+                          "uuid": "407eae5a-0b22-44c1-9e84-34d527ed9ea5"
+                        },
+                        {
+                          "key": "categoryId",
+                          "value": "69e1f128894a018787fa4a8b",
+                          "type": "text",
+                          "uuid": "e31bfd64-892d-4ce0-a419-c733611dfc96"
+                        },
+                        {
+                          "key": "subCategoryId",
+                          "value": "69e247aac8629c0f0e3021b5",
+                          "type": "text",
+                          "uuid": "e3a9fb72-4900-4a3c-8db4-caff16414b23"
+                        },
+                        {
+                          "key": "file",
+                          "type": "file",
+                          "uuid": "6e46d6d3-ebf3-431a-b26f-d2f0509fff87",
+                          "src": "postman-cloud:///1f132741-086a-4250-9cbb-396c5fb502ff"
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "{{BASE_URL}}/api/resources/files",
+                      "host": [
+                        "{{BASE_URL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "resources",
+                        "files"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Get Study Material",
+                  "protocolProfileBehavior": {
+                    "disableBodyPruning": true
+                  },
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{SuperAdminToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "title",
+                          "value": "Indian Polity Notes",
+                          "type": "text",
+                          "uuid": "22bfe7f9-d7f3-4fdb-9154-ae0646eb1527"
+                        },
+                        {
+                          "key": "description",
+                          "value": "Complete Polity Notes for Prelims",
+                          "type": "text",
+                          "uuid": "407eae5a-0b22-44c1-9e84-34d527ed9ea5"
+                        },
+                        {
+                          "key": "categoryId",
+                          "value": "69e1f128894a018787fa4a8b",
+                          "type": "text",
+                          "uuid": "e31bfd64-892d-4ce0-a419-c733611dfc96"
+                        },
+                        {
+                          "key": "subCategoryId",
+                          "value": "69e247aac8629c0f0e3021b5",
+                          "type": "text",
+                          "uuid": "e3a9fb72-4900-4a3c-8db4-caff16414b23"
+                        },
+                        {
+                          "key": "file",
+                          "type": "file",
+                          "uuid": "6e46d6d3-ebf3-431a-b26f-d2f0509fff87",
+                          "src": "postman-cloud:///1f132741-086a-4250-9cbb-396c5fb502ff"
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "{{BASE_URL}}/api/resources/files",
+                      "host": [
+                        "{{BASE_URL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "resources",
+                        "files"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Get Specific  Study Material",
+                  "protocolProfileBehavior": {
+                    "disableBodyPruning": true
+                  },
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{SuperAdminToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "title",
+                          "value": "Indian Polity Notes",
+                          "type": "text",
+                          "uuid": "22bfe7f9-d7f3-4fdb-9154-ae0646eb1527"
+                        },
+                        {
+                          "key": "description",
+                          "value": "Complete Polity Notes for Prelims",
+                          "type": "text",
+                          "uuid": "407eae5a-0b22-44c1-9e84-34d527ed9ea5"
+                        },
+                        {
+                          "key": "categoryId",
+                          "value": "69e1f128894a018787fa4a8b",
+                          "type": "text",
+                          "uuid": "e31bfd64-892d-4ce0-a419-c733611dfc96"
+                        },
+                        {
+                          "key": "subCategoryId",
+                          "value": "69e247aac8629c0f0e3021b5",
+                          "type": "text",
+                          "uuid": "e3a9fb72-4900-4a3c-8db4-caff16414b23"
+                        },
+                        {
+                          "key": "file",
+                          "type": "file",
+                          "uuid": "6e46d6d3-ebf3-431a-b26f-d2f0509fff87",
+                          "src": "postman-cloud:///1f132741-086a-4250-9cbb-396c5fb502ff"
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "{{BASE_URL}}/api/resources/files/69e2484ec8629c0f0e3021b7",
+                      "host": [
+                        "{{BASE_URL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "resources",
+                        "files",
+                        "69e2484ec8629c0f0e3021b7"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Update Specific  Study Material",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{SuperAdminToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PUT",
+                    "header": [],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "title",
+                          "value": "Indian Polity Notes",
+                          "type": "text",
+                          "uuid": "22bfe7f9-d7f3-4fdb-9154-ae0646eb1527"
+                        },
+                        {
+                          "key": "description",
+                          "value": "Complete Polity Notes for Prelims",
+                          "type": "text",
+                          "uuid": "407eae5a-0b22-44c1-9e84-34d527ed9ea5"
+                        },
+                        {
+                          "key": "categoryId",
+                          "value": "69e1f128894a018787fa4a8b",
+                          "type": "text",
+                          "uuid": "e31bfd64-892d-4ce0-a419-c733611dfc96"
+                        },
+                        {
+                          "key": "subCategoryId",
+                          "value": "69e247aac8629c0f0e3021b5",
+                          "type": "text",
+                          "uuid": "e3a9fb72-4900-4a3c-8db4-caff16414b23"
+                        },
+                        {
+                          "key": "file",
+                          "type": "file",
+                          "uuid": "6e46d6d3-ebf3-431a-b26f-d2f0509fff87",
+                          "src": "postman-cloud:///1f132741-086a-4250-9cbb-396c5fb502ff"
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "{{BASE_URL}}/api/resources/files/69e2484ec8629c0f0e3021b7",
+                      "host": [
+                        "{{BASE_URL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "resources",
+                        "files",
+                        "69e2484ec8629c0f0e3021b7"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Delete Specific  Study Material",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{SuperAdminToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "DELETE",
+                    "header": [],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "title",
+                          "value": "Indian Polity Notes",
+                          "type": "text",
+                          "uuid": "22bfe7f9-d7f3-4fdb-9154-ae0646eb1527"
+                        },
+                        {
+                          "key": "description",
+                          "value": "Complete Polity Notes for Prelims",
+                          "type": "text",
+                          "uuid": "407eae5a-0b22-44c1-9e84-34d527ed9ea5"
+                        },
+                        {
+                          "key": "categoryId",
+                          "value": "69e1f128894a018787fa4a8b",
+                          "type": "text",
+                          "uuid": "e31bfd64-892d-4ce0-a419-c733611dfc96"
+                        },
+                        {
+                          "key": "subCategoryId",
+                          "value": "69e247aac8629c0f0e3021b5",
+                          "type": "text",
+                          "uuid": "e3a9fb72-4900-4a3c-8db4-caff16414b23"
+                        },
+                        {
+                          "key": "file",
+                          "type": "file",
+                          "uuid": "6e46d6d3-ebf3-431a-b26f-d2f0509fff87",
+                          "src": "postman-cloud:///1f132741-086a-4250-9cbb-396c5fb502ff"
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "{{BASE_URL}}/api/resources/files/69e2484ec8629c0f0e3021b7",
+                      "host": [
+                        "{{BASE_URL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "resources",
+                        "files",
+                        "69e2484ec8629c0f0e3021b7"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Get all Prelims study materials",
+                  "protocolProfileBehavior": {
+                    "disableBodyPruning": true
+                  },
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{SuperAdminToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "title",
+                          "value": "Indian Polity Notes",
+                          "type": "text",
+                          "uuid": "22bfe7f9-d7f3-4fdb-9154-ae0646eb1527"
+                        },
+                        {
+                          "key": "description",
+                          "value": "Complete Polity Notes for Prelims",
+                          "type": "text",
+                          "uuid": "407eae5a-0b22-44c1-9e84-34d527ed9ea5"
+                        },
+                        {
+                          "key": "categoryId",
+                          "value": "69e1f128894a018787fa4a8b",
+                          "type": "text",
+                          "uuid": "e31bfd64-892d-4ce0-a419-c733611dfc96"
+                        },
+                        {
+                          "key": "subCategoryId",
+                          "value": "69e247aac8629c0f0e3021b5",
+                          "type": "text",
+                          "uuid": "e3a9fb72-4900-4a3c-8db4-caff16414b23"
+                        },
+                        {
+                          "key": "file",
+                          "type": "file",
+                          "uuid": "6e46d6d3-ebf3-431a-b26f-d2f0509fff87",
+                          "src": "postman-cloud:///1f132741-086a-4250-9cbb-396c5fb502ff"
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "{{BASE_URL}}/api/resources/files?categoryId=69e1f128894a018787fa4a8b&subCategoryId=69e247aac8629c0f0e3021b5",
+                      "host": [
+                        "{{BASE_URL}}"
+                      ],
+                      "path": [
+                        "api",
+                        "resources",
+                        "files"
+                      ],
+                      "query": [
+                        {
+                          "key": "categoryId",
+                          "value": "69e1f128894a018787fa4a8b"
+                        },
+                        {
+                          "key": "subCategoryId",
+                          "value": "69e247aac8629c0f0e3021b5"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Student Write Free Mock Test",
+          "item": [
+            {
+              "name": "Get Mock Test Details with Questions",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{StudentToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{BASE_URL}}/api/resources/mock-tests/69e24028490aebec9f0bea45",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "resources",
+                    "mock-tests",
+                    "69e24028490aebec9f0bea45"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Submit Test Answers",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{StudentToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"startedAt\": \"2026-04-17T14:30:00.000Z\",\r\n  \"timeTaken\": 2400,\r\n  \"answers\": {\r\n    \"69e24028490aebec9f0bea3b\": \"Chandragupta Maurya\",  \r\n    \"69e24028490aebec9f0bea3c\": \"Article 368\",          \r\n    \"69e24028490aebec9f0bea3d\": \"USA\",                  \r\n    \"69e24028490aebec9f0bea3e\": \"Kosi\",                 \r\n    \"69e24028490aebec9f0bea3f\": \"Rajasthan\",            \r\n    \"69e24028490aebec9f0bea40\": \"Lord Mountbatten\",     \r\n    \"69e24028490aebec9f0bea41\": \"Venus\",                \r\n    \"69e24028490aebec9f0bea42\": \"Cabinet Mission Plan\", \r\n    \"69e24028490aebec9f0bea43\": \"SEBI\",                 \r\n    \"69e24028490aebec9f0bea44\": \"A.O. Hume\",            \r\n    \"69e241868076f9fa15bf8d4b\": \"Mumbai\",               \r\n    \"69e241e48076f9fa15bf8d4d\": \"IMF\"                   \r\n  }\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/resources/mock-tests/69e24028490aebec9f0bea45/attempt",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "resources",
+                    "mock-tests",
+                    "69e24028490aebec9f0bea45",
+                    "attempt"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "View Detailed Result Analysis",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{StudentToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"testId\": \"69e24028490aebec9f0bea45\",\r\n  \"startedAt\": \"2026-04-17T14:30:00.000Z\",\r\n  \"timeTaken\": 2400,\r\n  \"answers\": {\r\n    \"69e24028490aebec9f0bea3b\": \"Chandragupta Maurya\",  \r\n    \"69e24028490aebec9f0bea3c\": \"Article 368\",          \r\n    \"69e24028490aebec9f0bea3d\": \"USA\",                  \r\n    \"69e24028490aebec9f0bea3e\": \"Kosi\",                 \r\n    \"69e24028490aebec9f0bea3f\": \"Rajasthan\",            \r\n    \"69e24028490aebec9f0bea40\": \"Lord Mountbatten\",     \r\n    \"69e24028490aebec9f0bea41\": \"Venus\",                \r\n    \"69e24028490aebec9f0bea42\": \"Cabinet Mission Plan\", \r\n    \"69e24028490aebec9f0bea43\": \"SEBI\",                 \r\n    \"69e24028490aebec9f0bea44\": \"A.O. Hume\",            \r\n    \"69e241868076f9fa15bf8d4b\": \"Mumbai\",               \r\n    \"69e241e48076f9fa15bf8d4d\": \"IMF\"                   \r\n  }\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/resources/mock-tests/results/69e2548b1ecd1e6db115ab39",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "resources",
+                    "mock-tests",
+                    "results",
+                    "69e2548b1ecd1e6db115ab39"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "View All Test History",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{StudentToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"testId\": \"69e24028490aebec9f0bea45\",\r\n  \"startedAt\": \"2026-04-17T14:30:00.000Z\",\r\n  \"timeTaken\": 2400,\r\n  \"answers\": {\r\n    \"69e24028490aebec9f0bea3b\": \"Chandragupta Maurya\",  \r\n    \"69e24028490aebec9f0bea3c\": \"Article 368\",          \r\n    \"69e24028490aebec9f0bea3d\": \"USA\",                  \r\n    \"69e24028490aebec9f0bea3e\": \"Kosi\",                 \r\n    \"69e24028490aebec9f0bea3f\": \"Rajasthan\",            \r\n    \"69e24028490aebec9f0bea40\": \"Lord Mountbatten\",     \r\n    \"69e24028490aebec9f0bea41\": \"Venus\",                \r\n    \"69e24028490aebec9f0bea42\": \"Cabinet Mission Plan\", \r\n    \"69e24028490aebec9f0bea43\": \"SEBI\",                 \r\n    \"69e24028490aebec9f0bea44\": \"A.O. Hume\",            \r\n    \"69e241868076f9fa15bf8d4b\": \"Mumbai\",               \r\n    \"69e241e48076f9fa15bf8d4d\": \"IMF\"                   \r\n  }\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/resources/mock-tests/results",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "resources",
+                    "mock-tests",
+                    "results"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "List SUBJECT, CLASS, PAPER, YEAR",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/resources/filters?type=PAPER",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "resources",
+                "filters"
+              ],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "PAPER"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

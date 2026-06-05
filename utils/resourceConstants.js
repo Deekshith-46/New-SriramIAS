@@ -16,22 +16,40 @@ const FILTER_TYPES = {
 
 const CATEGORY_NAME_HINTS = {
   NCERT: 'ncert',
-  PYQ: ['previous year', 'pyq'],
-  STUDY_MATERIAL: 'study material',
+  PYQ: ['previous year', 'pyq', 'question paper', 'question papers'],
+  STUDY_MATERIAL: ['study material', 'study materials'],
   MOCK_TEST: ['mock test', 'mock tests', 'free mock']
 };
 
 const FREE_RESOURCE_FILTER_KEYS = {
-  NCERT: ['SUBJECT', 'CLASS'],
+  NCERT: [],
   PYQ: ['SUB_CATEGORY', 'PAPER', 'YEAR'],
   STUDY_MATERIAL: ['SUB_CATEGORY'],
   MOCK_TEST: ['SUB_CATEGORY'],
-  GENERIC: ['SUBJECT', 'CLASS']
+  GENERIC: []
+};
+
+const RESOURCE_STATUSES = ['ACTIVE', 'INACTIVE', 'DRAFT'];
+
+const normalizeResourceStatus = (value, defaultStatus = 'ACTIVE') => {
+  if (value === undefined || value === null || value === '') return defaultStatus;
+
+  const key = String(value).trim().toUpperCase().replace(/[\s-]+/g, '_');
+  const aliases = {
+    ACTIVE: 'ACTIVE',
+    INACTIVE: 'INACTIVE',
+    IN_ACTIVE: 'INACTIVE',
+    DRAFT: 'DRAFT'
+  };
+
+  return aliases[key] || null;
 };
 
 module.exports = {
   MODULE_TYPES,
   RESOURCE_TYPES,
+  RESOURCE_STATUSES,
+  normalizeResourceStatus,
   FILTER_TYPES,
   CATEGORY_NAME_HINTS,
   FREE_RESOURCE_FILTER_KEYS
