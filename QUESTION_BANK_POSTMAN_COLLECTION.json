@@ -1,0 +1,415 @@
+{
+  "info": {
+    "name": "Sriram IAS - Question Bank",
+    "description": "Test Management → Question Bank\n\nBase: /api/question-bank\nAuth: Super Admin JWT\n\nCreate/Update: multipart form-data. Update supports partial edits — send only the field(s) you want to change.\nType cannot be changed on update. questionCode, usageCount, createdAt are not editable.\nBulk: validate then import with duplicateMode SKIP | UPLOAD_ANYWAY",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "authToken", "value": "" },
+    { "key": "questionId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Login Super Admin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@sriram.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login-super-admin"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  pm.collectionVariables.set('authToken', pm.response.json().token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Analytics & Filters",
+      "item": [
+        {
+          "name": "GET Analytics",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": "{{baseUrl}}/api/question-bank/analytics"
+          }
+        },
+        { "name": "GET Types", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": "{{baseUrl}}/api/question-bank/types" } },
+        { "name": "GET Subjects", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": "{{baseUrl}}/api/question-bank/subjects" } },
+        { "name": "GET Topics", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": "{{baseUrl}}/api/question-bank/topics" } },
+        { "name": "GET Tags", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": "{{baseUrl}}/api/question-bank/tags" } },
+        { "name": "GET Difficulties", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": "{{baseUrl}}/api/question-bank/difficulties" } },
+        { "name": "GET Categories", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": "{{baseUrl}}/api/question-bank/categories" } }
+      ]
+    },
+    {
+      "name": "3. List",
+      "item": [
+        {
+          "name": "GET Questions (paginated)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/question-bank?page=1&limit=10&search=&type=&category=&subject=&topic=&difficulty=&status=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "question-bank"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "" },
+                { "key": "type", "value": "" },
+                { "key": "category", "value": "" },
+                { "key": "subject", "value": "" },
+                { "key": "topic", "value": "" },
+                { "key": "difficulty", "value": "" },
+                { "key": "status", "value": "" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Create Manual (form-data)",
+      "item": [
+        {
+          "name": "POST Create MCQ",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "category", "value": "PRELIMS", "type": "text" },
+                { "key": "type", "value": "MCQ", "type": "text" },
+                { "key": "status", "value": "ACTIVE", "type": "text" },
+                { "key": "subject", "value": "Polity", "type": "text" },
+                { "key": "topic", "value": "Basics", "type": "text" },
+                { "key": "difficulty", "value": "EASY", "type": "text" },
+                { "key": "tags", "value": "india,capital", "type": "text" },
+                { "key": "questionText", "value": "What is the capital of India?", "type": "text" },
+                { "key": "optionA", "value": "Mumbai", "type": "text" },
+                { "key": "optionB", "value": "New Delhi", "type": "text" },
+                { "key": "optionC", "value": "Kolkata", "type": "text" },
+                { "key": "optionD", "value": "Chennai", "type": "text" },
+                { "key": "correctAnswer", "value": "B", "type": "text" },
+                { "key": "explanation", "value": "New Delhi is the capital", "type": "text" }
+              ]
+            },
+            "url": "{{baseUrl}}/api/question-bank"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('questionId', pm.response.json().data._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST Create Numerical",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "category", "value": "PRELIMS", "type": "text" },
+                { "key": "type", "value": "NUMERICAL", "type": "text" },
+                { "key": "subject", "value": "Polity", "type": "text" },
+                { "key": "topic", "value": "Fundamental Duties", "type": "text" },
+                { "key": "difficulty", "value": "MEDIUM", "type": "text" },
+                { "key": "questionText", "value": "How many Fundamental Duties?", "type": "text" },
+                { "key": "numericalAnswer", "value": "11", "type": "text" }
+              ]
+            },
+            "url": "{{baseUrl}}/api/question-bank"
+          }
+        },
+        {
+          "name": "POST Create Match The Following",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "category", "value": "PRELIMS", "type": "text" },
+                { "key": "type", "value": "MATCH_THE_FOLLOWING", "type": "text" },
+                { "key": "subject", "value": "Geography", "type": "text" },
+                { "key": "topic", "value": "Rivers", "type": "text" },
+                { "key": "difficulty", "value": "MEDIUM", "type": "text" },
+                { "key": "questionText", "value": "Match rivers with states", "type": "text" },
+                { "key": "prompt", "value": "Match the rivers with states", "type": "text" },
+                { "key": "left1", "value": "Kosi", "type": "text" },
+                { "key": "right1", "value": "Bihar", "type": "text" },
+                { "key": "left2", "value": "Narmada", "type": "text" },
+                { "key": "right2", "value": "Madhya Pradesh", "type": "text" }
+              ]
+            },
+            "url": "{{baseUrl}}/api/question-bank"
+          }
+        },
+        {
+          "name": "POST Create Assertion Reason",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "category", "value": "PRELIMS", "type": "text" },
+                { "key": "type", "value": "ASSERTION_REASON", "type": "text" },
+                { "key": "subject", "value": "Polity", "type": "text" },
+                { "key": "topic", "value": "Preamble", "type": "text" },
+                { "key": "difficulty", "value": "MEDIUM", "type": "text" },
+                { "key": "questionText", "value": "Consider the following", "type": "text" },
+                { "key": "assertion", "value": "The Preamble is part of the Constitution", "type": "text" },
+                { "key": "reason", "value": "Held in Kesavananda Bharati case", "type": "text" },
+                { "key": "correctAnswer", "value": "Both true & R explains A", "type": "text" }
+              ]
+            },
+            "url": "{{baseUrl}}/api/question-bank"
+          }
+        },
+        {
+          "name": "POST Create Descriptive",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "category", "value": "MAINS", "type": "text" },
+                { "key": "type", "value": "DESCRIPTIVE", "type": "text" },
+                { "key": "subject", "value": "Polity", "type": "text" },
+                { "key": "topic", "value": "Constitution", "type": "text" },
+                { "key": "difficulty", "value": "HARD", "type": "text" },
+                { "key": "questionText", "value": "Discuss basic structure doctrine", "type": "text" },
+                { "key": "explanation", "value": "Cover amending power limits", "type": "text" }
+              ]
+            },
+            "url": "{{baseUrl}}/api/question-bank"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. CRUD",
+      "item": [
+        {
+          "name": "GET Editable Fields (MCQ)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": "{{baseUrl}}/api/question-bank/editable-fields/MCQ"
+          }
+        },
+        {
+          "name": "GET Question By ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": "{{baseUrl}}/api/question-bank/{{questionId}}"
+          }
+        },
+        {
+          "name": "PUT Update MCQ (single field)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "correctAnswer", "value": "B", "type": "text", "description": "Send only fields you want to change" }
+              ]
+            },
+            "url": "{{baseUrl}}/api/question-bank/{{questionId}}"
+          }
+        },
+        {
+          "name": "PATCH Update MCQ (multiple fields)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "optionB", "value": "New Delhi", "type": "text" },
+                { "key": "explanation", "value": "Updated explanation", "type": "text" },
+                { "key": "tags", "value": "india,capital,updated", "type": "text" }
+              ]
+            },
+            "url": "{{baseUrl}}/api/question-bank/{{questionId}}"
+          }
+        },
+        {
+          "name": "PATCH Update Numerical",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "numericalAnswer", "value": "11", "type": "text" },
+                { "key": "difficulty", "value": "MEDIUM", "type": "text" }
+              ]
+            },
+            "url": "{{baseUrl}}/api/question-bank/{{questionId}}"
+          }
+        },
+        {
+          "name": "PATCH Update Match (single pair)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "left2", "value": "Narmada", "type": "text" },
+                { "key": "right2", "value": "Madhya Pradesh", "type": "text" }
+              ]
+            },
+            "url": "{{baseUrl}}/api/question-bank/{{questionId}}"
+          }
+        },
+        {
+          "name": "PATCH Update Assertion Reason",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "assertion", "value": "The Preamble is part of the Constitution", "type": "text" },
+                { "key": "correctAnswer", "value": "Both true & R explains A", "type": "text" }
+              ]
+            },
+            "url": "{{baseUrl}}/api/question-bank/{{questionId}}"
+          }
+        },
+        {
+          "name": "PATCH Update Descriptive",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "questionText", "value": "Discuss basic structure doctrine (updated)", "type": "text" },
+                { "key": "explanation", "value": "Cover amending power limits and cases", "type": "text" }
+              ]
+            },
+            "url": "{{baseUrl}}/api/question-bank/{{questionId}}"
+          }
+        },
+        {
+          "name": "PATCH Remove Image",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "removeImage", "value": "true", "type": "text" }
+              ]
+            },
+            "url": "{{baseUrl}}/api/question-bank/{{questionId}}"
+          }
+        },
+        {
+          "name": "PATCH Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"INACTIVE\"\n}" },
+            "url": "{{baseUrl}}/api/question-bank/{{questionId}}/status"
+          }
+        },
+        {
+          "name": "POST Duplicate (prefill)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": "{{baseUrl}}/api/question-bank/{{questionId}}/duplicate"
+          }
+        },
+        {
+          "name": "DELETE Question (hard)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": "{{baseUrl}}/api/question-bank/{{questionId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Bulk Upload",
+      "item": [
+        {
+          "name": "Download MCQ Template",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": "{{baseUrl}}/api/question-bank/bulk/templates/mcq"
+          }
+        },
+        {
+          "name": "Validate Bulk File",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [{ "key": "file", "type": "file", "src": [] }]
+            },
+            "url": "{{baseUrl}}/api/question-bank/bulk/validate"
+          }
+        },
+        {
+          "name": "Import Bulk File (SKIP duplicates)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": [] },
+                { "key": "duplicateMode", "value": "SKIP", "type": "text" }
+              ]
+            },
+            "url": "{{baseUrl}}/api/question-bank/bulk/import"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,457 @@
+{
+  "info": {
+    "name": "Sriram IAS - Test Configuration",
+    "description": "Test Management → Test Configuration\n\nSections:\n1. Exam Pattern (instructions)\n2. Section Management\n3. Language Settings\n\nAuth: Super Admin Bearer token required on all requests.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{SuperAdminToken}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "BASE_URL", "value": "http://localhost:5000" },
+    { "key": "SuperAdminToken", "value": "" },
+    { "key": "examPatternId", "value": "" },
+    { "key": "sectionId", "value": "" },
+    { "key": "languageId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. Auth",
+      "item": [
+        {
+          "name": "Login Super Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.token) pm.collectionVariables.set('SuperAdminToken', j.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@sriram.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/auth/login-super-admin"
+          }
+        },
+        {
+          "name": "Clear SuperAdminToken (for auth test)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.set('SuperAdminToken', '');",
+                  "pm.test('Token cleared', () => pm.expect(pm.collectionVariables.get('SuperAdminToken')).to.eql(''));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{BASE_URL}}/api/auth/login-super-admin",
+            "description": "Run this before 'GET Dropdown WITHOUT token'. It only clears the collection variable; no API call needed — use Postman's Send or run as a dummy GET."
+          }
+        },
+        {
+          "name": "GET Dropdown WITHOUT token (expect 401)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.set('SuperAdminToken', '');"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 401 Unauthorized', () => pm.response.to.have.status(401));",
+                  "const j = pm.response.json();",
+                  "pm.test('No data without token', () => pm.expect(j.success).to.eql(false));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{BASE_URL}}/api/test-configuration/exam-patterns/dropdown",
+            "description": "No Bearer token. API must return 401 and must NOT return instruction data."
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Exam Pattern",
+      "item": [
+        {
+          "name": "POST Create Instruction",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.data?._id) pm.collectionVariables.set('examPatternId', j.data._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"instructionDescription\": \"Descriptive answers must be within word limit.\",\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/test-configuration/exam-patterns"
+          }
+        },
+        {
+          "name": "GET List (search + status + sort)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/api/test-configuration/exam-patterns?page=1&limit=10&search=&status=ACTIVE&sortPreset=createdOn_newest",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "test-configuration", "exam-patterns"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "" },
+                { "key": "status", "value": "ACTIVE" },
+                { "key": "sortPreset", "value": "createdOn_newest" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET List - Modified On Oldest",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/api/test-configuration/exam-patterns?sortPreset=modifiedOn_oldest",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "test-configuration", "exam-patterns"],
+              "query": [{ "key": "sortPreset", "value": "modifiedOn_oldest" }]
+            }
+          }
+        },
+        {
+          "name": "GET Dropdown (Active)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/test-configuration/exam-patterns/dropdown"
+          }
+        },
+        {
+          "name": "GET View Details",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/test-configuration/exam-patterns/{{examPatternId}}"
+          }
+        },
+        {
+          "name": "PUT Edit Instruction",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"instructionDescription\": \"Updated exam instruction text.\",\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/test-configuration/exam-patterns/{{examPatternId}}"
+          }
+        },
+        {
+          "name": "PATCH Update Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"INACTIVE\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/test-configuration/exam-patterns/status/{{examPatternId}}"
+          }
+        },
+        {
+          "name": "DELETE Instruction",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/test-configuration/exam-patterns/{{examPatternId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Section Management",
+      "item": [
+        {
+          "name": "POST Create Section",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.data?._id) pm.collectionVariables.set('sectionId', j.data._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sectionName\": \"English Comprehension\",\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/test-configuration/sections"
+          }
+        },
+        {
+          "name": "GET List (search + status + sort A-Z)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/api/test-configuration/sections?page=1&limit=10&search=&status=ACTIVE&sortPreset=sectionName_az",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "test-configuration", "sections"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "" },
+                { "key": "status", "value": "ACTIVE" },
+                { "key": "sortPreset", "value": "sectionName_az" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET List - Section Name Z-A",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/api/test-configuration/sections?sortPreset=sectionName_za",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "test-configuration", "sections"],
+              "query": [{ "key": "sortPreset", "value": "sectionName_za" }]
+            }
+          }
+        },
+        {
+          "name": "GET List - Created On Oldest",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/api/test-configuration/sections?sortPreset=createdOn_oldest",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "test-configuration", "sections"],
+              "query": [{ "key": "sortPreset", "value": "createdOn_oldest" }]
+            }
+          }
+        },
+        {
+          "name": "GET Dropdown (Active)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/test-configuration/sections/dropdown"
+          }
+        },
+        {
+          "name": "GET View Details",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/test-configuration/sections/{{sectionId}}"
+          }
+        },
+        {
+          "name": "PUT Edit Section",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sectionName\": \"Reasoning Section\",\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/test-configuration/sections/{{sectionId}}"
+          }
+        },
+        {
+          "name": "PATCH Update Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"INACTIVE\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/test-configuration/sections/status/{{sectionId}}"
+          }
+        },
+        {
+          "name": "DELETE Section",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/test-configuration/sections/{{sectionId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Language Settings",
+      "item": [
+        {
+          "name": "POST Create Language",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.data?._id) pm.collectionVariables.set('languageId', j.data._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"languageName\": \"English\",\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/test-configuration/languages"
+          }
+        },
+        {
+          "name": "GET List (search + status)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/api/test-configuration/languages?page=1&limit=10&search=&status=ACTIVE",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "test-configuration", "languages"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "" },
+                { "key": "status", "value": "ACTIVE" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Dropdown (Active)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/test-configuration/languages/dropdown"
+          }
+        },
+        {
+          "name": "GET View Details",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/test-configuration/languages/{{languageId}}"
+          }
+        },
+        {
+          "name": "PUT Edit Language",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"languageName\": \"Tamil\",\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/test-configuration/languages/{{languageId}}"
+          }
+        },
+        {
+          "name": "PATCH Update Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"INACTIVE\"\n}"
+            },
+            "url": "{{BASE_URL}}/api/test-configuration/languages/status/{{languageId}}"
+          }
+        },
+        {
+          "name": "DELETE Language",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/test-configuration/languages/{{languageId}}"
+          }
+        }
+      ]
+    }
+  ]
+}

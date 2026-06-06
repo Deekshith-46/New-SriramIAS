@@ -1,0 +1,313 @@
+{
+  "info": {
+    "name": "Sriram IAS - Faculty Subject MAINS_ANSWER_WRITING CMS",
+    "description": "Academic CMS mains answer writing (category MAINS_ANSWER_WRITING). Run「0. Auth」first, then folders, then entries.\n\nNOTE: FACULTY_SUBJECT_MAINS_ANSWER_WRITING_API_SPEC.json is documentation only — do NOT import it into Postman. Import this file instead.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{SuperAdminToken}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "BASE_URL", "value": "http://localhost:5000" },
+    { "key": "SuperAdminToken", "value": "" },
+    { "key": "facultySubjectId", "value": "" },
+    { "key": "folderId", "value": "" },
+    { "key": "mainsAnswerWritingId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. Auth",
+      "item": [
+        {
+          "name": "Login Super Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "const token = j.token || j.data?.token;",
+                  "if (token) pm.collectionVariables.set('SuperAdminToken', token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{BASE_URL}}/api/auth/login-super-admin",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@sriram.com\",\n  \"password\": \"admin123\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "0.5 Dropdowns & Create Form",
+      "item": [
+        {
+          "name": "GET Faculty Subjects Dropdown (MAINS_ANSWER_WRITING)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?.[0]?._id) pm.collectionVariables.set('facultySubjectId', j.data[0]._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/faculty-subjects/dropdown?category=MAINS_ANSWER_WRITING"
+          }
+        },
+        {
+          "name": "GET Mains Answer Writing Create Form",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?.folders?.[0]?._id) pm.collectionVariables.set('folderId', j.data.folders[0]._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/mains-answer-writing/create-form?facultySubjectId={{facultySubjectId}}"
+          }
+        },
+        {
+          "name": "GET Folders (MAINS_ANSWER_WRITING)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?.[0]?._id) pm.collectionVariables.set('folderId', j.data[0]._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/folders?facultySubjectId={{facultySubjectId}}&category=MAINS_ANSWER_WRITING"
+          }
+        },
+        {
+          "name": "GET Folder Content Summary",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/folders/{{folderId}}/content-summary"
+          }
+        },
+        {
+          "name": "GET Dashboard Summary",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/mains-answer-writing/dashboard-summary?facultySubjectId={{facultySubjectId}}&folderId={{folderId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Folders (MAINS_ANSWER_WRITING)",
+      "item": [
+        {
+          "name": "POST Create Folder (MAINS_ANSWER_WRITING)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?._id) pm.collectionVariables.set('folderId', j.data._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{BASE_URL}}/api/faculty-subjects/content/folders",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"facultySubjectId\": \"{{facultySubjectId}}\",\n  \"category\": \"MAINS_ANSWER_WRITING\",\n  \"folderName\": \"UPSC Mains\",\n  \"description\": \"Mains answer writing folder\"\n}"
+            }
+          }
+        },
+        {
+          "name": "GET Content Tree",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/faculty-subjects/{{facultySubjectId}}/content-tree"
+          }
+        },
+        {
+          "name": "PUT Update Folder",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{BASE_URL}}/api/faculty-subjects/content/folders/{{folderId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"folderName\": \"UPSC Mains Updated\",\n  \"description\": \"Updated folder description\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Mains Answer Writing Entries",
+      "item": [
+        {
+          "name": "POST Create Entry (multipart)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?._id) pm.collectionVariables.set('mainsAnswerWritingId', j.data._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/mains-answer-writing",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "facultySubjectId", "value": "{{facultySubjectId}}", "type": "text" },
+                { "key": "folderId", "value": "{{folderId}}", "type": "text" },
+                { "key": "testName", "value": "UPSC Mains Test 1", "type": "text" },
+                { "key": "scheduleDate", "value": "2026-06-15", "type": "text" },
+                { "key": "durationPreset", "value": "60", "type": "text" },
+                { "key": "totalMarks", "value": "200", "type": "text" },
+                { "key": "resultDate", "value": "2026-06-20", "type": "text" },
+                {
+                  "key": "questionsText",
+                  "value": "1) Discuss the basic structure doctrine.\n2) Explain judicial review.",
+                  "type": "text"
+                },
+                { "key": "publishStatus", "value": "DRAFT", "type": "text" },
+                {
+                  "key": "pdf",
+                  "description": "Select PDF file (max 20 MB)",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET List Entries",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/mains-answer-writing?facultySubjectId={{facultySubjectId}}&folderId={{folderId}}"
+          }
+        },
+        {
+          "name": "GET Entry By Id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/mains-answer-writing/{{mainsAnswerWritingId}}"
+          }
+        },
+        {
+          "name": "PUT Update Entry (JSON)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{BASE_URL}}/api/mains-answer-writing/{{mainsAnswerWritingId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"testName\": \"UPSC Mains Test 1 (Updated)\",\n  \"totalMarks\": 250\n}"
+            }
+          }
+        },
+        {
+          "name": "PATCH Publish Status → PUBLISHED",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{BASE_URL}}/api/mains-answer-writing/{{mainsAnswerWritingId}}/publish-status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"publishStatus\": \"PUBLISHED\"\n}"
+            }
+          }
+        },
+        {
+          "name": "PATCH Publish Status → UNPUBLISHED",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{BASE_URL}}/api/mains-answer-writing/{{mainsAnswerWritingId}}/publish-status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"publishStatus\": \"UNPUBLISHED\"\n}"
+            }
+          }
+        },
+        {
+          "name": "GET List Published Only (student view filter)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/mains-answer-writing?facultySubjectId={{facultySubjectId}}&folderId={{folderId}}&publishStatus=PUBLISHED"
+          }
+        },
+        {
+          "name": "DELETE Entry",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/mains-answer-writing/{{mainsAnswerWritingId}}"
+          }
+        }
+      ]
+    }
+  ]
+}

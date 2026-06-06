@@ -1,7 +1,15 @@
 const User = require('../models/User');
 const Student = require('../models/Student');
 const Parent = require('../models/Parent');
+const BatchEnrollment = require('../models/BatchEnrollment');
+const Enrollment = require('../models/Enrollment');
 const { validate, validations } = require('../middleware/validation');
+const { ACTIVE_STUDENT, resolveParentInfoForStudent } = require('../utils/studentService');
+const {
+  NOT_DELETED,
+  ENROLLMENT_POPULATE,
+  formatEnrollment
+} = require('../utils/enrollmentErpHelpers');
 
 // @desc    Get User Profile
 // @route   GET /api/user/profile
@@ -64,41 +72,27 @@ exports.getStudentDetails = async (req, res) => {
       .populate('center', 'centerName centerCode name');
 
     // Get complete student profile
-    const student = await Student.findOne({ userId: user._id });
+    const student = await Student.findOne({ userId: user._id, ...ACTIVE_STUDENT });
 
     if (!student) {
       return res.status(404).json({ message: 'Student profile not found' });
     }
 
-    // Get parent information if available
-    let parentInfo = null;
-    if (student.parentMobile || student.parentEmail) {
-      const parentUser = await User.findOne({
-        $or: [
-          { email: student.parentEmail },
-          { mobile: student.parentMobile }
-        ],
-        role: 'parent'
-      }).select('-password');
+    const parentInfo = await resolveParentInfoForStudent(student);
 
-      if (parentUser) {
-        const parentRecord = await Parent.findOne({ userId: parentUser._id });
-        parentInfo = {
-          userId: parentUser._id,
-          name: parentUser.name,
-          email: parentUser.email,
-          mobile: parentUser.mobile,
-          isActive: parentUser.isActive,
-          linkedAt: parentRecord?.createdAt
-        };
-      }
-    }
+    const [batchEnrollments, courseEnrollments] = await Promise.all([
+      BatchEnrollment.find({ student: student._id, ...NOT_DELETED })
+        .populate(ENROLLMENT_POPULATE)
+        .sort({ enrollmentDate: -1 })
+        .lean(),
+      Enrollment.find({ userId: user._id })
+        .populate('courseId', 'courseId courseName title description')
+        .populate('centerId', 'centerName centerCode')
+        .select('-__v')
+        .lean()
+    ]);
 
-    // Get enrollment and course information
-    const Enrollment = require('../models/Enrollment');
-    const enrollments = await Enrollment.find({ studentId: student._id })
-      .populate('courseId', 'name description')
-      .select('-__v');
+    const batchEnrollmentRows = batchEnrollments.map((row) => formatEnrollment(row));
 
     res.json({
       success: true,
@@ -134,10 +128,25 @@ exports.getStudentDetails = async (req, res) => {
           updatedAt: student.updatedAt
         },
         // Parent account info (if added)
-        parent: parentInfo,
-        // Enrollment information
-        enrollments: enrollments || [],
-        totalEnrollments: enrollments?.length || 0
+        parent: parentInfo
+          ? {
+              userId: parentInfo.userId || null,
+              name: parentInfo.name || parentInfo.parentName,
+              email: parentInfo.email || parentInfo.parentEmail,
+              mobile: parentInfo.mobile || parentInfo.parentMobile,
+              isActive: parentInfo.isActive ?? null,
+              linkedAt: parentInfo.linkedAt || null
+            }
+          : null,
+        // ERP batch enrollments (BATxxx)
+        batchEnrollments: batchEnrollmentRows,
+        totalBatchEnrollments: batchEnrollmentRows.length,
+        // Online course enrollments (portal purchases)
+        courseEnrollments: courseEnrollments || [],
+        totalCourseEnrollments: courseEnrollments?.length || 0,
+        // Backward-compatible alias — batch enrollments for student app
+        enrollments: batchEnrollmentRows,
+        totalEnrollments: batchEnrollmentRows.length
       }
     });
   } catch (error) {

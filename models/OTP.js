@@ -15,7 +15,7 @@ const otpSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['student', 'parent', 'password_reset', 'admin_access'],
+    enum: ['student', 'student_signup', 'parent', 'password_reset', 'admin_access'],
     required: true
   },
   expiresAt: {

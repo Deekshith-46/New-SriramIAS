@@ -1,0 +1,168 @@
+{
+  "_readme": "NOT a Postman import file. This is API documentation only. Import FACULTY_SUBJECT_RECORDING_POSTMAN_COLLECTION.json into Postman instead.",
+  "name": "Faculty Subject CMS — RECORDING API",
+  "version": "1.0.0",
+  "description": "Academic CMS recordings under Faculty Subject folders (category RECORDING). Super Admin only.",
+  "baseUrl": "{{BASE_URL}}",
+  "auth": {
+    "type": "Bearer",
+    "header": "Authorization",
+    "tokenVariable": "SuperAdminToken"
+  },
+  "prerequisites": [
+    "FacultySubject with categories including RECORDING",
+    "SubjectContentFolder with category RECORDING",
+    "Batch linked via batch.facultySubjects[]",
+    "Topics linked on FacultySubject.topics[]"
+  ],
+  "enums": {
+    "visibility": ["VISIBILITY", "PUBLISHED", "DRAFT", "PRIVATE"],
+    "category": ["RECORDING"]
+  },
+  "upload": {
+    "fieldName": "recording",
+    "maxBytes": 104857600,
+    "allowedMimeTypes": [
+      "video/mp4",
+      "video/quicktime",
+      "video/x-matroska",
+      "video/x-msvideo",
+      "video/avi"
+    ],
+    "allowedExtensions": ["MP4", "MOV", "MKV", "AVI"]
+  },
+  "fields": {
+    "createAndUpdate": {
+      "batchId": { "type": "ObjectId", "required": true, "label": "Select Batch" },
+      "lessonName": { "type": "string", "required": true, "label": "Lesson Name" },
+      "centerId": { "type": "ObjectId", "required": true, "label": "Select Center" },
+      "topicId": { "type": "ObjectId", "required": true, "label": "Select Topic of Subject" },
+      "teacherId": { "type": "ObjectId", "required": true, "label": "Select Teacher", "note": "Must match FacultySubject.teacher" },
+      "tags": { "type": "string|array", "required": false, "label": "Tags", "format": "comma-separated or JSON array" },
+      "visibility": { "type": "enum", "required": true, "label": "Visibility" },
+      "recording": { "type": "file", "requiredOnCreate": true, "label": "Upload Recording" },
+      "description": { "type": "string", "required": false, "label": "Description" },
+      "facultySubjectId": { "type": "ObjectId", "required": true },
+      "folderId": { "type": "ObjectId", "required": true }
+    }
+  },
+  "superAdminActions": {
+    "view": "GET /api/recordings/:id",
+    "edit": "PUT /api/recordings/:id (multipart, optional new recording file)",
+    "delete": "DELETE /api/recordings/:id (soft delete + Cloudinary cleanup)",
+    "changeStatus": "PATCH /api/recordings/:id/visibility",
+    "playVideo": "POST /api/recordings/:id/play (returns videoUrl, increments viewCount)",
+    "totalViews": "viewCount on list/detail; folder summary totalViews"
+  },
+  "dependencyFlow": [
+    "GET /api/faculty-subjects/dropdown?category=RECORDING",
+    "POST /api/faculty-subjects/content/folders { category: RECORDING }",
+    "GET /api/folders?facultySubjectId=&category=RECORDING",
+    "GET /api/recordings/topics-dropdown?batchId=&facultySubjectId=",
+    "GET /api/batches/dropdown?facultySubjectId=",
+    "GET /api/centers/dropdown",
+    "POST /api/recordings (multipart)"
+  ],
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/recordings/topics-dropdown",
+      "query": ["batchId", "facultySubjectId"],
+      "description": "Topic dropdown after batch select. Resolves batch → facultySubject → subject → topics. facultySubjectId required if batch has multiple faculty subjects."
+    },
+    {
+      "method": "GET",
+      "path": "/api/recordings/create-form",
+      "query": ["facultySubjectId", "folderId"],
+      "description": "Form defaults, enums, topics (from faculty subject), teacher, folders, batches"
+    },
+    {
+      "method": "GET",
+      "path": "/api/recordings/dashboard-summary",
+      "query": ["facultySubjectId", "folderId", "batchId", "centerId"],
+      "description": "Counts by visibility + totalViews"
+    },
+    {
+      "method": "POST",
+      "path": "/api/recordings",
+      "contentType": "multipart/form-data",
+      "description": "Create recording (REC###)"
+    },
+    {
+      "method": "GET",
+      "path": "/api/recordings",
+      "query": ["facultySubjectId", "folderId", "visibility", "batchId", "centerId", "search", "page", "limit"],
+      "description": "List with durationLabel, viewCount"
+    },
+    {
+      "method": "GET",
+      "path": "/api/recordings/:id",
+      "description": "Full detail (no view increment)"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/recordings/:id",
+      "contentType": "multipart/form-data",
+      "description": "Partial update; optional new recording file"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/recordings/:id/visibility",
+      "body": { "visibility": "PUBLISHED" },
+      "description": "Change visibility status"
+    },
+    {
+      "method": "POST",
+      "path": "/api/recordings/:id/play",
+      "description": "Play video URL + increment viewCount"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/recordings/:id",
+      "description": "Soft delete"
+    }
+  ],
+  "folderEndpoints": {
+    "create": "POST /api/faculty-subjects/content/folders",
+    "list": "GET /api/folders?facultySubjectId=&category=RECORDING",
+    "contentSummary": "GET /api/folders/:id/content-summary",
+    "deleteBlocked": {
+      "status": 409,
+      "errorCode": "FOLDER_HAS_CONTENT",
+      "details": ["liveClassCount", "recordingCount", "contentCount"]
+    }
+  },
+  "createExample": {
+    "multipartFields": {
+      "facultySubjectId": "{{facultySubjectMongoId}}",
+      "folderId": "{{folderMongoId}}",
+      "batchId": "{{batchMongoId}}",
+      "lessonName": "Historical Background recording",
+      "centerId": "{{centerMongoId}}",
+      "topicId": "{{topicMongoId}}",
+      "teacherId": "{{teacherMongoId}}",
+      "tags": "prelims,history",
+      "visibility": "DRAFT",
+      "description": "Recording description",
+      "recording": "<binary video file>"
+    }
+  },
+  "errorCodes": [
+    "VALIDATION_REQUIRED_FIELDS",
+    "RECORDING_FILE_REQUIRED",
+    "FACULTY_SUBJECT_NOT_ACTIVE",
+    "FACULTY_SUBJECT_CATEGORY_DISABLED",
+    "FOLDER_INVALID_FOR_RECORDING",
+    "INVALID_TOPIC_ID",
+    "TOPIC_NOT_ON_FACULTY_SUBJECT",
+    "TOPIC_NOT_ACTIVE",
+    "INVALID_TEACHER_ID",
+    "TEACHER_FACULTY_MISMATCH",
+    "INVALID_VISIBILITY",
+    "RECORDING_NOT_FOUND",
+    "FOLDER_HAS_CONTENT"
+  ],
+  "postmanCollection": "FACULTY_SUBJECT_RECORDING_POSTMAN_COLLECTION.json",
+  "postmanImportNote": "Import FACULTY_SUBJECT_RECORDING_POSTMAN_COLLECTION.json (Postman Collection v2.1). Do NOT import this spec file into Postman.",
+  "relatedDocs": ["FACULTY_SUBJECT_COMPLETE.md", "FACULTY_SUBJECT_CMS_POSTMAN_COLLECTION.json"]
+}

@@ -1,5 +1,8 @@
 const mongoose = require('mongoose');
-const { FACULTY_CATEGORIES } = require('../utils/batchFacultyConstants');
+const {
+  FACULTY_CATEGORIES,
+  normalizeFacultyCategories
+} = require('../utils/batchFacultyConstants');
 
 const facultySubjectSchema = new mongoose.Schema(
   {
@@ -55,5 +58,11 @@ const facultySubjectSchema = new mongoose.Schema(
 
 facultySubjectSchema.index({ subject: 1, teacher: 1, status: 1, isDeleted: 1 });
 facultySubjectSchema.index({ subjectName: 1 });
+
+facultySubjectSchema.pre('save', function normalizeLegacyCategories() {
+  if (Array.isArray(this.categories) && this.categories.length) {
+    this.categories = normalizeFacultyCategories(this.categories);
+  }
+});
 
 module.exports = mongoose.model('FacultySubject', facultySubjectSchema);

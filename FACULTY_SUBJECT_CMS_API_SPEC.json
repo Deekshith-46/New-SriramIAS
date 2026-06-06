@@ -1,0 +1,262 @@
+{
+  "name": "Faculty Subject CMS API",
+  "version": "1.3.0",
+  "errorResponseShape": {
+    "description": "All CMS validation and business-rule errors use this shape (httpStatus mirrors HTTP code).",
+    "fields": {
+      "success": false,
+      "errorCode": "MACHINE_READABLE_CODE",
+      "message": "Short summary (legacy-friendly)",
+      "reason": "Plain-language explanation",
+      "httpStatus": 400,
+      "field": "optional body field name",
+      "details": "optional object with extra context",
+      "suggestions": ["actionable fix 1", "actionable fix 2"],
+      "conflictType": "CLASSROOM | FACULTY (409 schedule only)",
+      "requestedSession": { "date": "YYYY-MM-DD", "startTime": "HH:mm", "endTime": "HH:mm" },
+      "conflictWith": {
+        "liveClassId": "LVC001",
+        "classTitle": "...",
+        "date": "YYYY-MM-DD",
+        "startTime": "HH:mm",
+        "endTime": "HH:mm",
+        "recurrence": { "enabled": true, "summary": "DAILY from ... to ..." }
+      }
+    }
+  },
+  "errorCodes": {
+    "validation": [
+      "VALIDATION_REQUIRED_FIELDS",
+      "INVALID_BATCH_ID",
+      "BATCH_NOT_ACTIVE",
+      "BATCH_NOT_LINKED_TO_FACULTY_SUBJECT",
+      "CENTER_BATCH_MISMATCH",
+      "INVALID_CENTER_ID",
+      "CENTER_NOT_FOUND",
+      "INVALID_CLASSROOM_ID",
+      "CLASSROOM_NOT_ACTIVE",
+      "CLASSROOM_CENTER_MISMATCH",
+      "FACULTY_SUBJECT_NOT_ACTIVE",
+      "FACULTY_SUBJECT_NO_TEACHER",
+      "FOLDER_INVALID_FOR_LIVE_CLASS",
+      "INVALID_START_TIME",
+      "INVALID_TIMEZONE",
+      "INVALID_PUBLISH_STATUS",
+      "INVALID_CLASS_STATUS",
+      "INVALID_REPEAT_TYPE",
+      "RECURRENCE_WEEKDAYS_REQUIRED",
+      "RECURRENCE_INVALID_DATE_RANGE"
+    ],
+    "schedule409": ["CLASSROOM_SCHEDULE_CONFLICT", "FACULTY_SCHEDULE_CONFLICT"],
+    "folder409": ["FOLDER_HAS_LIVE_CLASSES"],
+    "notFound": ["LIVE_CLASS_NOT_FOUND"]
+  },
+  "enums": {
+    "publishStatus": ["DRAFT", "PUBLISHED", "UNPUBLISHED"],
+    "timezone": ["Asia/Kolkata", "Asia/Dubai", "Asia/Singapore", "UTC"],
+    "classStatus": ["UPCOMING", "ONGOING", "COMPLETED", "CANCELLED"]
+  },
+  "baseUrl": "{{BASE_URL}}",
+  "auth": {
+    "type": "Bearer",
+    "header": "Authorization",
+    "tokenVariable": "SuperAdminToken"
+  },
+  "requirements": {
+    "REQ-6": {
+      "title": "Folder delete validation",
+      "rule": "Cannot delete folder if any live class references folderId",
+      "endpoint": "DELETE /api/folders/:id",
+      "successStatus": 200,
+      "blockedStatus": 409,
+      "responseBlocked": {
+        "success": false,
+        "errorCode": "FOLDER_HAS_LIVE_CLASSES",
+        "message": "Cannot delete folder: 3 live class(es) still exist in this folder. Remove or move them first.",
+        "reason": "Folders with live classes cannot be deleted (REQ-6).",
+        "field": "folderId",
+        "details": { "liveClassCount": 3 },
+        "suggestions": ["Delete or move all live classes in this folder first."]
+      }
+    },
+    "REQ-7": {
+      "title": "Classroom clash detection",
+      "service": "checkClassroomAvailability",
+      "endpoints": ["POST /api/live-classes", "PUT /api/live-classes/:id"],
+      "blockedStatus": 409,
+      "overlapRule": "same date AND startA < endB AND startB < endA",
+      "responseBlocked": {
+        "success": false,
+        "errorCode": "CLASSROOM_SCHEDULE_CONFLICT",
+        "message": "Classroom is already booked on 2026-05-30 from 10:00 to 12:30 (conflicts with LVC001)",
+        "reason": "The selected classroom is already used by \"History Class\" (LVC001) at the same time. The existing class repeats (DAILY from 2026-05-30 to 2026-06-30), so other dates may also be blocked.",
+        "httpStatus": 409,
+        "conflictType": "CLASSROOM",
+        "requestedSession": { "date": "2026-05-30", "startTime": "10:00", "endTime": "12:30" },
+        "conflictWith": {
+          "liveClassId": "LVC001",
+          "classTitle": "History Class",
+          "date": "2026-05-30",
+          "startTime": "10:00",
+          "endTime": "12:30",
+          "recurrence": { "enabled": true, "summary": "DAILY from 2026-05-30 to 2026-06-30" }
+        },
+        "suggestions": [
+          "Choose a different classroomId.",
+          "Change startTime or duration.",
+          "Adjust recurrence or delete the conflicting class LVC001."
+        ]
+      },
+      "example": {
+        "existing": { "classroomId": "roomA", "date": "2026-05-29", "start": "10:00", "end": "12:00", "title": "History" },
+        "rejected": { "classroomId": "roomA", "date": "2026-05-29", "start": "10:30", "end": "12:30" }
+      }
+    },
+    "REQ-8": {
+      "title": "Faculty (teacher) clash detection",
+      "service": "checkFacultyAvailability",
+      "teacherSource": "FacultySubject.teacher",
+      "endpoints": ["POST /api/live-classes", "PUT /api/live-classes/:id"],
+      "blockedStatus": 409,
+      "responseBlocked": {
+        "success": false,
+        "errorCode": "FACULTY_SCHEDULE_CONFLICT",
+        "message": "Teacher is already scheduled on 2026-05-30 from 10:00 to 12:30 (conflicts with LVC001)",
+        "reason": "The teacher on this faculty subject is already teaching another class at the same time.",
+        "httpStatus": 409,
+        "conflictType": "FACULTY",
+        "requestedSession": { "date": "2026-05-30", "startTime": "10:00", "endTime": "12:30" },
+        "conflictWith": {
+          "liveClassId": "LVC001",
+          "classTitle": "History Class",
+          "facultySubjectName": "Indian Polity – Live & Test",
+          "date": "2026-05-30",
+          "startTime": "10:00",
+          "endTime": "12:30",
+          "recurrence": { "enabled": true, "summary": "DAILY from 2026-05-30 to 2026-06-30" }
+        },
+        "suggestions": [
+          "Change time or recurrence on the new class.",
+          "Use a faculty subject with a different teacher.",
+          "Reschedule the conflicting live class."
+        ]
+      },
+      "example": {
+        "existing": { "teacher": "Teacher A", "time": "10:00-12:00", "subject": "History" },
+        "rejected": { "teacher": "Teacher A", "time": "10:00-12:00", "subject": "Polity" }
+      }
+    }
+  },
+  "services": {
+    "scheduleConflictService": {
+      "path": "services/scheduleConflictService.js",
+      "exports": [
+        "assertFolderCanBeDeleted",
+        "checkClassroomAvailability",
+        "checkFacultyAvailability",
+        "runScheduleConflictChecks",
+        "expandSlotsForLiveClass"
+      ]
+    }
+  },
+  "dropdownApis": [
+    { "method": "GET", "path": "/api/faculty-subjects/dropdown", "query": ["category=LIVE_CLASS"] },
+    { "method": "GET", "path": "/api/folders", "query": ["facultySubjectId", "category=LIVE_CLASS"] },
+    { "method": "GET", "path": "/api/batches/dropdown", "query": ["facultySubjectId"] },
+    { "method": "GET", "path": "/api/centers/dropdown" },
+    { "method": "GET", "path": "/api/classrooms/dropdown", "query": ["centerId"] }
+  ],
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/live-classes/create-form",
+      "query": ["facultySubjectId", "folderId", "centerId"]
+    },
+    {
+      "method": "GET",
+      "path": "/api/live-classes/dashboard-summary",
+      "query": ["facultySubjectId", "folderId", "batchId", "centerId"]
+    },
+    {
+      "method": "GET",
+      "path": "/api/folders/:id/content-summary"
+    },
+    {
+      "method": "POST",
+      "path": "/api/faculty-subjects/content/folders",
+      "description": "Create content folder"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/faculty-subjects/content/folders/:id",
+      "description": "Update folderName, description, status",
+      "bodyExample": {
+        "folderName": "Prelims Live Class",
+        "description": "CMS test folder"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/folders",
+      "query": ["facultySubjectId", "category", "search", "status", "page", "limit"]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/folders/:id",
+      "validation": "REQ-6"
+    },
+    {
+      "method": "GET",
+      "path": "/api/faculty-subjects/:id/content-tree",
+      "description": "Left panel navigation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/live-classes",
+      "validation": ["REQ-7", "REQ-8"],
+      "bodyExample": {
+        "facultySubjectId": "mongoId",
+        "folderId": "mongoId",
+        "batchId": "mongoId",
+        "centerId": "mongoId",
+        "classroomId": "mongoId",
+        "classTitle": "History",
+        "scheduledDate": "2026-05-29",
+        "startTime": "10:00:00",
+        "durationHours": 2,
+        "durationMinutes": 30,
+        "timezone": "Asia/Kolkata",
+        "attendanceEnabled": true,
+        "publishStatus": "DRAFT",
+        "recurrence": { "enabled": false }
+      }
+    },
+    {
+      "method": "PUT",
+      "path": "/api/live-classes/:id",
+      "validation": ["REQ-7", "REQ-8"],
+      "note": "Excludes self from clash check"
+    },
+    {
+      "method": "POST",
+      "path": "/api/live-classes/preview-recurrence",
+      "description": "Standalone preview (no live class id). Full scheduledDate, startTime, recurrence required."
+    },
+    {
+      "method": "POST",
+      "path": "/api/live-classes/:id/preview-recurrence",
+      "description": "Preview for one live class. Loads saved schedule; optional body overrides fields. Response includes liveClassId and sourceLiveClassId."
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/live-classes/:id/publish-status",
+      "body": { "publishStatus": "DRAFT | PUBLISHED | UNPUBLISHED" }
+    },
+    {
+      "method": "POST",
+      "path": "/api/live-classes/:id/duplicate"
+    }
+  ],
+  "postmanCollection": "FACULTY_SUBJECT_CMS_POSTMAN_COLLECTION.json",
+  "designDoc": "FACULTY_SUBJECT_CMS_DESIGN.md"
+}

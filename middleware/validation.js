@@ -42,7 +42,7 @@ const validations = {
   verifyOtp: Joi.object({
     mobile: Joi.string().pattern(/^[6-9]\d{9}$/),
     email: Joi.string().email(),
-    userId: Joi.string(),
+    userId: Joi.string().hex().length(24),
     otp: Joi.string().length(6).pattern(/^\d{6}$/).required()
       .messages({ 
         'string.length': 'OTP must be 6 digits',
@@ -65,8 +65,12 @@ const validations = {
 
   // Verify Student Signup OTP
   verifyStudentSignup: Joi.object({
-    userId: Joi.string().required()
-      .messages({ 'any.required': 'User ID is required' }),
+    userId: Joi.string().hex().length(24).required()
+      .messages({
+        'any.required': 'User ID is required',
+        'string.hex': 'User ID must be a valid id',
+        'string.length': 'User ID must be a valid id'
+      }),
     otp: Joi.string().length(6).pattern(/^\d{6}$/).required()
       .messages({ 
         'string.length': 'OTP must be 6 digits',
@@ -151,7 +155,7 @@ const validations = {
   }),
 
   createUnifiedUserStudent: Joi.object({
-    userType: Joi.string().valid('STUDENT').required(),
+    userType: Joi.string().valid('STUDENT').optional().default('STUDENT'),
     fullName: Joi.string().min(2).max(100).required().trim(),
     email: studentGmailEmail.required(),
     mobile: Joi.string()

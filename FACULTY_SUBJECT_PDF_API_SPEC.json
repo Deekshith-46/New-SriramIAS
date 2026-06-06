@@ -1,0 +1,156 @@
+{
+  "_readme": "NOT a Postman import file. Import FACULTY_SUBJECT_PDF_POSTMAN_COLLECTION.json into Postman instead.",
+  "name": "Faculty Subject CMS — PDF API",
+  "version": "1.0.0",
+  "description": "Academic CMS PDF resources under Faculty Subject folders (category PDF). Super Admin only. Multiple PDFs per folder.",
+  "baseUrl": "{{BASE_URL}}",
+  "auth": {
+    "type": "Bearer",
+    "header": "Authorization",
+    "tokenVariable": "SuperAdminToken"
+  },
+  "prerequisites": [
+    "FacultySubject with categories including PDF",
+    "SubjectContentFolder with category PDF",
+    "Batch linked via batch.facultySubjects[]"
+  ],
+  "enums": {
+    "visibility": ["VISIBILITY", "PUBLISHED", "DRAFT", "PRIVATE"],
+    "category": ["PDF"]
+  },
+  "visibilityBehavior": {
+    "VISIBILITY": "Listed in visibility-filtered student views (same enum as RECORDING module)",
+    "PUBLISHED": "Visible to enrolled students",
+    "DRAFT": "Admin only — not shown to students",
+    "PRIVATE": "Admin only — hidden from students"
+  },
+  "upload": {
+    "fieldName": "pdf",
+    "maxBytes": 10485760,
+    "allowedMimeTypes": ["application/pdf"],
+    "allowedExtensions": ["PDF"]
+  },
+  "fields": {
+    "createAndUpdate": {
+      "batchId": {
+        "type": "ObjectId",
+        "required": true,
+        "label": "Select Batch",
+        "dropdown": "GET /api/batches/dropdown?facultySubjectId={facultySubjectId}"
+      },
+      "pdfTitle": { "type": "string", "required": true, "label": "PDF Title" },
+      "tags": { "type": "string|array", "required": false, "label": "Tags", "format": "comma-separated or JSON array" },
+      "visibility": { "type": "enum", "required": true, "label": "Visibility" },
+      "pdf": { "type": "file", "requiredOnCreate": true, "label": "Upload PDF" },
+      "description": { "type": "string", "required": false, "label": "Description" },
+      "facultySubjectId": { "type": "ObjectId", "required": true },
+      "folderId": { "type": "ObjectId", "required": true }
+    }
+  },
+  "superAdminActions": {
+    "view": "GET /api/subject-pdfs/:id",
+    "edit": "PUT /api/subject-pdfs/:id (multipart, optional new pdf file)",
+    "delete": "DELETE /api/subject-pdfs/:id (soft delete + Cloudinary cleanup)",
+    "changeVisibility": "PATCH /api/subject-pdfs/:id/visibility",
+    "downloadPdf": "POST /api/subject-pdfs/:id/download (returns pdfUrl, increments viewCount)"
+  },
+  "dependencyFlow": [
+    "GET /api/faculty-subjects/dropdown?category=PDF",
+    "POST /api/faculty-subjects/content/folders { category: PDF }",
+    "GET /api/folders?facultySubjectId=&category=PDF",
+    "GET /api/batches/dropdown?facultySubjectId=",
+    "GET /api/subject-pdfs/create-form?facultySubjectId=&folderId=",
+    "POST /api/subject-pdfs (multipart)"
+  ],
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/subject-pdfs/create-form",
+      "query": ["facultySubjectId", "folderId"],
+      "description": "Form defaults, visibility enums, folders, batches (same batch dropdown as LIVE_CLASS/RECORDING)"
+    },
+    {
+      "method": "GET",
+      "path": "/api/subject-pdfs/dashboard-summary",
+      "query": ["facultySubjectId", "folderId", "batchId"],
+      "description": "Counts by visibility + totalViews"
+    },
+    {
+      "method": "POST",
+      "path": "/api/subject-pdfs",
+      "contentType": "multipart/form-data",
+      "description": "Create PDF entry (SPF###)"
+    },
+    {
+      "method": "GET",
+      "path": "/api/subject-pdfs",
+      "query": ["facultySubjectId", "folderId", "visibility", "batchId", "search", "page", "limit"],
+      "description": "List PDFs in folder (multiple PDFs per folder supported)"
+    },
+    {
+      "method": "GET",
+      "path": "/api/subject-pdfs/:id",
+      "description": "Full detail"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/subject-pdfs/:id",
+      "contentType": "multipart/form-data",
+      "description": "Partial update; optional new pdf file"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/subject-pdfs/:id/visibility",
+      "body": { "visibility": "PUBLISHED" },
+      "description": "Change visibility status"
+    },
+    {
+      "method": "POST",
+      "path": "/api/subject-pdfs/:id/download",
+      "description": "Returns pdfUrl + increments viewCount"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/subject-pdfs/:id",
+      "description": "Soft delete"
+    }
+  ],
+  "folderEndpoints": {
+    "create": "POST /api/faculty-subjects/content/folders",
+    "list": "GET /api/folders?facultySubjectId=&category=PDF",
+    "contentSummary": "GET /api/folders/:id/content-summary",
+    "contentTree": "GET /api/faculty-subjects/:id/content-tree",
+    "deleteBlocked": {
+      "status": 409,
+      "errorCode": "FOLDER_HAS_CONTENT",
+      "details": ["liveClassCount", "recordingCount", "mainsAnswerWritingCount", "subjectPdfCount", "contentCount"]
+    }
+  },
+  "createExample": {
+    "multipartFields": {
+      "facultySubjectId": "{{facultySubjectMongoId}}",
+      "folderId": "{{folderMongoId}}",
+      "batchId": "{{batchMongoId}}",
+      "pdfTitle": "Indian Polity Notes Chapter 1",
+      "tags": "polity,notes,prelims",
+      "visibility": "DRAFT",
+      "description": "PDF description",
+      "pdf": "<binary PDF file>"
+    }
+  },
+  "errorCodes": [
+    "VALIDATION_REQUIRED_FIELDS",
+    "PDF_FILE_REQUIRED",
+    "FACULTY_SUBJECT_NOT_ACTIVE",
+    "FACULTY_SUBJECT_CATEGORY_DISABLED",
+    "FOLDER_INVALID_FOR_PDF",
+    "INVALID_VISIBILITY",
+    "PDF_TITLE_REQUIRED",
+    "SUBJECT_PDF_NOT_FOUND",
+    "BATCH_NOT_LINKED_TO_FACULTY_SUBJECT",
+    "FOLDER_HAS_CONTENT"
+  ],
+  "postmanCollection": "FACULTY_SUBJECT_PDF_POSTMAN_COLLECTION.json",
+  "postmanImportNote": "Import FACULTY_SUBJECT_PDF_POSTMAN_COLLECTION.json (Postman Collection v2.1). Do NOT import this spec file into Postman.",
+  "relatedDocs": ["FACULTY_SUBJECT_PDF.md", "FACULTY_SUBJECT_COMPLETE.md"]
+}

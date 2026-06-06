@@ -1,0 +1,468 @@
+{
+  "info": {
+    "name": "Sriram IAS - Faculty Subject CMS (Complete)",
+    "description": "Academic CMS: folders, live classes, recurrence preview, clash detection (REQ 6-8). Run「0. Auth」first. Import alongside BATCH_FACULTY_SUBJECT_POSTMAN_COLLECTION.json for base FacultySubject setup.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{SuperAdminToken}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "BASE_URL", "value": "http://localhost:5000" },
+    { "key": "SuperAdminToken", "value": "" },
+    { "key": "facultySubjectId", "value": "" },
+    { "key": "folderId", "value": "" },
+    { "key": "liveClassId", "value": "" },
+    { "key": "batchId", "value": "" },
+    { "key": "centerId", "value": "" },
+    { "key": "classroomId", "value": "" },
+    { "key": "subjectId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. Auth",
+      "item": [
+        {
+          "name": "Login Super Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "const token = j.token || j.data?.token;",
+                  "if (token) pm.collectionVariables.set('SuperAdminToken', token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{BASE_URL}}/api/auth/login-super-admin",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@sriram.com\",\n  \"password\": \"admin123\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "0.5 CMS Form & Dropdowns",
+      "item": [
+        {
+          "name": "GET Faculty Subjects Dropdown (LIVE_CLASS)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?.[0]?._id) pm.collectionVariables.set('facultySubjectId', j.data[0]._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/faculty-subjects/dropdown?category=LIVE_CLASS"
+          }
+        },
+        {
+          "name": "GET Folders (by faculty subject)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?.[0]?._id) pm.collectionVariables.set('folderId', j.data[0]._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/folders?facultySubjectId={{facultySubjectId}}&category=LIVE_CLASS"
+          }
+        },
+        {
+          "name": "GET Batches Dropdown (by faculty subject)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?.[0]?._id) pm.collectionVariables.set('batchId', j.data[0]._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/batches/dropdown?facultySubjectId={{facultySubjectId}}"
+          }
+        },
+        {
+          "name": "GET Centers Dropdown",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?.[0]?._id) pm.collectionVariables.set('centerId', j.data[0]._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/centers/dropdown"
+          }
+        },
+        {
+          "name": "GET Classrooms Dropdown (by center)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?.[0]?._id) pm.collectionVariables.set('classroomId', j.data[0]._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/classrooms/dropdown?centerId={{centerId}}"
+          }
+        },
+        {
+          "name": "GET Live Class Create Form",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/live-classes/create-form?facultySubjectId={{facultySubjectId}}&centerId={{centerId}}"
+          }
+        },
+        {
+          "name": "GET Live Classes Dashboard Summary",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/live-classes/dashboard-summary?facultySubjectId={{facultySubjectId}}"
+          }
+        },
+        {
+          "name": "GET Folder Content Summary",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/folders/{{folderId}}/content-summary"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Content Folders",
+      "item": [
+        {
+          "name": "POST Create Folder (LIVE_CLASS)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?._id) pm.collectionVariables.set('folderId', j.data._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{BASE_URL}}/api/faculty-subjects/content/folders",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"facultySubjectId\": \"{{facultySubjectId}}\",\n  \"category\": \"LIVE_CLASS\",\n  \"folderName\": \"Prelims Live Class\",\n  \"description\": \"CMS test folder\"\n}"
+            }
+          }
+        },
+        {
+          "name": "PUT Update Folder (folderName + description)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{BASE_URL}}/api/faculty-subjects/content/folders/{{folderId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"folderName\": \"Prelims Live Class\",\n  \"description\": \"CMS test folder\"\n}"
+            }
+          }
+        },
+        {
+          "name": "PUT Update Folder (alias /api/folders/:id)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{BASE_URL}}/api/folders/{{folderId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"folderName\": \"Prelims Live Class\",\n  \"description\": \"CMS test folder\"\n}"
+            }
+          }
+        },
+        {
+          "name": "GET List Folders",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/folders?facultySubjectId={{facultySubjectId}}&category=LIVE_CLASS"
+          }
+        },
+        {
+          "name": "GET Content Tree (left nav)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/faculty-subjects/{{facultySubjectId}}/content-tree"
+          }
+        },
+        {
+          "name": "DELETE Folder (expect 409 if live classes exist) — REQ 6",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/folders/{{folderId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Live Classes",
+      "item": [
+        {
+          "name": "POST Preview Recurrence (standalone — no live class id)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{BASE_URL}}/api/live-classes/preview-recurrence",
+            "description": "Calculator only. Does not load a saved live class.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scheduledDate\": \"2026-05-29\",\n  \"startTime\": \"10:00:00\",\n  \"recurrence\": {\n    \"enabled\": true,\n    \"repeatType\": \"WEEKLY\",\n    \"startDate\": \"2026-05-29\",\n    \"endDate\": \"2026-07-29\",\n    \"weekdays\": [\"MON\", \"WED\", \"FRI\"]\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "POST Preview Recurrence for Live Class (by _id)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{BASE_URL}}/api/live-classes/{{liveClassId}}/preview-recurrence",
+            "description": "Uses saved class schedule by default. Optional body overrides recurrence/date/time before preview.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recurrence\": {\n    \"enabled\": true,\n    \"repeatType\": \"WEEKLY\",\n    \"startDate\": \"2026-05-29\",\n    \"endDate\": \"2026-07-29\",\n    \"weekdays\": [\"MON\", \"WED\", \"FRI\"]\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "POST Preview Recurrence for Live Class (empty body — use saved schedule)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/live-classes/{{liveClassId}}/preview-recurrence",
+            "description": "No body: previews exactly what is stored on LVC00x."
+          }
+        },
+        {
+          "name": "POST Create Live Class (History 10-12) — baseline",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?._id) pm.collectionVariables.set('liveClassId', j.data._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{BASE_URL}}/api/live-classes",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"facultySubjectId\": \"{{facultySubjectId}}\",\n  \"folderId\": \"{{folderId}}\",\n  \"batchId\": \"{{batchId}}\",\n  \"centerId\": \"{{centerId}}\",\n  \"classroomId\": \"{{classroomId}}\",\n  \"classTitle\": \"History Class\",\n  \"scheduledDate\": \"2026-05-29\",\n  \"startTime\": \"10:00:00\",\n  \"durationHours\": 2,\n  \"durationMinutes\": 30,\n  \"durationSeconds\": 0,\n  \"timezone\": \"Asia/Kolkata\",\n  \"attendanceEnabled\": true,\n  \"publishStatus\": \"DRAFT\",\n  \"recurrence\": { \"enabled\": false }\n}"
+            }
+          }
+        },
+        {
+          "name": "POST Create Live Class — CLASSROOM clash (expect 409) — REQ 7",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{BASE_URL}}/api/live-classes",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"facultySubjectId\": \"{{facultySubjectId}}\",\n  \"folderId\": \"{{folderId}}\",\n  \"batchId\": \"{{batchId}}\",\n  \"centerId\": \"{{centerId}}\",\n  \"classroomId\": \"{{classroomId}}\",\n  \"classTitle\": \"Overlapping Class\",\n  \"scheduledDate\": \"2026-05-29\",\n  \"startTime\": \"10:30:00\",\n  \"durationHours\": 2,\n  \"durationMinutes\": 0,\n  \"durationSeconds\": 0,\n  \"timezone\": \"Asia/Kolkata\",\n  \"publishStatus\": \"DRAFT\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST Create Live Class — same teacher overlap (expect 409) — REQ 8",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{BASE_URL}}/api/live-classes",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"facultySubjectId\": \"{{facultySubjectId}}\",\n  \"folderId\": \"{{folderId}}\",\n  \"batchId\": \"{{batchId}}\",\n  \"centerId\": \"{{centerId}}\",\n  \"classroomId\": \"{{classroomId}}\",\n  \"classTitle\": \"Polity Class Same Time\",\n  \"scheduledDate\": \"2026-05-29\",\n  \"startTime\": \"10:00:00\",\n  \"durationHours\": 2,\n  \"durationMinutes\": 0,\n  \"durationSeconds\": 0,\n  \"timezone\": \"Asia/Kolkata\",\n  \"publishStatus\": \"DRAFT\"\n}"
+            }
+          }
+        },
+        {
+          "name": "GET List Live Classes",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/live-classes?facultySubjectId={{facultySubjectId}}&search=History"
+          }
+        },
+        {
+          "name": "PATCH Publish Live Class",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{BASE_URL}}/api/live-classes/{{liveClassId}}/publish-status",
+            "body": { "mode": "raw", "raw": "{ \"publishStatus\": \"PUBLISHED\" }" }
+          }
+        },
+        {
+          "name": "POST Duplicate Live Class",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?._id) pm.collectionVariables.set('liveClassId', j.data._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/live-classes/{{liveClassId}}/duplicate",
+            "description": "No body required. Title becomes \"{original} (Copy)\". Optional: { \"classTitle\": \"Custom title\" }"
+          }
+        },
+        {
+          "name": "DELETE Live Class (soft)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/live-classes/{{liveClassId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Validation Scenarios (REQ 6-8)",
+      "item": [
+        {
+          "name": "REQ-6 Delete folder with classes → 409",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/folders/{{folderId}}",
+            "description": "Run after creating a live class in this folder. Expect 409 with liveClassCount."
+          }
+        },
+        {
+          "name": "REQ-7 Classroom clash response shape",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{BASE_URL}}/api/live-classes",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"facultySubjectId\": \"{{facultySubjectId}}\",\n  \"folderId\": \"{{folderId}}\",\n  \"batchId\": \"{{batchId}}\",\n  \"centerId\": \"{{centerId}}\",\n  \"classroomId\": \"{{classroomId}}\",\n  \"classTitle\": \"Clash Test\",\n  \"scheduledDate\": \"2026-05-29\",\n  \"startTime\": \"10:30:00\",\n  \"durationHours\": 2,\n  \"timezone\": \"Asia/Kolkata\"\n}"
+            },
+            "description": "Expect: success false, conflictType CLASSROOM, conflictWith object"
+          }
+        },
+        {
+          "name": "REQ-8 Faculty clash — different room same time",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{BASE_URL}}/api/live-classes",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"facultySubjectId\": \"{{facultySubjectId}}\",\n  \"folderId\": \"{{folderId}}\",\n  \"batchId\": \"{{batchId}}\",\n  \"centerId\": \"{{centerId}}\",\n  \"classroomId\": \"<OTHER_CLASSROOM_ID>\",\n  \"classTitle\": \"Same Teacher Clash\",\n  \"scheduledDate\": \"2026-05-29\",\n  \"startTime\": \"10:00:00\",\n  \"durationHours\": 2,\n  \"timezone\": \"Asia/Kolkata\"\n}"
+            },
+            "description": "Set classroomId to a different active room. Same facultySubject teacher → 409 FACULTY."
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const AdminAccess = require('../models/AdminAccess');
 const Role = require('../models/Role');
 const Center = require('../models/Center');
@@ -332,6 +333,62 @@ exports.deleteAdminAccess = async (req, res) => {
     });
   } catch (error) {
     console.error('Delete admin access error:', error);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+};
+
+/**
+ * Dropdown: Mentor Admins only (roleCode = MENTOR_ADMIN)
+ * GET /api/admin/admin-access/mentors/dropdown?search=&centerId=
+ */
+exports.getMentorAdminsDropdown = async (req, res) => {
+  try {
+    const { search = '', centerId } = req.query;
+
+    const role = await Role.findOne({ roleCode: 'MENTOR_ADMIN', status: 'ACTIVE' })
+      .select('_id roleTitle roleCode')
+      .lean();
+
+    if (!role) {
+      return res.json({ success: true, count: 0, data: [] });
+    }
+
+    const query = { roleId: role._id, accountStatus: true };
+
+    if (centerId && mongoose.Types.ObjectId.isValid(centerId)) {
+      query.centerId = centerId;
+    }
+
+    const term = String(search || '').trim();
+    if (term) {
+      const regex = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      query.$or = [{ fullName: regex }, { officialEmail: regex }, { employeeId: regex }];
+    }
+
+    const rows = await AdminAccess.find(query)
+      .select('_id fullName officialEmail employeeId centerId roleId accountStatus')
+      .populate('centerId', 'centerName centerCode name')
+      .populate('roleId', 'roleTitle roleCode')
+      .sort({ fullName: 1 })
+      .lean();
+
+    res.json({
+      success: true,
+      count: rows.length,
+      data: rows.map((a) => ({
+        _id: a._id,
+        fullName: a.fullName,
+        officialEmail: a.officialEmail,
+        employeeId: a.employeeId,
+        centerId: a.centerId?._id || a.centerId,
+        centerName: a.centerId?.centerName || a.centerId?.name || null,
+        centerCode: a.centerId?.centerCode || null,
+        roleCode: a.roleId?.roleCode || 'MENTOR_ADMIN',
+        roleTitle: a.roleId?.roleTitle || 'Mentor Admin'
+      }))
+    });
+  } catch (error) {
+    console.error('Mentor admins dropdown error:', error);
     res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 };

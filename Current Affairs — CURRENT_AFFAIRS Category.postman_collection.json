@@ -1,0 +1,679 @@
+{
+  "info": {
+    "_postman_id": "aca0f5e6-4793-4a9c-aae2-d499cc911e6b",
+    "name": "Current Affairs — CURRENT_AFFAIRS Category",
+    "description": "Postman collection for **Current Affairs** category only.\n\nAPI: `POST /api/current-affairs`\n\nRequired fields: category, title, year, month, description\nPDF: optional\n\nSet `baseUrl` and `authToken` in collection variables before use.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "51648140",
+    "_collection_link": "https://go.postman.co/collection/51648140-aca0f5e6-4793-4a9c-aae2-d499cc911e6b?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "2. Dropdowns & Template",
+      "item": [
+        {
+          "name": "Get Mains Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/current-affairs/daily-practice/mains-categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "current-affairs",
+                "daily-practice",
+                "mains-categories"
+              ]
+            },
+            "description": "Populates **Mains Category** dropdown (Prelims, Mains, Both)."
+          },
+          "response": []
+        },
+        {
+          "name": "Download Sample Template (XLSX)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/current-affairs/daily-practice/questions/bulk-template",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "current-affairs",
+                "daily-practice",
+                "questions",
+                "bulk-template"
+              ]
+            },
+            "description": "Downloads `daily-practice-questions-template.xlsx`.\n\nColumns: questionNumber, question, optionA, optionB, optionC, optionD, correctAnswer, explanation"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Create Paper (Save button)",
+      "item": [
+        {
+          "name": "Create Daily Practice Paper + Questions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data && json.data.paper && json.data.paper._id) {",
+                  "    pm.collectionVariables.set('currentAffairId', json.data.paper._id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mainsCategory\": \"Prelims\",\n  \"paperName\": \"Daily Practice Set 1\",\n  \"year\": 2026,\n  \"month\": \"June\",\n  \"date\": \"2026-06-01\",\n  \"sectionFrom\": 1,\n  \"sectionTo\": 3,\n  \"description\": \"June daily practice questions\",\n  \"questions\": [\n    {\n      \"questionNumber\": 1,\n      \"question\": \"What is the capital of India?\",\n      \"optionA\": \"Mumbai\",\n      \"optionB\": \"New Delhi\",\n      \"optionC\": \"Kolkata\",\n      \"optionD\": \"Chennai\",\n      \"correctAnswer\": \"B\",\n      \"explanation\": \"New Delhi is the capital of India\"\n    },\n    {\n      \"questionNumber\": 2,\n      \"question\": \"Which river is the longest in India?\",\n      \"optionA\": \"Yamuna\",\n      \"optionB\": \"Godavari\",\n      \"optionC\": \"Ganga\",\n      \"optionD\": \"Narmada\",\n      \"correctAnswer\": \"C\",\n      \"explanation\": \"Ganga is the longest river in India\"\n    },\n    {\n      \"questionNumber\": 3,\n      \"question\": \"When did India get independence?\",\n      \"optionA\": \"1945\",\n      \"optionB\": \"1947\",\n      \"optionC\": \"1950\",\n      \"optionD\": \"1952\",\n      \"correctAnswer\": \"B\",\n      \"explanation\": \"India got independence on 15 August 1947\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/current-affairs/daily-practice",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "current-affairs",
+                "daily-practice"
+              ]
+            },
+            "description": "Matches the UI **Save** flow with section From=1, To=3 and 3 manual questions."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Bulk Upload Questions",
+      "item": [
+        {
+          "name": "Bulk Upload (XLSX / CSV)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "description": "Required — .xlsx or .csv (max 15 MB). Use Download Sample Template first.",
+                  "type": "file",
+                  "value": null
+                },
+                {
+                  "key": "replace",
+                  "value": "false",
+                  "description": "Set true to replace all existing questions",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}/questions/bulk-upload",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "current-affairs",
+                "{{currentAffairId}}",
+                "questions",
+                "bulk-upload"
+              ]
+            },
+            "description": "Matches **Bulk Upload Questions → Import** modal.\n\nAllowed: XLSX, CSV | Max: 15 MB"
+          },
+          "response": []
+        },
+        {
+          "name": "Bulk Upload (Replace existing)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "value": null
+                },
+                {
+                  "key": "replace",
+                  "value": "true",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}/questions/bulk-upload",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "current-affairs",
+                "{{currentAffairId}}",
+                "questions",
+                "bulk-upload"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Questions",
+      "item": [
+        {
+          "name": "Get Questions by Paper",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}/questions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "current-affairs",
+                "{{currentAffairId}}",
+                "questions"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add Single Question (with optional image)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "questionNumber",
+                  "value": "4",
+                  "type": "text"
+                },
+                {
+                  "key": "question",
+                  "value": "Who is known as the Father of the Indian Constitution?",
+                  "type": "text"
+                },
+                {
+                  "key": "optionA",
+                  "value": "Mahatma Gandhi",
+                  "type": "text"
+                },
+                {
+                  "key": "optionB",
+                  "value": "Jawaharlal Nehru",
+                  "type": "text"
+                },
+                {
+                  "key": "optionC",
+                  "value": "Dr. B.R. Ambedkar",
+                  "type": "text"
+                },
+                {
+                  "key": "optionD",
+                  "value": "Sardar Patel",
+                  "type": "text"
+                },
+                {
+                  "key": "correctAnswer",
+                  "value": "C",
+                  "type": "text"
+                },
+                {
+                  "key": "explanation",
+                  "value": "Dr. B.R. Ambedkar chaired the drafting committee.",
+                  "type": "text"
+                },
+                {
+                  "key": "image",
+                  "description": "Optional — JPG, PNG, WEBP | Max 5 MB",
+                  "type": "file",
+                  "value": null,
+                  "disabled": true
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}/questions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "current-affairs",
+                "{{currentAffairId}}",
+                "questions"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "6. Paper CRUD",
+      "item": [
+        {
+          "name": "Get Paper By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "current-affairs",
+                "{{currentAffairId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Daily Practice Papers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/current-affairs?category=DAILY_PRACTICE_QUESTIONS&page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "current-affairs"
+              ],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "DAILY_PRACTICE_QUESTIONS"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "current-affairs",
+                "{{currentAffairId}}",
+                "status"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Paper (Hard)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "current-affairs",
+                "{{currentAffairId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Create - Current Affairs",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 201) {",
+              "  pm.collectionVariables.set('currentAffairId', pm.response.json().data._id);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "category",
+              "value": "CURRENT_AFFAIRS",
+              "type": "text"
+            },
+            {
+              "key": "title",
+              "value": "Union Budget Highlights",
+              "type": "text"
+            },
+            {
+              "key": "year",
+              "value": "2025",
+              "type": "text"
+            },
+            {
+              "key": "month",
+              "value": "June",
+              "type": "text"
+            },
+            {
+              "key": "description",
+              "value": "Daily current affairs summary for June 2025.",
+              "type": "text"
+            },
+            {
+              "key": "pdf",
+              "description": "Optional PDF (max 10 MB)",
+              "type": "file",
+              "value": null
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/current-affairs",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "current-affairs"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get All - Current Affairs Category",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/current-affairs?category=CURRENT_AFFAIRS&page=1&limit=10",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "current-affairs"
+          ],
+          "query": [
+            {
+              "key": "category",
+              "value": "CURRENT_AFFAIRS"
+            },
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            },
+            {
+              "key": "year",
+              "value": "2025",
+              "disabled": true
+            },
+            {
+              "key": "month",
+              "value": "June",
+              "disabled": true
+            },
+            {
+              "key": "search",
+              "value": "",
+              "disabled": true
+            },
+            {
+              "key": "status",
+              "value": "true",
+              "disabled": true
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get By ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "current-affairs",
+            "{{currentAffairId}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Update - Current Affairs",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "title",
+              "value": "Updated Current Affairs Title",
+              "type": "text"
+            },
+            {
+              "key": "description",
+              "value": "Updated description.",
+              "type": "text"
+            },
+            {
+              "key": "pdf",
+              "description": "Optional — only if replacing PDF",
+              "type": "file",
+              "value": null,
+              "disabled": true
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "current-affairs",
+            "{{currentAffairId}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Update Status",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": false\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}/status",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "current-affairs",
+            "{{currentAffairId}}",
+            "status"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Delete",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "current-affairs",
+            "{{currentAffairId}}"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000"
+    },
+    {
+      "key": "authToken",
+      "value": ""
+    },
+    {
+      "key": "currentAffairId",
+      "value": ""
+    }
+  ]
+}

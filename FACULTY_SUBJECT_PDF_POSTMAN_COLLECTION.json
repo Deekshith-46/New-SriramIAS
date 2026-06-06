@@ -1,0 +1,322 @@
+{
+  "info": {
+    "name": "Sriram IAS - Faculty Subject PDF CMS",
+    "description": "Academic CMS PDFs (category PDF). Run「0. Auth」first, create folder, then add multiple PDFs.\n\nBatch dropdown: GET /api/batches/dropdown?facultySubjectId=\n\nNOTE: FACULTY_SUBJECT_PDF_API_SPEC.json is documentation only.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{SuperAdminToken}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "BASE_URL", "value": "http://localhost:5000" },
+    { "key": "SuperAdminToken", "value": "" },
+    { "key": "facultySubjectId", "value": "" },
+    { "key": "folderId", "value": "" },
+    { "key": "subjectPdfId", "value": "" },
+    { "key": "batchId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. Auth",
+      "item": [
+        {
+          "name": "Login Super Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "const token = j.token || j.data?.token;",
+                  "if (token) pm.collectionVariables.set('SuperAdminToken', token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{BASE_URL}}/api/auth/login-super-admin",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@sriram.com\",\n  \"password\": \"admin123\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "0.5 Dropdowns & Create Form",
+      "item": [
+        {
+          "name": "GET Faculty Subjects Dropdown (PDF)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?.[0]?._id) pm.collectionVariables.set('facultySubjectId', j.data[0]._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/faculty-subjects/dropdown?category=PDF"
+          }
+        },
+        {
+          "name": "GET Batches Dropdown",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?.[0]?._id) pm.collectionVariables.set('batchId', j.data[0]._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/batches/dropdown?facultySubjectId={{facultySubjectId}}"
+          }
+        },
+        {
+          "name": "GET PDF Create Form",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?.folders?.[0]?._id) pm.collectionVariables.set('folderId', j.data.folders[0]._id);",
+                  "if (j?.data?.batches?.[0]?._id) pm.collectionVariables.set('batchId', j.data.batches[0]._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/subject-pdfs/create-form?facultySubjectId={{facultySubjectId}}"
+          }
+        },
+        {
+          "name": "GET Folders (PDF)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?.[0]?._id) pm.collectionVariables.set('folderId', j.data[0]._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/folders?facultySubjectId={{facultySubjectId}}&category=PDF"
+          }
+        },
+        {
+          "name": "GET Folder Content Summary",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/folders/{{folderId}}/content-summary"
+          }
+        },
+        {
+          "name": "GET Dashboard Summary",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/subject-pdfs/dashboard-summary?facultySubjectId={{facultySubjectId}}&folderId={{folderId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Folders (PDF)",
+      "item": [
+        {
+          "name": "POST Create Folder (PDF)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?._id) pm.collectionVariables.set('folderId', j.data._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{BASE_URL}}/api/faculty-subjects/content/folders",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"facultySubjectId\": \"{{facultySubjectId}}\",\n  \"category\": \"PDF\",\n  \"folderName\": \"Resource PDF\",\n  \"description\": \"PDF resource folder\"\n}"
+            }
+          }
+        },
+        {
+          "name": "GET Content Tree",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/faculty-subjects/{{facultySubjectId}}/content-tree"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Subject PDFs",
+      "item": [
+        {
+          "name": "POST Create PDF (multipart)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j?.data?._id) pm.collectionVariables.set('subjectPdfId', j.data._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/subject-pdfs",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "facultySubjectId", "value": "{{facultySubjectId}}", "type": "text" },
+                { "key": "folderId", "value": "{{folderId}}", "type": "text" },
+                { "key": "batchId", "value": "{{batchId}}", "type": "text" },
+                { "key": "pdfTitle", "value": "Indian Polity Notes Chapter 1", "type": "text" },
+                { "key": "tags", "value": "polity,notes", "type": "text" },
+                { "key": "visibility", "value": "DRAFT", "type": "text" },
+                { "key": "description", "value": "PDF description", "type": "text" },
+                {
+                  "key": "pdf",
+                  "description": "Select PDF file (max 10 MB)",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET List PDFs in Folder",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/subject-pdfs?facultySubjectId={{facultySubjectId}}&folderId={{folderId}}"
+          }
+        },
+        {
+          "name": "GET PDF By Id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/subject-pdfs/{{subjectPdfId}}"
+          }
+        },
+        {
+          "name": "PUT Update PDF (JSON)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{BASE_URL}}/api/subject-pdfs/{{subjectPdfId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pdfTitle\": \"Indian Polity Notes Chapter 1 (Updated)\",\n  \"description\": \"Updated description\"\n}"
+            }
+          }
+        },
+        {
+          "name": "PATCH Visibility → PUBLISHED",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{BASE_URL}}/api/subject-pdfs/{{subjectPdfId}}/visibility",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"visibility\": \"PUBLISHED\"\n}"
+            }
+          }
+        },
+        {
+          "name": "PATCH Visibility → PRIVATE",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{BASE_URL}}/api/subject-pdfs/{{subjectPdfId}}/visibility",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"visibility\": \"PRIVATE\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST Download PDF (viewCount++)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/subject-pdfs/{{subjectPdfId}}/download"
+          }
+        },
+        {
+          "name": "GET List Published Only",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/subject-pdfs?facultySubjectId={{facultySubjectId}}&folderId={{folderId}}&visibility=PUBLISHED"
+          }
+        },
+        {
+          "name": "DELETE PDF",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/subject-pdfs/{{subjectPdfId}}"
+          }
+        }
+      ]
+    }
+  ]
+}

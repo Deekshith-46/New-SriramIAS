@@ -1,0 +1,403 @@
+{
+  "info": {
+    "_postman_id": "dpq-ca-cms-2026",
+    "name": "Current Affairs — Daily Practice Questions",
+    "description": "Daily Practice Questions — **one create API** for manual OR bulk upload.\n\n## Create (no currentAffairId needed)\n`POST /api/current-affairs/daily-practice`\n\n**Option A — JSON + manual questions:** `Content-Type: application/json` with `questions[]`\n\n**Option B — form-data + bulk file:** `multipart/form-data` with paper fields + `file` (XLSX/CSV). No `currentAffairId`, no `sectionFrom`/`sectionTo` (derived from file).\n\nUse `POST /:id/questions/bulk-upload` only when **adding** questions to an existing set.\n\n## Delete entire set\n`DELETE /api/current-affairs/daily-practice/:id`\n\n## Bulk template columns\nQuestion No, Question, Option 1–4, Correct Answer, Explanation",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "superAdminEmail", "value": "admin@sriram.com" },
+    { "key": "superAdminPassword", "value": "admin123" },
+    { "key": "authToken", "value": "" },
+    { "key": "currentAffairId", "value": "" },
+    { "key": "questionId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Login Super Admin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{superAdminEmail}}\",\n  \"password\": \"{{superAdminPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login-super-admin"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  pm.collectionVariables.set('authToken', pm.response.json().token);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Dropdowns & Template",
+      "item": [
+        {
+          "name": "Get Mains Categories",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/current-affairs/daily-practice/mains-categories",
+            "description": "Returns PRELIMS and MAINS for Mains Category dropdown."
+          }
+        },
+        {
+          "name": "Download Bulk Template (XLSX)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/current-affairs/daily-practice/questions/bulk-template",
+            "description": "Columns: Question No, Question, Option 1–4, Correct Answer (1–4 or A–D), Explanation"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Create Set (one API)",
+      "item": [
+        {
+          "name": "Create Set + Bulk Upload (form-data — no currentAffairId)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "mainsCategory", "value": "PRELIMS", "type": "text" },
+                { "key": "paperName", "value": "Daily Practice Set 1", "type": "text" },
+                { "key": "year", "value": "2026", "type": "text" },
+                { "key": "month", "value": "June", "type": "text" },
+                { "key": "date", "value": "2026-06-01", "type": "text" },
+                { "key": "file", "type": "file", "src": [], "description": "XLSX or CSV from bulk template. sectionFrom/sectionTo not needed — derived from question numbers in file." }
+              ]
+            },
+            "url": "{{baseUrl}}/api/current-affairs/daily-practice",
+            "description": "Same endpoint as manual create. Upload file + paper metadata in one request — no currentAffairId, no sectionFrom/sectionTo (auto-set from file question numbers)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const set = pm.response.json().data;",
+                  "  if (set && set._id) pm.collectionVariables.set('currentAffairId', set._id);",
+                  "  pm.test('bulk create returns full set', () => {",
+                  "    pm.expect(set.questions).to.be.an('array');",
+                  "    pm.expect(set.questionCount).to.be.above(0);",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Set (metadata only — add questions after)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mainsCategory\": \"PRELIMS\",\n  \"paperName\": \"Daily Practice Set 1\",\n  \"year\": 2026,\n  \"month\": \"June\",\n  \"date\": \"2026-06-01\",\n  \"sectionFrom\": 1,\n  \"sectionTo\": 50\n}"
+            },
+            "url": "{{baseUrl}}/api/current-affairs/daily-practice",
+            "description": "Save paper shell first; add questions via manual POST or bulk upload."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const set = pm.response.json().data;",
+                  "  if (set && set._id) pm.collectionVariables.set('currentAffairId', set._id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Set + Manual Questions (JSON)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mainsCategory\": \"PRELIMS\",\n  \"paperName\": \"Daily Practice Set 1\",\n  \"year\": 2026,\n  \"month\": \"June\",\n  \"date\": \"2026-06-01\",\n  \"sectionFrom\": 1,\n  \"sectionTo\": 2,\n  \"questions\": [\n    {\n      \"questionNumber\": 1,\n      \"question\": \"What is the capital of India?\",\n      \"optionA\": \"Mumbai\",\n      \"optionB\": \"New Delhi\",\n      \"optionC\": \"Kolkata\",\n      \"optionD\": \"Chennai\",\n      \"correctAnswer\": \"B\",\n      \"explanation\": \"New Delhi is the capital of India\"\n    },\n    {\n      \"questionNumber\": 2,\n      \"question\": \"Which river is the longest in India?\",\n      \"optionA\": \"Yamuna\",\n      \"optionB\": \"Godavari\",\n      \"optionC\": \"Ganga\",\n      \"optionD\": \"Narmada\",\n      \"correctAnswer\": \"C\",\n      \"explanation\": \"Ganga is the longest river in India\"\n    }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/current-affairs/daily-practice"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const set = pm.response.json().data;",
+                  "  if (set && set._id) pm.collectionVariables.set('currentAffairId', set._id);",
+                  "  pm.test('unified set response', () => {",
+                  "    pm.expect(set.questions).to.be.an('array');",
+                  "    pm.expect(set.questionCount).to.eql(set.questions.length);",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Bulk Upload (existing set only)",
+      "item": [
+        {
+          "name": "Bulk Upload (append — needs currentAffairId)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": [] },
+                { "key": "replace", "value": "false", "type": "text" }
+              ]
+            },
+            "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}/questions/bulk-upload",
+            "description": "Use only when adding questions to an already-created set. For new sets, use Create Set + Bulk Upload in section 3."
+          }
+        },
+        {
+          "name": "Bulk Upload (replace all — needs currentAffairId)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": [] },
+                { "key": "replace", "value": "true", "type": "text" }
+              ]
+            },
+            "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}/questions/bulk-upload"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Questions",
+      "item": [
+        {
+          "name": "Get Questions",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}/questions"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const rows = pm.response.json().data;",
+                  "  if (rows && rows[0]) pm.collectionVariables.set('questionId', rows[0]._id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add Single Question",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "questionNumber", "value": "3", "type": "text" },
+                { "key": "question", "value": "Who drafted the Indian Constitution?", "type": "text" },
+                { "key": "optionA", "value": "Gandhi", "type": "text" },
+                { "key": "optionB", "value": "Nehru", "type": "text" },
+                { "key": "optionC", "value": "Ambedkar", "type": "text" },
+                { "key": "optionD", "value": "Patel", "type": "text" },
+                { "key": "correctAnswer", "value": "C", "type": "text" },
+                { "key": "explanation", "value": "Dr. B.R. Ambedkar chaired the drafting committee.", "type": "text" },
+                { "key": "image", "type": "file", "src": [], "disabled": true }
+              ]
+            },
+            "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}/questions"
+          }
+        },
+        {
+          "name": "Update Question",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "questionNumber", "value": "3", "type": "text" },
+                { "key": "question", "value": "Who is known as the Father of the Indian Constitution?", "type": "text" },
+                { "key": "optionA", "value": "Gandhi", "type": "text" },
+                { "key": "optionB", "value": "Nehru", "type": "text" },
+                { "key": "optionC", "value": "Ambedkar", "type": "text" },
+                { "key": "optionD", "value": "Patel", "type": "text" },
+                { "key": "correctAnswer", "value": "C", "type": "text" },
+                { "key": "explanation", "value": "Updated explanation.", "type": "text" }
+              ]
+            },
+            "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}/questions/{{questionId}}"
+          }
+        },
+        {
+          "name": "Delete Question",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}/questions/{{questionId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Daily Practice Set CRUD",
+      "item": [
+        {
+          "name": "Get Paper By ID (Edit — full data + questions)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}",
+            "description": "Returns mainsCategory, paperName, year, month, date, sectionFrom, sectionTo, questions[], editableFields."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const d = pm.response.json().data;",
+                  "  pm.test('has questions', () => pm.expect(d.questions).to.be.an('array'));",
+                  "  pm.test('has editableFields', () => pm.expect(d.editableFields).to.be.an('array'));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Paper (partial — paperName + date)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "paperName", "value": "Daily Practice Set 1 Revised", "type": "text" },
+                { "key": "date", "value": "2026-06-15", "type": "text" }
+              ]
+            },
+            "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}",
+            "description": "Send only fields to change. Response returns full paper + questions."
+          }
+        },
+        {
+          "name": "Update Paper (mainsCategory + sections)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "mainsCategory", "value": "MAINS", "type": "text" },
+                { "key": "sectionFrom", "value": "1", "type": "text" },
+                { "key": "sectionTo", "value": "100", "type": "text" }
+              ]
+            },
+            "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}"
+          }
+        },
+        {
+          "name": "List Daily Practice Sets (each item includes questions[])",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/current-affairs?category=DAILY_PRACTICE_QUESTIONS&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "current-affairs"],
+              "query": [
+                { "key": "category", "value": "DAILY_PRACTICE_QUESTIONS" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": false\n}" },
+            "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}/status"
+          }
+        },
+        {
+          "name": "Delete Entire Daily Practice Set (hard)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": "{{baseUrl}}/api/current-affairs/daily-practice/{{currentAffairId}}",
+            "description": "Permanently deletes the set, all questions, and any Cloudinary images."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('set deleted', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().message).to.include('permanently deleted');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -103,6 +103,45 @@ exports.createTeacher = async (req, res) => {
   }
 };
 
+exports.getTeachersDropdown = async (req, res) => {
+  try {
+    const { centerId, subject, status = 'ACTIVE' } = req.query;
+    const query = { ...NOT_DELETED };
+
+    if (status && ['ACTIVE', 'INACTIVE'].includes(String(status).toUpperCase())) {
+      query.status = String(status).toUpperCase();
+    } else {
+      query.status = 'ACTIVE';
+    }
+
+    if (centerId && isValidObjectId(centerId)) {
+      query.centerId = new mongoose.Types.ObjectId(centerId);
+    }
+
+    if (subject && isValidObjectId(subject)) {
+      query.subjects = new mongoose.Types.ObjectId(subject);
+    }
+
+    const rows = await Teacher.find(query)
+      .select('_id teacherId teacherName centerId')
+      .sort({ teacherName: 1 })
+      .lean();
+
+    res.json({
+      success: true,
+      count: rows.length,
+      data: rows.map((row) => ({
+        _id: row._id,
+        teacherId: row.teacherId || '',
+        teacherName: row.teacherName || ''
+      }))
+    });
+  } catch (error) {
+    console.error('Teachers dropdown error:', error);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+};
+
 exports.getTeachers = async (req, res) => {
   try {
     const query = buildTeacherListQuery(req.query);

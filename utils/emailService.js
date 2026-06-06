@@ -52,10 +52,10 @@ const getTransporter = async () => {
   }
   if (!transporter) {
     transporter = await createTransporter();
-    transporter.verify().then(() => {
-      console.log('✅ Gmail SMTP ready:', getEmailUser());
-    }).catch((err) => {
-      console.error('❌ Gmail SMTP verify failed:', err.message);
+    transporter.verify().catch((err) => {
+      if (process.env.STARTUP_VERBOSE === 'true') {
+        console.error('Gmail SMTP verify failed:', err.message);
+      }
     });
   }
   return transporter;

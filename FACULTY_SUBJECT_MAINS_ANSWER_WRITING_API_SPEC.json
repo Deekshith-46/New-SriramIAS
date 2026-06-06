@@ -1,0 +1,173 @@
+{
+  "_readme": "NOT a Postman import file. This is API documentation only. Import FACULTY_SUBJECT_MAINS_ANSWER_WRITING_POSTMAN_COLLECTION.json into Postman instead.",
+  "name": "Faculty Subject CMS — MAINS_ANSWER_WRITING API",
+  "version": "1.0.0",
+  "description": "Academic CMS mains answer writing tests under Faculty Subject folders (category MAINS_ANSWER_WRITING). Super Admin only.",
+  "baseUrl": "{{BASE_URL}}",
+  "auth": {
+    "type": "Bearer",
+    "header": "Authorization",
+    "tokenVariable": "SuperAdminToken"
+  },
+  "prerequisites": [
+    "FacultySubject with categories including MAINS_ANSWER_WRITING",
+    "SubjectContentFolder with category MAINS_ANSWER_WRITING"
+  ],
+  "enums": {
+    "publishStatus": ["DRAFT", "PUBLISHED", "UNPUBLISHED"],
+    "durationPreset": ["30", "60", "90", "120", "180", "CUSTOM"],
+    "category": ["MAINS_ANSWER_WRITING"]
+  },
+  "upload": {
+    "fieldName": "pdf",
+    "maxBytes": 20971520,
+    "allowedMimeTypes": ["application/pdf"],
+    "allowedExtensions": ["PDF"]
+  },
+  "fields": {
+    "createAndUpdate": {
+      "testName": { "type": "string", "required": true, "label": "Test Name" },
+      "scheduleDate": { "type": "date", "required": true, "label": "Schedule Date" },
+      "durationPreset": {
+        "type": "enum",
+        "required": true,
+        "label": "Duration",
+        "options": ["30 mins", "60 mins", "90 mins", "120 mins", "180 mins", "Custom"]
+      },
+      "durationMinutes": {
+        "type": "number",
+        "requiredWhen": "durationPreset=CUSTOM",
+        "label": "Custom Duration (minutes)"
+      },
+      "totalMarks": { "type": "number", "required": true, "label": "Total Marks" },
+      "resultDate": { "type": "date", "required": true, "label": "Result Date" },
+      "questionsText": { "type": "string", "required": true, "label": "Write Questions Manually" },
+      "pdf": { "type": "file", "requiredOnCreate": true, "label": "Upload PDF" },
+      "publishStatus": {
+        "type": "enum",
+        "required": false,
+        "default": "DRAFT",
+        "label": "Publish Status",
+        "note": "Only PUBLISHED entries are visible to students"
+      },
+      "facultySubjectId": { "type": "ObjectId", "required": true },
+      "folderId": { "type": "ObjectId", "required": true }
+    }
+  },
+  "superAdminActions": {
+    "view": "GET /api/mains-answer-writing/:id",
+    "edit": "PUT /api/mains-answer-writing/:id (multipart, optional new pdf file)",
+    "delete": "DELETE /api/mains-answer-writing/:id (soft delete + Cloudinary cleanup)",
+    "changeStatus": "PATCH /api/mains-answer-writing/:id/publish-status",
+    "saveDraft": "Create/update with publishStatus=DRAFT",
+    "publishChanges": "PATCH publish-status with publishStatus=PUBLISHED",
+    "unpublish": "PATCH publish-status with publishStatus=UNPUBLISHED"
+  },
+  "studentVisibility": {
+    "rule": "Only entries with publishStatus=PUBLISHED are shown to enrolled students",
+    "adminListFilter": "GET /api/mains-answer-writing?publishStatus=PUBLISHED"
+  },
+  "dependencyFlow": [
+    "GET /api/faculty-subjects/dropdown?category=MAINS_ANSWER_WRITING",
+    "POST /api/faculty-subjects/content/folders { category: MAINS_ANSWER_WRITING }",
+    "GET /api/folders?facultySubjectId=&category=MAINS_ANSWER_WRITING",
+    "GET /api/mains-answer-writing/create-form?facultySubjectId=&folderId=",
+    "POST /api/mains-answer-writing (multipart)"
+  ],
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/mains-answer-writing/create-form",
+      "query": ["facultySubjectId", "folderId"],
+      "description": "Form defaults, enums (duration presets, publish statuses), folders"
+    },
+    {
+      "method": "GET",
+      "path": "/api/mains-answer-writing/dashboard-summary",
+      "query": ["facultySubjectId", "folderId"],
+      "description": "Counts by publishStatus (total, published, draft, unpublished)"
+    },
+    {
+      "method": "POST",
+      "path": "/api/mains-answer-writing",
+      "contentType": "multipart/form-data",
+      "description": "Create mains answer writing entry (MAW###)"
+    },
+    {
+      "method": "GET",
+      "path": "/api/mains-answer-writing",
+      "query": ["facultySubjectId", "folderId", "publishStatus", "search", "page", "limit", "sortBy", "sortOrder"],
+      "description": "List with durationLabel, pdf url"
+    },
+    {
+      "method": "GET",
+      "path": "/api/mains-answer-writing/:id",
+      "description": "Full detail including questionsText and pdf"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/mains-answer-writing/:id",
+      "contentType": "multipart/form-data",
+      "description": "Partial update; optional new pdf file"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/mains-answer-writing/:id/publish-status",
+      "body": { "publishStatus": "PUBLISHED" },
+      "description": "Change publish status (DRAFT / PUBLISHED / UNPUBLISHED)"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/mains-answer-writing/:id",
+      "description": "Soft delete"
+    }
+  ],
+  "folderEndpoints": {
+    "create": "POST /api/faculty-subjects/content/folders",
+    "list": "GET /api/folders?facultySubjectId=&category=MAINS_ANSWER_WRITING",
+    "contentSummary": "GET /api/folders/:id/content-summary",
+    "contentTree": "GET /api/faculty-subjects/:id/content-tree",
+    "deleteBlocked": {
+      "status": 409,
+      "errorCode": "FOLDER_HAS_CONTENT",
+      "details": ["liveClassCount", "recordingCount", "mainsAnswerWritingCount", "contentCount"]
+    }
+  },
+  "createExample": {
+    "multipartFields": {
+      "facultySubjectId": "{{facultySubjectMongoId}}",
+      "folderId": "{{folderMongoId}}",
+      "testName": "UPSC Mains Test 1",
+      "scheduleDate": "2026-06-15",
+      "durationPreset": "60",
+      "totalMarks": "200",
+      "resultDate": "2026-06-20",
+      "questionsText": "1) Discuss the basic structure doctrine.\n2) Explain judicial review.",
+      "publishStatus": "DRAFT",
+      "pdf": "<binary PDF file>"
+    },
+    "customDurationExample": {
+      "durationPreset": "CUSTOM",
+      "durationMinutes": "45"
+    }
+  },
+  "errorCodes": [
+    "VALIDATION_REQUIRED_FIELDS",
+    "MAINS_PDF_REQUIRED",
+    "FACULTY_SUBJECT_NOT_ACTIVE",
+    "FACULTY_SUBJECT_CATEGORY_DISABLED",
+    "FOLDER_INVALID_FOR_MAINS_ANSWER_WRITING",
+    "INVALID_DATE",
+    "INVALID_RESULT_DATE",
+    "INVALID_DURATION_PRESET",
+    "CUSTOM_DURATION_REQUIRED",
+    "INVALID_TOTAL_MARKS",
+    "QUESTIONS_TEXT_REQUIRED",
+    "INVALID_PUBLISH_STATUS",
+    "MAINS_ANSWER_WRITING_NOT_FOUND",
+    "FOLDER_HAS_CONTENT"
+  ],
+  "postmanCollection": "FACULTY_SUBJECT_MAINS_ANSWER_WRITING_POSTMAN_COLLECTION.json",
+  "postmanImportNote": "Import FACULTY_SUBJECT_MAINS_ANSWER_WRITING_POSTMAN_COLLECTION.json (Postman Collection v2.1). Do NOT import this spec file into Postman.",
+  "relatedDocs": ["FACULTY_SUBJECT_MAINS_ANSWER_WRITING.md", "FACULTY_SUBJECT_COMPLETE.md"]
+}

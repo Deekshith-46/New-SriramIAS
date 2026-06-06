@@ -2,7 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ quiet: true });
 
 const connectDB = require('./config/db');
 
@@ -58,6 +59,7 @@ const attendanceRoutes = require('./routes/attendanceRoutes');
 const answerWritingRoutes = require('./routes/answerWritingRoutes');
 const portalFreeResourceRoutes = require('./routes/portalFreeResourceRoutes');
 const portalCurrentAffairsRoutes = require('./routes/portalCurrentAffairsRoutes');
+const currentAffairsRoutes = require('./routes/currentAffairsRoutes');
 const programRoutes = require('./routes/programRoutes');
 const academicCategoryRoutes = require('./routes/academicCategoryRoutes');
 const academicSubCategoryRoutes = require('./routes/academicSubCategoryRoutes');
@@ -69,10 +71,19 @@ const classroomRoutes = require('./routes/classroomRoutes');
 const facultySubjectRoutes = require('./routes/facultySubjectRoutes');
 const batchRoutes = require('./routes/batchRoutes');
 const batchEnrollmentRoutes = require('./routes/batchEnrollmentRoutes');
+const subjectContentFolderRoutes = require('./routes/subjectContentFolderRoutes');
+const subjectLiveClassRoutes = require('./routes/subjectLiveClassRoutes');
+const subjectRecordingRoutes = require('./routes/subjectRecordingRoutes');
+const subjectMainsAnswerWritingRoutes = require('./routes/subjectMainsAnswerWritingRoutes');
+const subjectPdfRoutes = require('./routes/subjectPdfRoutes');
+const testConfigurationRoutes = require('./routes/testConfigurationRoutes');
+const questionBankRoutes = require('./routes/questionBankRoutes');
+const mentorRoutes = require('./routes/mentorRoutes');
 const { getCentersDropdown } = require('./controllers/centerManagementController');
 const { protect } = require('./middleware/authMiddleware');
 const { requireSuperAdmin } = require('./middleware/requireSuperAdmin');
 const { superAdminAuth } = require('./middleware/superAdminAuth');
+const { swaggerUi, swaggerSpec } = require('./config/swaggerCurrentAffairs');
 
 const app = express();
 
@@ -89,6 +100,7 @@ app.use(express.json({
   }
 })); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Rate limiting for OTP endpoints
 const otpLimiter = rateLimit({
@@ -153,8 +165,20 @@ app.use('/api/teachers', teacherRoutes);
 app.use('/api/cities', cityRoutes);
 app.use('/api/classrooms', classroomRoutes);
 app.use('/api/faculty-subjects', ...superAdminAuth, facultySubjectRoutes);
+app.use('/api/folders', ...superAdminAuth, subjectContentFolderRoutes);
 app.use('/api/batches', ...superAdminAuth, batchRoutes);
 app.use('/api/batch-enrollments', ...superAdminAuth, batchEnrollmentRoutes);
+// Academic CMS live classes (Faculty Subject content module)
+app.use('/api/live-classes', ...superAdminAuth, subjectLiveClassRoutes);
+app.use('/api/recordings', ...superAdminAuth, subjectRecordingRoutes);
+// Mains Answer Writing
+// - Super Admin CMS routes are protected inside the router
+// - Student can see only PUBLISHED tests and submit answers
+// - Mentor Admin can list/evaluate submissions for assigned faculty subjects
+app.use('/api/mains-answer-writing', subjectMainsAnswerWritingRoutes);
+const mainsManagementRoutes = require('./routes/mainsManagementRoutes');
+app.use('/api/mains-management', ...superAdminAuth, mainsManagementRoutes);
+app.use('/api/subject-pdfs', ...superAdminAuth, subjectPdfRoutes);
 app.get('/api/centers/dropdown', protect, requireSuperAdmin, getCentersDropdown);
 app.use('/api/sub-categories', academicSubCategoryRoutes);
 
@@ -170,9 +194,15 @@ app.use('/api/resources/files', resourceFileRoutes); // Resources (PDFs, Study M
 app.use('/api/resources/mock-tests', mockTestRoutes); // Mock Tests
 app.use('/api/resources/questions', questionRoutes); // Questions
 
+// Current Affairs CMS (admin)
+app.use('/api/current-affairs', currentAffairsRoutes);
+
 // Portal UI — two tabs (CMS unchanged at /api/resources/*)
 app.use('/api/portal/current-affairs', portalCurrentAffairsRoutes);
 app.use('/api/portal/free-resources', portalFreeResourceRoutes);
+
+// Mentor Admin APIs (AdminAccess roleCode: MENTOR_ADMIN)
+app.use('/api/mentor', mentorRoutes);
 
 // Blog routes
 app.use('/api/blog', blogRoutes);
@@ -198,8 +228,8 @@ app.use('/api/payments', paymentRoutes);
 // Order Management routes
 app.use('/api/orders', orderRoutes);
 
-// Live Class routes
-app.use('/api/live-classes', liveClassRoutes);
+// Legacy LMS live classes (100ms integration — separate from Academic CMS)
+app.use('/api/lms/live-classes', liveClassRoutes);
 
 // My Courses — recorded lectures LMS
 app.use('/api/course-subjects', courseSubjectRoutes);
@@ -224,7 +254,9 @@ app.use('/api/bookmarks', lmsBookmarkRoutes);
 app.use('/api/attendance', attendanceRoutes);
 
 // Answer writing (UPSC Mains)
-app.use('/api/answer-writing', answerWritingRoutes);
+// NOTE: Legacy /api/answer-writing (course + categories) is disabled in favor of /api/mains-answer-writing
+// which is linked to FacultySubject and supports student submissions + mentor evaluation.
+// app.use('/api/answer-writing', answerWritingRoutes);
 
 // Announcement routes
 app.use('/api/announcements', announcementRoutes);
@@ -242,6 +274,10 @@ app.use('/api/test-contents', testContentRoutes);
 app.use('/api/test-papers', testPaperRoutes);
 app.use('/api/test-questions', testQuestionRoutes);
 app.use('/api/test-attempts', testAttemptRoutes);
+
+// Test Management — Test Configuration (Exam Pattern, Sections, Languages)
+app.use('/api/test-configuration', testConfigurationRoutes);
+app.use('/api/question-bank', questionBankRoutes);
 
 // HomePage CMS routes
 app.use('/api/homepage', homePageRoutes);
@@ -274,6 +310,8 @@ app.get('/health', (req, res) => {
 app.get('/api/health', (req, res) => {
   res.json(healthPayload());
 });
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Root endpoint
 app.get('/', (req, res) => {

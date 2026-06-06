@@ -17,7 +17,9 @@ const seedDefaultRoles = async () => {
     if (!exists) {
       const role = await Role.create(row);
       await createPermissionMatrixForRole(role._id);
-      console.log(`✓ Role seeded: ${row.roleCode}`);
+      if (process.env.STARTUP_VERBOSE === 'true') {
+        console.log(`Role seeded: ${row.roleCode}`);
+      }
     } else {
       await createPermissionMatrixForRole(exists._id);
     }
