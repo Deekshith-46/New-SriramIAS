@@ -65,7 +65,15 @@
       "name": "1. Faculty Subject",
       "item": [
         {
-          "name": "GET Create Form (subjects + categories)",
+          "name": "GET Categories",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "url": "{{BASE_URL}}/api/faculty-subjects/categories"
+          }
+        },
+        {
+          "name": "GET Create Form (subjects)",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
@@ -277,7 +285,8 @@
                 { "key": "facultySubjects", "value": "[\"{{facultySubjectId}}\"]", "type": "text" },
                 { "key": "feesJson", "value": "{\"currency\":\"INR\",\"onlineAmount\":19999,\"offlineAmount\":24999,\"discountAmount\":2000,\"onlineBulletPoints\":[\"Daily mentorship\",\"Live lectures\",\"Weekly tests\"],\"offlineBulletPoints\":[\"Classroom sessions\",\"Printed notes\",\"Doubt support\"]}", "type": "text" },
                 { "key": "status", "value": "UPCOMING", "type": "text" },
-                { "key": "bannerImage", "type": "file", "src": [], "description": "Optional banner image" }
+                { "key": "bannerImage", "type": "file", "src": [], "description": "Optional banner image (JPEG/PNG/WEBP, max 5 MB)" },
+                { "key": "brochure", "type": "file", "src": [], "description": "Optional brochure PDF (max 10 MB)" }
               ]
             },
             "url": "{{BASE_URL}}/api/batches"
@@ -339,6 +348,20 @@
               "mode": "raw",
               "raw": "{\n  \"batchName\": \"Mains GS Foundation Batch 1 - Updated\",\n  \"durationInMonths\": 14\n}"
             }
+          }
+        },
+        {
+          "name": "PUT Update Batch (brochure PDF)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "brochure", "type": "file", "src": [], "description": "Replace brochure PDF (max 10 MB)" }
+              ]
+            },
+            "url": "{{BASE_URL}}/api/batches/{{batchId}}"
           }
         },
         {

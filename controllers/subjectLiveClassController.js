@@ -675,7 +675,7 @@ exports.getLiveClassDashboardSummary = async (req, res) => {
 const CMS_DEPENDENCY_FLOW = [
   { step: 1, field: 'facultySubjectId', api: 'GET /api/faculty-subjects/dropdown?category=LIVE_CLASS' },
   { step: 2, field: 'folderId', api: 'GET /api/folders?facultySubjectId={facultySubjectId}&category=LIVE_CLASS' },
-  { step: 3, field: 'batchId', api: 'GET /api/batches/dropdown?facultySubjectId={facultySubjectId}' },
+  { step: 3, field: 'batchId', api: 'GET /api/batches/dropdown' },
   { step: 4, field: 'centerId', api: 'GET /api/centers/dropdown' },
   { step: 5, field: 'classroomId', api: 'GET /api/classrooms/dropdown?centerId={centerId}' },
   { step: 6, field: 'create', api: 'POST /api/live-classes' }
@@ -707,7 +707,7 @@ exports.getLiveClassCreateForm = async (req, res) => {
       dropdownApis: {
         facultySubjects: '/api/faculty-subjects/dropdown?category=LIVE_CLASS',
         folders: '/api/folders?facultySubjectId={facultySubjectId}&category=LIVE_CLASS',
-        batches: '/api/batches/dropdown?facultySubjectId={facultySubjectId}',
+        batches: '/api/batches/dropdown',
         centers: '/api/centers/dropdown',
         classrooms: '/api/classrooms/dropdown?centerId={centerId}'
       }
@@ -729,8 +729,7 @@ exports.getLiveClassCreateForm = async (req, res) => {
           .sort({ folderName: 1 })
           .lean(),
         Batch.find({
-          facultySubjects: facultySubjectId,
-          status: { $in: ['ACTIVE', 'UPCOMING'] },
+          status: 'ACTIVE',
           ...NOT_DELETED
         })
           .select('_id batchId batchName')

@@ -162,7 +162,7 @@
   "dropdownApis": [
     { "method": "GET", "path": "/api/faculty-subjects/dropdown", "query": ["category=LIVE_CLASS"] },
     { "method": "GET", "path": "/api/folders", "query": ["facultySubjectId", "category=LIVE_CLASS"] },
-    { "method": "GET", "path": "/api/batches/dropdown", "query": ["facultySubjectId"] },
+    { "method": "GET", "path": "/api/batches/dropdown", "query": ["status", "courseId", "facultySubjectId", "excludeBatchId"], "description": "Lists all ACTIVE batches by default" },
     { "method": "GET", "path": "/api/centers/dropdown" },
     { "method": "GET", "path": "/api/classrooms/dropdown", "query": ["centerId"] }
   ],
@@ -199,6 +199,12 @@
       "method": "GET",
       "path": "/api/folders",
       "query": ["facultySubjectId", "category", "search", "status", "page", "limit"]
+    },
+    {
+      "method": "GET",
+      "path": "/api/folders/content",
+      "query": ["facultySubjectId", "category", "folderId", "page", "limit"],
+      "description": "List all content items in folder (live classes, recordings, mains answer writing, PDFs by category)"
     },
     {
       "method": "DELETE",

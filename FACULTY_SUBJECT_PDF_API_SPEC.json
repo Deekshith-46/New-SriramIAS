@@ -36,7 +36,7 @@
         "type": "ObjectId",
         "required": true,
         "label": "Select Batch",
-        "dropdown": "GET /api/batches/dropdown?facultySubjectId={facultySubjectId}"
+        "dropdown": "GET /api/batches/dropdown"
       },
       "pdfTitle": { "type": "string", "required": true, "label": "PDF Title" },
       "tags": { "type": "string|array", "required": false, "label": "Tags", "format": "comma-separated or JSON array" },
@@ -58,7 +58,7 @@
     "GET /api/faculty-subjects/dropdown?category=PDF",
     "POST /api/faculty-subjects/content/folders { category: PDF }",
     "GET /api/folders?facultySubjectId=&category=PDF",
-    "GET /api/batches/dropdown?facultySubjectId=",
+    "GET /api/batches/dropdown",
     "GET /api/subject-pdfs/create-form?facultySubjectId=&folderId=",
     "POST /api/subject-pdfs (multipart)"
   ],

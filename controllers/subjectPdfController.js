@@ -465,7 +465,7 @@ const PDF_DEPENDENCY_FLOW = [
     field: 'folderId',
     api: 'GET /api/folders?facultySubjectId={facultySubjectId}&category=PDF'
   },
-  { step: 3, field: 'batchId', api: 'GET /api/batches/dropdown?facultySubjectId={facultySubjectId}' },
+  { step: 3, field: 'batchId', api: 'GET /api/batches/dropdown' },
   { step: 4, field: 'create', api: 'POST /api/subject-pdfs (multipart pdf file)' }
 ];
 
@@ -496,7 +496,7 @@ exports.getSubjectPdfCreateForm = async (req, res) => {
       dropdownApis: {
         facultySubjects: '/api/faculty-subjects/dropdown?category=PDF',
         folders: '/api/folders?facultySubjectId={facultySubjectId}&category=PDF',
-        batches: '/api/batches/dropdown?facultySubjectId={facultySubjectId}'
+        batches: '/api/batches/dropdown'
       },
       folders: [],
       batches: []
@@ -530,8 +530,7 @@ exports.getSubjectPdfCreateForm = async (req, res) => {
           .sort({ folderName: 1 })
           .lean(),
         Batch.find({
-          facultySubjects: facultySubjectId,
-          status: { $in: ['ACTIVE', 'UPCOMING'] },
+          status: 'ACTIVE',
           ...NOT_DELETED
         })
           .select('_id batchId batchName')

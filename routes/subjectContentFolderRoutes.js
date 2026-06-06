@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const {
+  listFolderContent,
   listFolders,
   getFolderById,
   getFolderContentSummary,
@@ -8,6 +9,7 @@ const {
   deleteFolder
 } = require('../controllers/subjectContentFolderController');
 
+router.get('/content', listFolderContent);
 router.get('/', listFolders);
 router.get('/:id/content-summary', getFolderContentSummary);
 router.get('/:id', getFolderById);

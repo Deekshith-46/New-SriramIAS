@@ -4,6 +4,7 @@ const {
   createFacultySubject,
   getFacultySubjects,
   getFacultySubjectCreateForm,
+  getFacultySubjectCategories,
   getFacultySubjectsDropdown,
   getFacultySubjectSummary,
   getContentTree,
@@ -18,6 +19,7 @@ const {
 } = require('../controllers/subjectContentFolderController');
 
 router.get('/create-form', getFacultySubjectCreateForm);
+router.get('/categories', getFacultySubjectCategories);
 router.get('/dropdown', getFacultySubjectsDropdown);
 router.get('/summary/:id', getFacultySubjectSummary);
 router.get('/:id/content-tree', getContentTree);

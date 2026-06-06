@@ -40,6 +40,10 @@ const batchSchema = new mongoose.Schema(
       url: { type: String, default: '' },
       publicId: { type: String, default: '' }
     },
+    brochure: {
+      url: { type: String, default: '' },
+      publicId: { type: String, default: '' }
+    },
     fees: {
       currency: {
         type: String,

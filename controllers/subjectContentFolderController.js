@@ -15,6 +15,7 @@ const {
   validateCategory
 } = require('../utils/facultyContentHelpers');
 const { sendValidationError, sendError } = require('../utils/cmsApiErrors');
+const { listFolderContent } = require('../services/folderContentListService');
 
 const formatFolder = (doc) => ({
   _id: doc._id,
@@ -162,6 +163,49 @@ exports.deleteFolder = async (req, res) => {
     });
   } catch (error) {
     console.error('Delete folder error:', error);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+};
+
+/**
+ * List all content items inside a folder scoped to facultySubjectId + category + folderId.
+ * GET /api/folders/content?facultySubjectId=&category=&folderId=
+ */
+exports.listFolderContent = async (req, res) => {
+  try {
+    const { facultySubjectId, category, folderId } = req.query;
+
+    const result = await listFolderContent({
+      facultySubjectId,
+      category,
+      folderId,
+      query: req.query
+    });
+
+    if (!result.ok) {
+      return res.status(result.status || 400).json({
+        success: false,
+        message: result.message
+      });
+    }
+
+    res.json({
+      success: true,
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
+      totalPages: result.totalPages,
+      count: result.count,
+      facultySubjectId: result.facultySubjectId,
+      category: result.category,
+      facultySubjectName: result.facultySubjectName,
+      teacherName: result.teacherName,
+      folder: result.folder,
+      ...(result.note ? { note: result.note } : {}),
+      data: result.data
+    });
+  } catch (error) {
+    console.error('List folder content error:', error);
     res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 };

@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Sriram IAS - Faculty Subject PDF CMS",
-    "description": "Academic CMS PDFs (category PDF). Run「0. Auth」first, create folder, then add multiple PDFs.\n\nBatch dropdown: GET /api/batches/dropdown?facultySubjectId=\n\nNOTE: FACULTY_SUBJECT_PDF_API_SPEC.json is documentation only.",
+    "description": "Academic CMS PDFs (category PDF). Run「0. Auth」first, create folder, then add multiple PDFs.\n\nBatch dropdown: GET /api/batches/dropdown\n\nNOTE: FACULTY_SUBJECT_PDF_API_SPEC.json is documentation only.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -88,7 +88,7 @@
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{SuperAdminToken}}" }],
-            "url": "{{BASE_URL}}/api/batches/dropdown?facultySubjectId={{facultySubjectId}}"
+            "url": "{{BASE_URL}}/api/batches/dropdown"
           }
         },
         {

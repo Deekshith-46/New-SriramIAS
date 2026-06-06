@@ -369,11 +369,13 @@
               "formdata": [
                 { "key": "category", "value": "CURRENT_AFFAIRS", "type": "text" },
                 { "key": "title", "value": "Union Budget Highlights", "type": "text" },
+                { "key": "year", "value": "{{year}}", "type": "text" },
+                { "key": "month", "value": "{{month}}", "type": "text" },
                 { "key": "pdf", "description": "Required — PDF max 10 MB", "type": "file", "src": [] }
               ]
             },
             "url": "{{baseUrl}}/api/current-affairs",
-            "description": "CURRENT_AFFAIRS needs only **title** + **pdf**. No year/month."
+            "description": "CURRENT_AFFAIRS requires **title**, **year**, **month**, and **pdf**."
           },
           "event": [
             {
@@ -552,7 +554,7 @@
               ]
             },
             "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}",
-            "description": "Partial update — send only fields you change. Response returns **full record** with editableFields."
+            "description": "Partial update — send only fields you change (title, year, month, pdf, status)."
           },
           "event": [
             {
@@ -584,6 +586,22 @@
             },
             "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}",
             "description": "PDF-only update — title unchanged."
+          }
+        },
+        {
+          "name": "Update CURRENT_AFFAIRS (year + month)",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "year", "value": "2026", "type": "text" },
+                { "key": "month", "value": "July", "type": "text" }
+              ]
+            },
+            "url": "{{baseUrl}}/api/current-affairs/{{currentAffairId}}",
+            "description": "Update year and month individually or together."
           }
         },
         {

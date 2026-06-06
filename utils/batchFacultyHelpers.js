@@ -239,7 +239,7 @@ const validateBatchStatus = (status, fallback = 'UPCOMING') => {
   return { ok: true, value: status };
 };
 
-const parseBannerImage = (raw) => {
+const parseCloudinaryAsset = (raw) => {
   if (!raw) return null;
   if (typeof raw === 'object' && raw !== null && raw.url) {
     return { url: String(raw.url), publicId: String(raw.publicId || '') };
@@ -251,12 +251,16 @@ const parseBannerImage = (raw) => {
   return null;
 };
 
+const parseBannerImage = parseCloudinaryAsset;
+const parseBrochure = parseCloudinaryAsset;
+
 module.exports = {
   parseObjectIdList,
   parseBulletPoints,
   parseFees,
   parseDate,
   parseBannerImage,
+  parseBrochure,
   validateBatchDates,
   validateDurationInMonths,
   validateFacultySubjectPayload,

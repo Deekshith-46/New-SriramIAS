@@ -2,7 +2,7 @@ const { CATEGORIES } = require('./currentAffairConstants');
 const { formatCurrentAffairResponse } = require('./currentAffairHelpers');
 
 const EDITABLE_FIELDS = Object.freeze({
-  [CATEGORIES.CURRENT_AFFAIRS]: ['title', 'pdf', 'status'],
+  [CATEGORIES.CURRENT_AFFAIRS]: ['title', 'year', 'month', 'pdf', 'status'],
   [CATEGORIES.MONTHLY_MAGAZINE]: ['title', 'year', 'month', 'pdf', 'status'],
   [CATEGORIES.INFOGRAPHICS]: ['title', 'year', 'month', 'pdf', 'status'],
   [CATEGORIES.MONTHLY_RECAP]: ['title', 'year', 'month', 'pdf', 'status'],
@@ -53,8 +53,6 @@ const formatCurrentAffairForEdit = (doc, extras = {}) => {
   };
 
   if (category === CATEGORIES.CURRENT_AFFAIRS) {
-    data.year = null;
-    data.month = null;
     data.description = null;
   }
 
@@ -87,8 +85,6 @@ const sanitizeUpdatePayload = (payload, category) => {
   const next = { ...payload };
 
   if (category === CATEGORIES.CURRENT_AFFAIRS) {
-    delete next.year;
-    delete next.month;
     delete next.description;
     delete next.mainsCategory;
     delete next.paperName;

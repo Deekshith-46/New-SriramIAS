@@ -15,6 +15,7 @@ const {
   parseFees,
   parseObjectIdList,
   parseBannerImage,
+  parseBrochure,
   validateBatchDates,
   validateDurationInMonths,
   validateFacultySubjectIds,
@@ -52,9 +53,13 @@ const validateMentorAdmin = async (mentorId) => {
   return { ok: true, mentor };
 };
 
+const getBannerFile = (req) => req.files?.bannerImage?.[0];
+const getBrochureFile = (req) => req.files?.brochure?.[0];
+
 const resolveBatchBanner = async (req, existing) => {
-  if (req.file?.buffer) {
-    const uploaded = await uploadToCloudinary(req.file, 'batches', 'image');
+  const file = getBannerFile(req);
+  if (file?.buffer) {
+    const uploaded = await uploadToCloudinary(file, 'batches', 'image');
     if (existing?.publicId) {
       try {
         await cloudinary.uploader.destroy(existing.publicId);
@@ -65,6 +70,24 @@ const resolveBatchBanner = async (req, existing) => {
     return { url: uploaded.url, publicId: uploaded.public_id };
   }
   const parsed = parseBannerImage(req.body.bannerImage);
+  if (parsed) return parsed;
+  return existing || undefined;
+};
+
+const resolveBatchBrochure = async (req, existing) => {
+  const file = getBrochureFile(req);
+  if (file?.buffer) {
+    const uploaded = await uploadToCloudinary(file, 'batches/brochures', 'raw', 'pdf');
+    if (existing?.publicId) {
+      try {
+        await cloudinary.uploader.destroy(existing.publicId, { resource_type: 'raw' });
+      } catch (e) {
+        console.warn('Could not delete old batch brochure:', e.message);
+      }
+    }
+    return { url: uploaded.url, publicId: uploaded.public_id };
+  }
+  const parsed = parseBrochure(req.body.brochure);
   if (parsed) return parsed;
   return existing || undefined;
 };
@@ -86,6 +109,9 @@ const formatBatch = (doc) => ({
   batchEndDate: doc.batchEndDate ?? null,
   bannerImage: doc.bannerImage
     ? { url: doc.bannerImage.url, publicId: doc.bannerImage.publicId }
+    : undefined,
+  brochure: doc.brochure?.url
+    ? { url: doc.brochure.url, publicId: doc.brochure.publicId }
     : undefined,
   fees: doc.fees,
   facultySubjects: (doc.facultySubjects || []).map((fs) => ({
@@ -143,6 +169,7 @@ exports.createBatch = async (req, res) => {
       batchStartDate,
       batchEndDate,
       bannerImage,
+      brochure,
       fees,
       feesJson,
       facultySubjects = [],
@@ -198,6 +225,7 @@ exports.createBatch = async (req, res) => {
     }
 
     const resolvedBanner = (await resolveBatchBanner(req, parseBannerImage(bannerImage))) || undefined;
+    const resolvedBrochure = (await resolveBatchBrochure(req, parseBrochure(brochure))) || undefined;
 
     const batch = await Batch.create({
       batchId: await generateBatchId(),
@@ -209,6 +237,7 @@ exports.createBatch = async (req, res) => {
       batchStartDate: datesValidation.batchStartDate,
       batchEndDate: datesValidation.batchEndDate,
       bannerImage: resolvedBanner,
+      brochure: resolvedBrochure,
       fees: parsedFees.value,
       facultySubjects: fsValidation.facultySubjects,
       status: statusValidation.value,
@@ -406,8 +435,12 @@ exports.updateBatch = async (req, res) => {
       updates.status = statusValidation.value;
     }
 
-    if (req.file || req.body.bannerImage !== undefined) {
+    if (getBannerFile(req) || req.body.bannerImage !== undefined) {
       updates.bannerImage = await resolveBatchBanner(req, batch.bannerImage);
+    }
+
+    if (getBrochureFile(req) || req.body.brochure !== undefined) {
+      updates.brochure = await resolveBatchBrochure(req, batch.brochure);
     }
 
     await Batch.findByIdAndUpdate(batch._id, { $set: updates });
@@ -515,6 +548,9 @@ const formatBatchQuickView = (doc, totalStudents) => ({
   bannerImage: doc.bannerImage
     ? { url: doc.bannerImage.url, publicId: doc.bannerImage.publicId }
     : null,
+  brochure: doc.brochure?.url
+    ? { url: doc.brochure.url, publicId: doc.brochure.publicId }
+    : null,
   totalStudents
 });
 
@@ -555,7 +591,7 @@ exports.getBatchesDropdown = async (req, res) => {
     if (status && ['ACTIVE', 'UPCOMING', 'INACTIVE', 'COMPLETED'].includes(status)) {
       query.status = status;
     } else {
-      query.status = { $in: ['ACTIVE', 'UPCOMING'] };
+      query.status = 'ACTIVE';
     }
 
     if (facultySubjectId && mongoose.Types.ObjectId.isValid(facultySubjectId)) {
@@ -658,12 +694,29 @@ exports.duplicateBatch = async (req, res) => {
       ? { url: source.bannerImage.url, publicId: source.bannerImage.publicId || '' }
       : undefined;
 
-    if (req.file?.buffer) {
-      const uploaded = await uploadToCloudinary(req.file, 'batches', 'image');
+    if (getBannerFile(req)?.buffer) {
+      const uploaded = await uploadToCloudinary(getBannerFile(req), 'batches', 'image');
       bannerImage = { url: uploaded.url, publicId: uploaded.public_id };
     } else if (body.bannerImage !== undefined) {
       const parsed = parseBannerImage(body.bannerImage);
       if (parsed) bannerImage = parsed;
+    }
+
+    let brochure = source.brochure?.url
+      ? { url: source.brochure.url, publicId: source.brochure.publicId || '' }
+      : undefined;
+
+    if (getBrochureFile(req)?.buffer) {
+      const uploaded = await uploadToCloudinary(
+        getBrochureFile(req),
+        'batches/brochures',
+        'raw',
+        'pdf'
+      );
+      brochure = { url: uploaded.url, publicId: uploaded.public_id };
+    } else if (body.brochure !== undefined) {
+      const parsed = parseBrochure(body.brochure);
+      if (parsed) brochure = parsed;
     }
 
     const duplicate = await Batch.create({
@@ -675,6 +728,7 @@ exports.duplicateBatch = async (req, res) => {
       batchStartDate: datesValidation.batchStartDate,
       batchEndDate: datesValidation.batchEndDate,
       bannerImage,
+      brochure,
       fees,
       facultySubjects: fsValidation.facultySubjects,
       status: statusValidation.value,

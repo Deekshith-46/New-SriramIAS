@@ -59,7 +59,7 @@
     "POST /api/faculty-subjects/content/folders { category: RECORDING }",
     "GET /api/folders?facultySubjectId=&category=RECORDING",
     "GET /api/recordings/topics-dropdown?batchId=&facultySubjectId=",
-    "GET /api/batches/dropdown?facultySubjectId=",
+    "GET /api/batches/dropdown",
     "GET /api/centers/dropdown",
     "POST /api/recordings (multipart)"
   ],

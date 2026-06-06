@@ -15,16 +15,9 @@ const {
 const { validateFacultySubjectPayload } = require('../utils/batchFacultyHelpers');
 const {
   FACULTY_CATEGORIES,
+  getFacultyCategoryOptions,
   normalizeFacultyCategories
 } = require('../utils/batchFacultyConstants');
-
-const FACULTY_CATEGORY_LABELS = {
-  LIVE_CLASS: 'Live Class',
-  RECORDING: 'Recording',
-  PRELIMS_TEST: 'Prelims Test',
-  MAINS_ANSWER_WRITING: 'Mains Answer Writing',
-  PDF: 'PDF'
-};
 
 /** Lightweight shape for dropdowns / batch subject picker */
 const formatFacultySubjectSummary = (doc) => ({
@@ -268,19 +261,28 @@ exports.updateFacultySubjectStatus = async (req, res) => {
   }
 };
 
+/** GET /api/faculty-subjects/categories — delivery category options for create/edit forms */
+exports.getFacultySubjectCategories = async (req, res) => {
+  try {
+    res.json({
+      success: true,
+      message: 'Faculty subject categories loaded',
+      data: getFacultyCategoryOptions()
+    });
+  } catch (error) {
+    console.error('Faculty subject categories error:', error);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+};
+
 /**
  * Single endpoint for Faculty Subject create/edit form dropdowns.
- * Step 1: GET without subjectId → categories + subjects
+ * Step 1: GET without subjectId → subjects
  * Step 2: GET ?subjectId=... → also topics + teachers for that subject
  */
 exports.getFacultySubjectCreateForm = async (req, res) => {
   try {
     const { subjectId, centerId } = req.query;
-
-    const categories = FACULTY_CATEGORIES.map((value) => ({
-      value,
-      label: FACULTY_CATEGORY_LABELS[value] || value
-    }));
 
     const subjects = await Subject.find({ status: 'ACTIVE', ...NOT_DELETED })
       .select('_id subjectId subjectName')
@@ -288,7 +290,6 @@ exports.getFacultySubjectCreateForm = async (req, res) => {
       .lean();
 
     const data = {
-      categories,
       subjects,
       topics: [],
       teachers: [],
@@ -344,7 +345,7 @@ exports.getFacultySubjectCreateForm = async (req, res) => {
       success: true,
       message: subjectId
         ? 'Form options loaded for selected subject (topics + teachers)'
-        : 'Form options loaded (subjects + categories)',
+        : 'Form options loaded (subjects)',
       data
     });
   } catch (error) {
@@ -468,7 +469,7 @@ exports.getContentTree = async (req, res) => {
       success: true,
       facultySubjectId: facultySubject._id,
       subjectName: facultySubject.subjectName,
-      categories: facultySubject.categories || [],
+      categories: normalizeFacultyCategories(facultySubject.categories || []),
       data: tree
     });
   } catch (error) {

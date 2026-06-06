@@ -71,7 +71,7 @@ const validateBatchForLiveClass = async (batchId, { facultySubjectId, centerId }
       field: 'batchId',
       message: 'Invalid batch id',
       reason: 'batchId is missing or not a valid MongoDB ObjectId.',
-      suggestions: ['Use an id from GET /api/batches/dropdown?facultySubjectId=...']
+      suggestions: ['Use an id from GET /api/batches/dropdown']
     });
   }
 
@@ -87,7 +87,7 @@ const validateBatchForLiveClass = async (batchId, { facultySubjectId, centerId }
       field: 'batchId',
       message: 'Invalid or inactive batch',
       reason: 'Batch was not found, is deleted, or status is not ACTIVE/UPCOMING.',
-      suggestions: ['Pick a batch from GET /api/batches/dropdown?facultySubjectId=...']
+      suggestions: ['Pick a batch from GET /api/batches/dropdown']
     });
   }
 
@@ -702,7 +702,7 @@ const resolveRecordingTopicsForBatch = async (batchId, facultySubjectIdOptional)
       code: 'INVALID_BATCH_ID',
       field: 'batchId',
       message: 'Invalid batch id',
-      suggestions: ['Use an id from GET /api/batches/dropdown?facultySubjectId=...']
+      suggestions: ['Use an id from GET /api/batches/dropdown']
     });
   }
 

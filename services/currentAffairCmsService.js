@@ -78,10 +78,8 @@ const createCurrentAffair = async (payload, file, createdBy) => {
     title: payload.title
   };
 
-  if (payload.category !== CATEGORIES.CURRENT_AFFAIRS) {
-    if (payload.year !== undefined) data.year = payload.year;
-    if (payload.month !== undefined) data.month = payload.month;
-  }
+  if (payload.year !== undefined) data.year = payload.year;
+  if (payload.month !== undefined) data.month = payload.month;
 
   if (file) {
     const uploaded = await uploadPdfToCloudinary(file);
@@ -224,12 +222,6 @@ const updateCurrentAffair = async (id, payload, file, updatedBy) => {
     if (updates.sectionTo !== undefined) {
       currentAffair.sectionTo = updates.sectionTo;
     }
-  }
-
-  if (category === CATEGORIES.CURRENT_AFFAIRS) {
-    currentAffair.year = null;
-    currentAffair.month = null;
-    currentAffair.description = null;
   }
 
   if (file) {

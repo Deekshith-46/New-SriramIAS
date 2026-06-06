@@ -29,22 +29,9 @@ const categoryField = Joi.string()
     'any.only': `Category must be one of: ${CATEGORY_LIST.join(', ')}`
   });
 
-const currentAffairsCreateSchema = Joi.object({
-  category: Joi.valid(CATEGORIES.CURRENT_AFFAIRS).required(),
-  title: Joi.string().trim().max(300).required().messages({
-    'any.required': 'title is required',
-    'string.empty': 'title is required'
-  }),
-  status: Joi.boolean().optional()
-});
-
 const pdfCategoryCreateSchema = Joi.object({
   category: categoryField
-    .valid(
-      CATEGORIES.MONTHLY_MAGAZINE,
-      CATEGORIES.INFOGRAPHICS,
-      CATEGORIES.MONTHLY_RECAP
-    )
+    .valid(...PDF_REQUIRED_CATEGORIES)
     .required(),
   title: Joi.string().trim().max(300).required().messages({
     'any.required': 'title is required',
@@ -181,12 +168,10 @@ const validateCreate = (req, res, next) => {
   }
 
   let schema;
-  if (body.category === CATEGORIES.CURRENT_AFFAIRS) {
-    delete body.year;
-    delete body.month;
-    delete body.description;
-    schema = currentAffairsCreateSchema;
-  } else if (YEAR_MONTH_REQUIRED_CATEGORIES.includes(body.category)) {
+  if (YEAR_MONTH_REQUIRED_CATEGORIES.includes(body.category)) {
+    if (body.category === CATEGORIES.CURRENT_AFFAIRS) {
+      delete body.description;
+    }
     schema = pdfCategoryCreateSchema;
   } else {
     return res.status(400).json({

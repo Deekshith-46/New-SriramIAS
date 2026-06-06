@@ -548,7 +548,7 @@ const RECORDING_DEPENDENCY_FLOW = [
     field: 'folderId',
     api: 'GET /api/folders?facultySubjectId={facultySubjectId}&category=RECORDING'
   },
-  { step: 3, field: 'batchId', api: 'GET /api/batches/dropdown?facultySubjectId={facultySubjectId}' },
+  { step: 3, field: 'batchId', api: 'GET /api/batches/dropdown' },
   { step: 4, field: 'centerId', api: 'GET /api/centers/dropdown' },
   {
     step: 5,
@@ -584,7 +584,7 @@ exports.getRecordingCreateForm = async (req, res) => {
       dropdownApis: {
         facultySubjects: '/api/faculty-subjects/dropdown?category=RECORDING',
         folders: '/api/folders?facultySubjectId={facultySubjectId}&category=RECORDING',
-        batches: '/api/batches/dropdown?facultySubjectId={facultySubjectId}',
+        batches: '/api/batches/dropdown',
         centers: '/api/centers/dropdown',
         topics: '/api/recordings/topics-dropdown?batchId={batchId}&facultySubjectId={facultySubjectId}'
       },
@@ -637,8 +637,7 @@ exports.getRecordingCreateForm = async (req, res) => {
           .sort({ folderName: 1 })
           .lean(),
         Batch.find({
-          facultySubjects: facultySubjectId,
-          status: { $in: ['ACTIVE', 'UPCOMING'] },
+          status: 'ACTIVE',
           ...NOT_DELETED
         })
           .select('_id batchId batchName')
